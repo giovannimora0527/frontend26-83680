@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import Swal from 'sweetalert2';
+import { Mascota } from 'src/app/models/mascota';
+import { MascotaService } from './service/mascota.service';
 
 
 
@@ -11,18 +13,30 @@ import Swal from 'sweetalert2';
   styleUrl: './mascota.component.scss'
 })
 export class MascotaComponent {
+  titleComponent: string = "Aqui puedes gestionar la información de las mascotas registradas en el sistema";
+  mascotas: Mascota[] = [];
 
-  titulo: string = "Titulo perzonalizado de mascotas";
-  cantCiclos: number = 3;
-  ciclos: number[] = Array.from({ length: this.cantCiclos }, (_, index) => index + 1);
+  constructor(private readonly mascotaService: MascotaService) {
+    this.listar();
+  }
 
-  saludar() {
-    Swal.fire({
-      title: '¡Hola!',
-      text: 'Saludando a mascotas',
-      icon: 'success',
-      confirmButtonText: 'Aceptar'
+
+  listar(): void {
+    this.mascotaService.listar().subscribe({
+      next: (data) => {
+        this.mascotas = data;
+        console.log(this.mascotas);
+      },
+      error: (error) => {
+        /* Swal.fire({
+          title: 'Error',
+          text: error.message,
+          icon: 'error',
+        }); */
+      },
     });
   }
+
+
 
 }
