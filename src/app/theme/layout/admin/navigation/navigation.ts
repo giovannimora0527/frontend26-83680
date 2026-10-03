@@ -38,6 +38,14 @@ export const NavigationItems: NavigationItem[] = [
         classes: 'nav-item'
       },
       /* ---------- Nuevos menus aqui -------------  */ 
+      {
+        id: 'medicos',
+        title: 'Gestión de Medicos',
+        type: 'item',
+        url: '/inicio/medicos',
+        icon: 'feather icon-users',
+        classes: 'nav-item'
+      },
     ]
   },  
 ];
