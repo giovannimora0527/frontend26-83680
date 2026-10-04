@@ -1,0 +1,109 @@
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-header">
+      <div class="row">
+        <div class="col col-md-9">
+          <input
+            class="form-control"
+            placeholder="Buscar historia médica"
+            type="text"
+            (input)="actualizarBusqueda($event)"
+          />
+        </div>
+        <div class="col col-md-3 text-end">
+          <button
+            class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
+            (click)="nuevaHistoria('C')"
+            title="Agregar historia médica"
+          >
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            &nbsp; Nuevo
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="table table-responsive table-condensed col col-md-12">
+          <table class="table table-stripped table-condensed table-responsive">
+            <thead>
+              <tr>
+                <th class="text-center">ID</th>
+                <th class="text-center">Paciente ID</th>
+                <th class="text-center">Fecha Creación</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody *ngIf="listHistorias.length === 0">
+              <tr>
+                <td colspan="4" class="text-center">No hay historias médicas registradas</td>
+              </tr>
+            </tbody>
+            <tbody *ngIf="listHistorias.length > 0 && historiasFiltradas.length === 0">
+              <tr>
+                <td colspan="4" class="text-center">No se encontraron historias médicas</td>
+              </tr>
+            </tbody>
+            <tbody *ngIf="historiasFiltradas.length > 0">
+              <tr *ngFor="let historia of historiasPaginadas">
+                <td class="text-center">{{ historia.id }}</td>
+                <td class="text-center">Paciente #{{ historia.pacienteId }}</td>
+                <td class="text-center">{{ historia.fechaCreacion | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td class="text-center">
+                  <button
+                    class="btn btn-outline-info d-inline-flex align-items-center justify-content-center"
+                    (click)="abrirEdicion(historia)"
+                  >
+                    <i class="fa fa-edit"></i>&nbsp;Editar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <nav *ngIf="totalPaginas > 1" aria-label="Paginación de historias médicas">
+        <ul class="pagination justify-content-end mb-0">
+          <li class="page-item" [class.disabled]="paginaActual === 1">
+            <button class="page-link" type="button" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+              Anterior
+            </button>
+          </li>
+          <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
+            <button class="page-link" type="button" [attr.aria-current]="pagina === paginaActual ? 'page' : null" (click)="cambiarPagina(pagina)">
+              {{ pagina }}
+            </button>
+          </li>
+          <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+            <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+              Siguiente
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalCrearHistoriaMedica" tabindex="-1" aria-labelledby="modalCrearHistoriaMedicaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="modalCrearHistoriaMedicaLabel">{{ titleModal }}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card">
+          <div class="card-body">
+            <p *ngIf="historiaSelected">Historia Médica #{{ historiaSelected.id }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeModal()">Cerrar</button>
+        <button type="button" class="btn btn-primary">{{ titleBoton }}</button>
+      </div>
+    </div>
+  </div>
+</div>

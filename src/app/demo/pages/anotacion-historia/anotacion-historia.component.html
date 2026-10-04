@@ -1,0 +1,115 @@
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-header">
+      <div class="row">
+        <div class="col col-md-9">
+          <input
+            class="form-control"
+            placeholder="Buscar anotación"
+            type="text"
+            (input)="actualizarBusqueda($event)"
+          />
+        </div>
+        <div class="col col-md-3 text-end">
+          <button
+            class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
+            (click)="nuevaAnotacion('C')"
+            title="Agregar anotación"
+          >
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            &nbsp; Nuevo
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="table table-responsive table-condensed col col-md-12">
+          <table class="table table-stripped table-condensed table-responsive">
+            <thead>
+              <tr>
+                <th class="text-center">ID</th>
+                <th class="text-center">Historia ID</th>
+                <th class="text-center">Médico</th>
+                <th class="text-center">Fecha</th>
+                <th class="text-center">Descripción</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody *ngIf="listAnotaciones.length === 0">
+              <tr>
+                <td colspan="6" class="text-center">No hay anotaciones registradas</td>
+              </tr>
+            </tbody>
+            <tbody *ngIf="listAnotaciones.length > 0 && anotacionesFiltradas.length === 0">
+              <tr>
+                <td colspan="6" class="text-center">No se encontraron anotaciones</td>
+              </tr>
+            </tbody>
+            <tbody *ngIf="anotacionesFiltradas.length > 0">
+              <tr *ngFor="let anotacion of anotacionesPaginadas">
+                <td class="text-center">{{ anotacion.id }}</td>
+                <td class="text-center">Historia #{{ anotacion.historiaId ?? '-' }}</td>
+                <td class="text-center">
+                  {{ anotacion.medico ? anotacion.medico.nombres + ' ' + anotacion.medico.apellidos : 'Médico #' + (anotacion.medicoId ?? '-') }}
+                </td>
+                <td class="text-center">{{ anotacion.fecha | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td class="text-center">{{ anotacion.descripcion }}</td>
+                <td class="text-center">
+                  <button
+                    class="btn btn-outline-info d-inline-flex align-items-center justify-content-center"
+                    (click)="abrirEdicion(anotacion)"
+                  >
+                    <i class="fa fa-edit"></i>&nbsp;Editar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <nav *ngIf="totalPaginas > 1" aria-label="Paginación de anotaciones">
+        <ul class="pagination justify-content-end mb-0">
+          <li class="page-item" [class.disabled]="paginaActual === 1">
+            <button class="page-link" type="button" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+              Anterior
+            </button>
+          </li>
+          <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
+            <button class="page-link" type="button" [attr.aria-current]="pagina === paginaActual ? 'page' : null" (click)="cambiarPagina(pagina)">
+              {{ pagina }}
+            </button>
+          </li>
+          <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+            <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+              Siguiente
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalCrearAnotacion" tabindex="-1" aria-labelledby="modalCrearAnotacionLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="modalCrearAnotacionLabel">{{ titleModal }}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card">
+          <div class="card-body">
+            <p *ngIf="anotacionSelected">Anotación #{{ anotacionSelected.id }} - {{ anotacionSelected.descripcion }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeModal()">Cerrar</button>
+        <button type="button" class="btn btn-primary">{{ titleBoton }}</button>
+      </div>
+    </div>
+  </div>
+</div>

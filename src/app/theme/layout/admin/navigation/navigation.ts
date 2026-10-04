@@ -14,6 +14,7 @@ export interface NavigationItem {
 
   children?: NavigationItem[];
 }
+
 export const NavigationItems: NavigationItem[] = [
   {
     id: 'navigation',
@@ -34,7 +35,7 @@ export const NavigationItems: NavigationItem[] = [
         title: 'Gestión de Mascotas',
         type: 'item',
         url: '/inicio/mascotas',
-        icon: 'feather icon-user',
+        icon: 'feather icon-heart',
         classes: 'nav-item'
       },
       /* ---------- Nuevos menus aqui -------------  */ 
@@ -44,6 +45,46 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/medicos',
         icon: 'feather icon-users',
+        classes: 'nav-item'
+      },
+      {
+        id: 'medicamentos',
+        title: 'Gestión de Medicamentos',
+        type: 'item',
+        url: '/inicio/medicamentos',
+        icon: 'feather icon-package',
+        classes: 'nav-item'
+      },
+      {
+        id: 'citas',
+        title: 'Gestión de Citas',
+        type: 'item',
+        url: '/inicio/citas',
+        icon: 'feather icon-calendar',
+        classes: 'nav-item'
+      },
+      {
+        id: 'formulas-medicas',
+        title: 'Gestión de Fórmulas Médicas',
+        type: 'item',
+        url: '/inicio/formulas-medicas',
+        icon: 'feather icon-file-text',
+        classes: 'nav-item'
+      },
+      {
+        id: 'historias-medicas',
+        title: 'Gestión de Historias Médicas',
+        type: 'item',
+        url: '/inicio/historias-medicas',
+        icon: 'feather icon-clipboard',
+        classes: 'nav-item'
+      },
+      {
+        id: 'anotaciones-historia',
+        title: 'Gestión de Anotaciones de Historia',
+        type: 'item',
+        url: '/inicio/anotaciones-historia',
+        icon: 'feather icon-edit',
         classes: 'nav-item'
       },
     ]
