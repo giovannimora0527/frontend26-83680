@@ -1,0 +1,54 @@
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-3"><i class="feather icon-award"></i>&nbsp;Gestión de Especializaciones</h5>
+            <input class="form-control" placeholder="Buscar especialización" type="text"
+                (input)="actualizarBusqueda($event)" />
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                                <th class="text-center">Código</th>
+                                <th class="text-center">Nombre</th>
+                                <th class="text-center">Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody *ngIf="listEspecializacions.length === 0">
+                        <tr>
+                            <td colspan="3" class="text-center">No hay especializaciones registrados</td>
+                        </tr>
+                    </tbody>
+                    <tbody *ngIf="listEspecializacions.length > 0 && especializacionFiltrados.length === 0">
+                        <tr>
+                            <td colspan="3" class="text-center">No se encontraron resultados</td>
+                        </tr>
+                    </tbody>
+                    <tbody *ngIf="especializacionFiltrados.length > 0">
+                        <tr *ngFor="let item of especializacionPaginados">
+                                <td class="text-center">{{ item.codigoEspecializacion }}</td>
+                                <td class="text-center">{{ item.nombre }}</td>
+                                <td class="text-center">{{ item.descripcion }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav *ngIf="totalPaginas > 1" aria-label="Paginación de especializaciones">
+                <ul class="pagination justify-content-end mb-0">
+                    <li class="page-item" [class.disabled]="paginaActual === 1">
+                        <button class="page-link" type="button" [disabled]="paginaActual === 1"
+                            (click)="cambiarPagina(paginaActual - 1)">Anterior</button>
+                    </li>
+                    <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
+                        <button class="page-link" type="button" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+                    </li>
+                    <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+                        <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas"
+                            (click)="cambiarPagina(paginaActual + 1)">Siguiente</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>

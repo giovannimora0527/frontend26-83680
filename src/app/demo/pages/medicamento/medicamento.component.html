@@ -1,0 +1,52 @@
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-3"><i class="feather icon-package"></i>&nbsp;Gestión de Medicamentos</h5>
+            <input class="form-control" placeholder="Buscar medicamento" type="text"
+                (input)="actualizarBusqueda($event)" />
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                                <th class="text-center">Nombre</th>
+                                <th class="text-center">Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody *ngIf="listMedicamentos.length === 0">
+                        <tr>
+                            <td colspan="2" class="text-center">No hay medicamentos registrados</td>
+                        </tr>
+                    </tbody>
+                    <tbody *ngIf="listMedicamentos.length > 0 && medicamentoFiltrados.length === 0">
+                        <tr>
+                            <td colspan="2" class="text-center">No se encontraron resultados</td>
+                        </tr>
+                    </tbody>
+                    <tbody *ngIf="medicamentoFiltrados.length > 0">
+                        <tr *ngFor="let item of medicamentoPaginados">
+                                <td class="text-center">{{ item.nombre }}</td>
+                                <td class="text-center">{{ item.descripcion }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav *ngIf="totalPaginas > 1" aria-label="Paginación de medicamentos">
+                <ul class="pagination justify-content-end mb-0">
+                    <li class="page-item" [class.disabled]="paginaActual === 1">
+                        <button class="page-link" type="button" [disabled]="paginaActual === 1"
+                            (click)="cambiarPagina(paginaActual - 1)">Anterior</button>
+                    </li>
+                    <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
+                        <button class="page-link" type="button" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+                    </li>
+                    <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+                        <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas"
+                            (click)="cambiarPagina(paginaActual + 1)">Siguiente</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>

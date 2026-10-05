@@ -1,0 +1,52 @@
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-3"><i class="feather icon-tag"></i>&nbsp;Gestión de Razas</h5>
+            <input class="form-control" placeholder="Buscar raza" type="text"
+                (input)="actualizarBusqueda($event)" />
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                                <th class="text-center">Especie</th>
+                                <th class="text-center">Nombre de la raza</th>
+                        </tr>
+                    </thead>
+                    <tbody *ngIf="listRazas.length === 0">
+                        <tr>
+                            <td colspan="2" class="text-center">No hay razas registrados</td>
+                        </tr>
+                    </tbody>
+                    <tbody *ngIf="listRazas.length > 0 && razaFiltrados.length === 0">
+                        <tr>
+                            <td colspan="2" class="text-center">No se encontraron resultados</td>
+                        </tr>
+                    </tbody>
+                    <tbody *ngIf="razaFiltrados.length > 0">
+                        <tr *ngFor="let item of razaPaginados">
+                                <td class="text-center">{{ item.especie }}</td>
+                                <td class="text-center">{{ item.nombre }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav *ngIf="totalPaginas > 1" aria-label="Paginación de razas">
+                <ul class="pagination justify-content-end mb-0">
+                    <li class="page-item" [class.disabled]="paginaActual === 1">
+                        <button class="page-link" type="button" [disabled]="paginaActual === 1"
+                            (click)="cambiarPagina(paginaActual - 1)">Anterior</button>
+                    </li>
+                    <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
+                        <button class="page-link" type="button" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+                    </li>
+                    <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+                        <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas"
+                            (click)="cambiarPagina(paginaActual + 1)">Siguiente</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
