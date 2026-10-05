@@ -1,3 +1,4 @@
+import { CitaComponent } from './demo/pages/cita/cita.component';
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 import { AdminComponent } from './theme/layout/admin/admin.component';
@@ -19,8 +20,8 @@ export const routes: Routes = [
     children: [      
       { path: 'usuarios', component: UsuarioComponent, data: { title: 'Usuarios' }},
       { path: 'mascotas', component: MascotaComponent, data: { title: 'Mascotas' }},
-      { path: 'medicos', component: MedicoComponent, data: { title: 'Medicos' }}  
-      /* Inserte nuevos menus aqui */    
+      { path: 'medicos', component: MedicoComponent, data: { title: 'Medicos' }},  
+      { path: 'citas', component: CitaComponent, data: { title: 'Citas' }}
     ]
   },
   { path: '**', redirectTo: 'inicio' }

@@ -46,6 +46,15 @@ export const NavigationItems: NavigationItem[] = [
         icon: 'feather icon-users',
         classes: 'nav-item'
       },
+
+          {
+      id: 'citas',
+      title: 'Gestión de Citas',
+      type: 'item',
+      url: '/inicio/citas',
+      icon: 'feather icon-calendar',
+      classes: 'nav-item'
+    },
     ]
   },  
 ];
