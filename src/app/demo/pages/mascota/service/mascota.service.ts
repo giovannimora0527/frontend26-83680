@@ -10,11 +10,21 @@ import { environment } from 'src/environments/environment';
 export class MascotaService {
   private api = `mascota`;
 
-  constructor(private readonly backendService: BackendService) { }
+  constructor(private backendService: BackendService) {
+    
+  }
 
-
-  listar(): Observable<Mascota[]> {
+  listarMascotas(): Observable<Mascota[]> {
     return this.backendService.get(environment.apiUrlAuth, this.api, "listar");
+  }
+
+  crearMascota(mascota: Mascota): Observable<unknown> {
+    return this.backendService.post(environment.apiUrlAuth, this.api, "guardar", mascota);
+  }
+
+  actualizarMascota(mascota: Mascota): Observable<unknown> {
+    console.log('Actualizando mascota:', mascota);
+    return this.backendService.post(environment.apiUrlAuth, this.api, "actualizar", mascota);
   }
 
 }
