@@ -1,0 +1,363 @@
+<div class="row">
+
+  <!-- FORMULARIO -->
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Gestión de Fórmulas Médicas
+        </h5>
+
+        <span>
+          Registre los medicamentos formulados para cada cita.
+        </span>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- MENSAJE DE ÉXITO -->
+
+        <div
+          *ngIf="mensaje"
+          class="alert alert-success"
+        >
+          {{ mensaje }}
+        </div>
+
+
+        <!-- MENSAJE DE ERROR -->
+
+        <div
+          *ngIf="error"
+          class="alert alert-danger"
+        >
+          {{ error }}
+        </div>
+
+
+        <form
+          (ngSubmit)="guardar()"
+          #formulaForm="ngForm"
+        >
+
+          <div class="row">
+
+            <!-- CITA -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="citaId">
+                  Cita
+                </label>
+
+                <select
+                  id="citaId"
+                  name="citaId"
+                  class="form-control"
+                  [(ngModel)]="formula.citaId"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione una cita
+                  </option>
+
+                  <option
+                    *ngFor="let cita of citas"
+                    [ngValue]="cita.id"
+                  >
+                    {{ obtenerDescripcionCita(cita.id) }}
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            <!-- MEDICAMENTO -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="medicamentoId">
+                  Medicamento
+                </label>
+
+                <select
+                  id="medicamentoId"
+                  name="medicamentoId"
+                  class="form-control"
+                  [(ngModel)]="formula.medicamentoId"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione un medicamento
+                  </option>
+
+                  <option
+                    *ngFor="let medicamento of medicamentos"
+                    [ngValue]="medicamento.id"
+                  >
+                    {{ medicamento.nombre }}
+                    -
+                    {{ medicamento.presentacion }}
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            <!-- DOSIS -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="dosis">
+                  Dosis
+                </label>
+
+                <input
+                  id="dosis"
+                  type="text"
+                  name="dosis"
+                  class="form-control"
+                  placeholder="Ejemplo: 1 tableta cada 8 horas"
+                  [(ngModel)]="formula.dosis"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+
+            <!-- INDICACIONES -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="indicaciones">
+                  Indicaciones
+                </label>
+
+                <input
+                  id="indicaciones"
+                  type="text"
+                  name="indicaciones"
+                  class="form-control"
+                  placeholder="Ejemplo: Administrar después de comer"
+                  [(ngModel)]="formula.indicaciones"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- BOTONES -->
+
+          <div class="mt-3">
+
+            <button
+              type="submit"
+              class="btn btn-primary mr-2"
+              [disabled]="formulaForm.invalid"
+            >
+              {{ editando ? 'Actualizar' : 'Guardar' }}
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="limpiar()"
+            >
+              Limpiar
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- LISTADO -->
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Fórmulas Médicas Registradas
+        </h5>
+
+      </div>
+
+
+      <div class="card-body">
+
+        <!-- BUSCADOR -->
+
+        <div class="form-group">
+
+          <label for="buscar">
+            Buscar
+          </label>
+
+          <input
+            id="buscar"
+            type="text"
+            class="form-control"
+            placeholder="Buscar por cita, medicamento, dosis o indicaciones..."
+            [(ngModel)]="busqueda"
+            name="busqueda"
+          >
+
+        </div>
+
+
+        <!-- TABLA -->
+
+        <div class="table-responsive">
+
+          <table
+            class="table table-bordered table-hover"
+          >
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Cita
+                </th>
+
+                <th>
+                  Medicamento
+                </th>
+
+                <th>
+                  Dosis
+                </th>
+
+                <th>
+                  Indicaciones
+                </th>
+
+                <th>
+                  Fecha de creación
+                </th>
+
+                <th>
+                  Acciones
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              <tr
+                *ngFor="let formula of formulasFiltradas"
+              >
+
+                <td>
+                  {{ formula.id }}
+                </td>
+
+                <td>
+                  {{ obtenerDescripcionCita(formula.citaId) }}
+                </td>
+
+                <td>
+                  {{ obtenerNombreMedicamento(formula.medicamentoId) }}
+                </td>
+
+                <td>
+                  {{ formula.dosis }}
+                </td>
+
+                <td>
+                  {{ formula.indicaciones }}
+                </td>
+
+                <td>
+                  {{ formula.fechaCreacionRegistro | date:'dd/MM/yyyy HH:mm' }}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm"
+                    (click)="editar(formula)"
+                  >
+                    Editar
+                  </button>
+
+                </td>
+
+              </tr>
+
+
+              <tr
+                *ngIf="formulasFiltradas.length === 0"
+              >
+
+                <td
+                  colspan="7"
+                  class="text-center"
+                >
+                  No hay fórmulas médicas registradas.
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

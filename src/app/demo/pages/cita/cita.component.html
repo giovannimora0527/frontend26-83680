@@ -1,0 +1,496 @@
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Gestión de Citas
+        </h5>
+
+        <span>
+          Registre y administre las citas de la clínica veterinaria.
+        </span>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- MENSAJE DE ÉXITO -->
+
+        <div
+          *ngIf="mensaje"
+          class="alert alert-success"
+        >
+          {{ mensaje }}
+        </div>
+
+        <!-- MENSAJE DE ERROR -->
+
+        <div
+          *ngIf="error"
+          class="alert alert-danger"
+        >
+          {{ error }}
+        </div>
+
+        <!-- FORMULARIO -->
+
+        <form
+          (ngSubmit)="guardarCita()"
+          #citaForm="ngForm"
+        >
+
+          <div class="row">
+
+            <!-- CLIENTE -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="clienteId">
+                  Cliente
+                </label>
+
+                <select
+                  id="clienteId"
+                  name="clienteId"
+                  class="form-control"
+                  [(ngModel)]="citaFormulario.clienteId"
+                  (change)="cargarMascotasPorCliente()"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione un cliente
+                  </option>
+
+                  <option
+                    *ngFor="let cliente of clientes"
+                    [ngValue]="cliente.clienteId"
+                  >
+
+                    {{ cliente.nombres }}
+                    {{ cliente.apellidos }}
+
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+            <!-- MASCOTA -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="mascotaId">
+                  Mascota
+                </label>
+
+                <select
+                  id="mascotaId"
+                  name="mascotaId"
+                  class="form-control"
+                  [(ngModel)]="citaFormulario.mascotaId"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione una mascota
+                  </option>
+
+                  <option
+                    *ngFor="let mascota of mascotas"
+                    [ngValue]="mascota.mascotaId"
+                  >
+
+                    {{ mascota.nombreMascota }}
+
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="row">
+
+            <!-- MÉDICO -->
+
+            <div class="col-md-4">
+
+              <div class="form-group">
+
+                <label for="medicoId">
+                  ID del médico
+                </label>
+
+                <input
+                  type="number"
+                  id="medicoId"
+                  name="medicoId"
+                  class="form-control"
+                  placeholder="Ej: 1"
+                  min="1"
+                  [(ngModel)]="citaFormulario.medicoId"
+                  required
+                >
+
+                <small class="form-text text-muted">
+                  Actualmente se registra mediante el ID del médico.
+                </small>
+
+              </div>
+
+            </div>
+
+            <!-- FECHA Y HORA -->
+
+            <div class="col-md-4">
+
+              <div class="form-group">
+
+                <label for="fechaHora">
+                  Fecha y hora
+                </label>
+
+                <input
+                  type="datetime-local"
+                  id="fechaHora"
+                  name="fechaHora"
+                  class="form-control"
+                  [(ngModel)]="citaFormulario.fechaHora"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+            <!-- ESTADO -->
+
+            <div class="col-md-4">
+
+              <div class="form-group">
+
+                <label for="estado">
+                  Estado
+                </label>
+
+                <select
+                  id="estado"
+                  name="estado"
+                  class="form-control"
+                  [(ngModel)]="citaFormulario.estado"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione un estado
+                  </option>
+
+                  <option
+                    *ngFor="let estado of estados"
+                    [ngValue]="estado"
+                  >
+
+                    {{ estado }}
+
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- MOTIVO -->
+
+          <div class="row">
+
+            <div class="col-md-12">
+
+              <div class="form-group">
+
+                <label for="motivo">
+                  Motivo de la cita
+                </label>
+
+                <textarea
+                  id="motivo"
+                  name="motivo"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Describa el motivo de la cita"
+                  [(ngModel)]="citaFormulario.motivo"
+                  required
+                ></textarea>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- BOTONES -->
+
+          <div class="form-group">
+
+            <button
+              type="submit"
+              class="btn btn-primary mr-2"
+            >
+
+              <i
+                class="feather"
+                [ngClass]="
+                  modoEdicion
+                    ? 'icon-edit'
+                    : 'icon-save'
+                "
+              ></i>
+
+              {{ modoEdicion ? 'Actualizar' : 'Guardar' }}
+
+            </button>
+
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              *ngIf="modoEdicion"
+              (click)="limpiarFormulario()"
+            >
+
+              <i class="feather icon-x"></i>
+
+              Cancelar
+
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- LISTADO -->
+
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Lista de Citas
+        </h5>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- BUSCADOR -->
+
+        <div class="row mb-3">
+
+          <div class="col-md-8">
+
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Buscar por cliente, mascota, médico, estado o motivo..."
+              [(ngModel)]="terminoBusqueda"
+              (input)="buscarCitas()"
+              name="busquedaCitas"
+            >
+
+          </div>
+
+        </div>
+
+
+        <!-- TABLA -->
+
+        <div class="table-responsive">
+
+          <table
+            class="table table-hover table-bordered"
+          >
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Cliente
+                </th>
+
+                <th>
+                  Mascota
+                </th>
+
+                <th>
+                  Médico
+                </th>
+
+                <th>
+                  Fecha y hora
+                </th>
+
+                <th>
+                  Estado
+                </th>
+
+                <th>
+                  Motivo
+                </th>
+
+                <th>
+                  Acción
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              <tr
+                *ngFor="
+                  let cita of citasFiltradas
+                "
+              >
+
+                <td>
+                  {{ cita.id }}
+                </td>
+
+                <td>
+                  {{ obtenerNombreCliente(cita.clienteId) }}
+                </td>
+
+                <td>
+                  {{ obtenerNombreMascota(cita.mascotaId) }}
+                </td>
+
+                <td>
+                  {{ cita.medicoId }}
+                </td>
+
+                <td>
+                  {{ cita.fechaHora | date:'dd/MM/yyyy HH:mm' }}
+                </td>
+
+                <td>
+
+                  <span
+                    class="badge"
+                    [ngClass]="{
+                      'badge-warning':
+                        cita.estado === 'PENDIENTE',
+
+                      'badge-primary':
+                        cita.estado === 'CONFIRMADA',
+
+                      'badge-success':
+                        cita.estado === 'ATENDIDA',
+
+                      'badge-danger':
+                        cita.estado === 'CANCELADA'
+                    }"
+                  >
+
+                    {{ cita.estado }}
+
+                  </span>
+
+                </td>
+
+                <td>
+                  {{ cita.motivo }}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm"
+                    (click)="editarCita(cita)"
+                  >
+
+                    <i class="feather icon-edit"></i>
+
+                    Editar
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+
+              <tr
+                *ngIf="
+                  citasFiltradas.length === 0
+                "
+              >
+
+                <td
+                  colspan="8"
+                  class="text-center"
+                >
+
+                  No se encontraron citas.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

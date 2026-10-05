@@ -1,0 +1,317 @@
+<div class="row">
+
+  <!-- FORMULARIO -->
+  <div class="col-md-12">
+    <div class="card">
+
+      <div class="card-header">
+        <h5>
+          {{ modoEdicion ? 'Editar mascota' : 'Registrar mascota' }}
+        </h5>
+      </div>
+
+      <div class="card-body">
+
+        <!-- MENSAJE DE ÉXITO -->
+        <div
+          *ngIf="mensaje"
+          class="alert alert-success"
+          role="alert">
+          {{ mensaje }}
+        </div>
+
+        <!-- MENSAJE DE ERROR -->
+        <div
+          *ngIf="error"
+          class="alert alert-danger"
+          role="alert">
+          {{ error }}
+        </div>
+
+        <div class="row">
+
+          <!-- NOMBRE -->
+          <div class="col-md-6">
+            <div class="form-group">
+
+              <label for="nombreMascota">
+                Nombre de la mascota
+              </label>
+
+              <input
+                type="text"
+                id="nombreMascota"
+                class="form-control"
+                placeholder="Ej: Max"
+                [(ngModel)]="mascotaFormulario.nombreMascota"
+                maxlength="100">
+
+            </div>
+          </div>
+
+          <!-- EDAD -->
+          <div class="col-md-6">
+            <div class="form-group">
+
+              <label for="edad">
+                Edad
+              </label>
+
+              <input
+                type="number"
+                id="edad"
+                class="form-control"
+                placeholder="Ej: 4"
+                min="0"
+                [(ngModel)]="mascotaFormulario.edad">
+
+            </div>
+          </div>
+
+          <!-- CLIENTE -->
+          <div class="col-md-6">
+            <div class="form-group">
+
+              <label for="cliente">
+                Cliente
+              </label>
+
+              <select
+                id="cliente"
+                class="form-control"
+                [ngModel]="mascotaFormulario.cliente?.clienteId"
+                (ngModelChange)="seleccionarCliente($event)">
+
+                <option [ngValue]="undefined">
+                  Seleccione un cliente
+                </option>
+
+                <option
+                  *ngFor="let cliente of clientes"
+                  [ngValue]="cliente.clienteId">
+
+                  {{ cliente.nombres }}
+                  {{ cliente.apellidos }}
+
+                  -
+                  {{ cliente.numeroDocumento }}
+
+                </option>
+
+              </select>
+
+            </div>
+          </div>
+
+          <!-- RAZA -->
+          <div class="col-md-6">
+            <div class="form-group">
+
+              <label for="raza">
+                Raza
+              </label>
+
+              <select
+                id="raza"
+                class="form-control"
+                [ngModel]="mascotaFormulario.raza?.razaId"
+                (ngModelChange)="seleccionarRaza($event)">
+
+                <option [ngValue]="undefined">
+                  Seleccione una raza
+                </option>
+
+                <option
+                  *ngFor="let raza of razas"
+                  [ngValue]="raza.razaId">
+
+                  {{ raza.nombre }}
+                  -
+                  {{ raza.especie }}
+
+                </option>
+
+              </select>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BOTONES -->
+        <div class="mt-3">
+
+          <button
+            type="button"
+            class="btn btn-primary mr-2"
+            (click)="guardarMascota()">
+
+            <i class="feather icon-save"></i>
+
+            {{ modoEdicion ? 'Actualizar mascota' : 'Crear mascota' }}
+
+          </button>
+
+          <button
+            *ngIf="modoEdicion"
+            type="button"
+            class="btn btn-secondary"
+            (click)="limpiarFormulario()">
+
+            <i class="feather icon-x"></i>
+
+            Cancelar
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- LISTADO -->
+  <div class="col-md-12">
+    <div class="card">
+
+      <div class="card-header">
+
+        <div class="row align-items-center">
+
+          <div class="col-md-6">
+
+            <h5>
+              Lista de mascotas
+            </h5>
+
+          </div>
+
+          <div class="col-md-6">
+
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Buscar mascota, cliente o raza..."
+              [(ngModel)]="terminoBusqueda"
+              (input)="buscarMascotas()">
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="card-body">
+
+        <div class="table-responsive">
+
+          <table class="table table-hover">
+
+            <thead>
+
+              <tr>
+
+                <th>ID</th>
+
+                <th>Mascota</th>
+
+                <th>Edad</th>
+
+                <th>Cliente</th>
+
+                <th>Documento</th>
+
+                <th>Raza</th>
+
+                <th>Especie</th>
+
+                <th>Acciones</th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              <tr
+                *ngFor="let mascota of mascotasFiltradas">
+
+                <td>
+                  {{ mascota.mascotaId }}
+                </td>
+
+                <td>
+                  <strong>
+                    {{ mascota.nombreMascota }}
+                  </strong>
+                </td>
+
+                <td>
+                  {{ mascota.edad }}
+                </td>
+
+                <td>
+                  {{ mascota.cliente?.nombres }}
+                  {{ mascota.cliente?.apellidos }}
+                </td>
+
+                <td>
+                  {{ mascota.cliente?.numeroDocumento }}
+                </td>
+
+                <td>
+                  {{ mascota.raza?.nombre }}
+                </td>
+
+                <td>
+                  {{ mascota.raza?.especie }}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-warning"
+                    (click)="editarMascota(mascota)">
+
+                    <i class="feather icon-edit"></i>
+
+                    Editar
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+
+              <!-- SIN RESULTADOS -->
+              <tr
+                *ngIf="mascotasFiltradas.length === 0">
+
+                <td
+                  colspan="8"
+                  class="text-center">
+
+                  No hay mascotas para mostrar.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,580 @@
+<div class="card">
+
+  <!-- ==========================================
+       ENCABEZADO
+       ========================================== -->
+
+  <div class="card-header">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+      <div>
+
+        <h5 class="mb-0">
+          Gestión de Clientes
+        </h5>
+
+        <small class="text-muted">
+          Administración de clientes de la clínica
+        </small>
+
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="nuevoCliente()"
+      >
+
+        <i class="ti ti-plus"></i>
+
+        Nuevo Cliente
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================
+       CUERPO
+       ========================================== -->
+
+  <div class="card-body">
+
+
+    <!-- MENSAJE EXITOSO -->
+
+    <div
+      *ngIf="mensaje"
+      class="alert alert-success"
+    >
+
+      {{ mensaje }}
+
+    </div>
+
+
+    <!-- MENSAJE ERROR -->
+
+    <div
+      *ngIf="error"
+      class="alert alert-danger"
+    >
+
+      {{ error }}
+
+    </div>
+
+
+    <!-- ==========================================
+         FORMULARIO
+         ========================================== -->
+
+    <div
+      *ngIf="mostrarFormulario"
+      class="card border mb-4"
+    >
+
+      <div class="card-header">
+
+        <h5 class="mb-0">
+
+          {{ editando
+            ? 'Editar Cliente'
+            : 'Nuevo Cliente'
+          }}
+
+        </h5>
+
+      </div>
+
+
+      <div class="card-body">
+
+        <div class="row">
+
+
+          <!-- TIPO DOCUMENTO -->
+
+          <div class="col-md-4 mb-3">
+
+            <label class="form-label">
+              Tipo de documento *
+            </label>
+
+            <select
+              class="form-select"
+              [(ngModel)]="clienteFormulario.tipoDocumento"
+            >
+
+              <option value="">
+                Seleccione...
+              </option>
+
+              <option value="CC">
+                Cédula de ciudadanía
+              </option>
+
+              <option value="TI">
+                Tarjeta de identidad
+              </option>
+
+              <option value="CE">
+                Cédula de extranjería
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- NUMERO DOCUMENTO -->
+
+          <div class="col-md-4 mb-3">
+
+            <label class="form-label">
+              Número de documento *
+            </label>
+
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="clienteFormulario.numeroDocumento"
+              placeholder="Ej: 100000011"
+            >
+
+          </div>
+
+
+          <!-- USUARIO ID -->
+
+          <div class="col-md-4 mb-3">
+
+            <label class="form-label">
+              Usuario ID
+            </label>
+
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="clienteFormulario.usuarioId"
+              placeholder="Opcional"
+            >
+
+          </div>
+
+
+          <!-- NOMBRES -->
+
+          <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+              Nombres *
+            </label>
+
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="clienteFormulario.nombres"
+              placeholder="Ingrese los nombres"
+            >
+
+          </div>
+
+
+          <!-- APELLIDOS -->
+
+          <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+              Apellidos *
+            </label>
+
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="clienteFormulario.apellidos"
+              placeholder="Ingrese los apellidos"
+            >
+
+          </div>
+
+
+          <!-- FECHA NACIMIENTO -->
+
+          <div class="col-md-4 mb-3">
+
+            <label class="form-label">
+              Fecha de nacimiento *
+            </label>
+
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="clienteFormulario.fechaNacimiento"
+            >
+
+          </div>
+
+
+          <!-- GENERO -->
+
+          <div class="col-md-4 mb-3">
+
+            <label class="form-label">
+              Género
+            </label>
+
+            <select
+              class="form-select"
+              [(ngModel)]="clienteFormulario.genero"
+            >
+
+              <option value="">
+                Seleccione...
+              </option>
+
+              <option value="M">
+                Masculino
+              </option>
+
+              <option value="F">
+                Femenino
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- TELEFONO -->
+
+          <div class="col-md-4 mb-3">
+
+            <label class="form-label">
+              Teléfono
+            </label>
+
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="clienteFormulario.telefono"
+              placeholder="Ej: 3101234567"
+            >
+
+          </div>
+
+
+          <!-- DIRECCION -->
+
+          <div class="col-md-12 mb-3">
+
+            <label class="form-label">
+              Dirección
+            </label>
+
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="clienteFormulario.direccion"
+              placeholder="Dirección del cliente"
+            >
+
+          </div>
+
+        </div>
+
+
+        <!-- BOTONES -->
+
+        <div class="d-flex justify-content-end gap-2">
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="guardando"
+            (click)="cancelarFormulario()"
+          >
+
+            Cancelar
+
+          </button>
+
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="guardando"
+            (click)="guardarCliente()"
+          >
+
+            <span
+              *ngIf="guardando"
+              class="spinner-border spinner-border-sm me-1"
+            ></span>
+
+            {{
+              guardando
+                ? 'Guardando...'
+                : (
+                    editando
+                      ? 'Actualizar Cliente'
+                      : 'Guardar Cliente'
+                  )
+            }}
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ==========================================
+         BUSCADOR
+         ========================================== -->
+
+    <div class="row mb-4">
+
+      <div class="col-md-6">
+
+        <label class="form-label">
+          Buscar cliente
+        </label>
+
+        <div class="input-group">
+
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Nombre, documento o teléfono"
+            [(ngModel)]="terminoBusqueda"
+          >
+
+          <button
+            *ngIf="terminoBusqueda"
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="limpiarBusqueda()"
+          >
+
+            Limpiar
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ==========================================
+         CARGANDO
+         ========================================== -->
+
+    <div
+      *ngIf="cargando"
+      class="text-center py-4"
+    >
+
+      <div
+        class="spinner-border"
+        role="status"
+      ></div>
+
+      <p class="mt-2">
+        Cargando clientes...
+      </p>
+
+    </div>
+
+
+    <!-- ==========================================
+         TABLA
+         ========================================== -->
+
+    <div
+      *ngIf="!cargando"
+      class="table-responsive"
+    >
+
+      <table
+        class="table table-hover table-bordered"
+      >
+
+        <thead>
+
+          <tr>
+
+            <th>ID</th>
+
+            <th>
+              Documento
+            </th>
+
+            <th>
+              Nombre completo
+            </th>
+
+            <th>
+              Fecha nacimiento
+            </th>
+
+            <th>
+              Género
+            </th>
+
+            <th>
+              Teléfono
+            </th>
+
+            <th>
+              Dirección
+            </th>
+
+            <th>
+              Estado
+            </th>
+
+            <th>
+              Acciones
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="let cliente of filtrarClientes()"
+          >
+
+            <!-- ID -->
+
+            <td>
+              {{ cliente.clienteId }}
+            </td>
+
+
+            <!-- DOCUMENTO -->
+
+            <td>
+
+              <strong>
+                {{ cliente.tipoDocumento }}
+              </strong>
+
+              <br>
+
+              {{ cliente.numeroDocumento }}
+
+            </td>
+
+
+            <!-- NOMBRE -->
+
+            <td>
+
+              {{ cliente.nombres }}
+              {{ cliente.apellidos }}
+
+            </td>
+
+
+            <!-- FECHA -->
+
+            <td>
+              {{ cliente.fechaNacimiento }}
+            </td>
+
+
+            <!-- GENERO -->
+
+            <td>
+              {{ cliente.genero }}
+            </td>
+
+
+            <!-- TELEFONO -->
+
+            <td>
+              {{ cliente.telefono }}
+            </td>
+
+
+            <!-- DIRECCION -->
+
+            <td>
+              {{ cliente.direccion }}
+            </td>
+
+
+            <!-- ESTADO -->
+
+            <td>
+
+              <span
+                [class]="cliente.activo
+                  ? 'badge bg-success'
+                  : 'badge bg-danger'"
+              >
+
+                {{
+                  cliente.activo
+                    ? 'Activo'
+                    : 'Inactivo'
+                }}
+
+              </span>
+
+            </td>
+
+
+            <!-- ACCIONES -->
+
+            <td>
+
+              <button
+                type="button"
+                class="btn btn-sm btn-warning"
+                (click)="editarCliente(cliente)"
+              >
+
+                <i class="ti ti-edit"></i>
+
+                Editar
+
+              </button>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+
+      <!-- SIN RESULTADOS -->
+
+      <div
+        *ngIf="filtrarClientes().length === 0"
+        class="alert alert-info"
+      >
+
+        No se encontraron clientes.
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

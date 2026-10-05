@@ -1,0 +1,520 @@
+<div class="card">
+
+  <!-- ==========================================
+       ENCABEZADO
+       ========================================== -->
+
+  <div class="card-header">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+      <div>
+
+        <h5 class="mb-0">
+          Gestión de Usuarios
+        </h5>
+
+        <small class="text-muted">
+          Administración de usuarios del sistema
+        </small>
+
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="nuevoUsuario()"
+      >
+
+        <i class="ti ti-plus"></i>
+
+        Nuevo Usuario
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================
+       CUERPO
+       ========================================== -->
+
+  <div class="card-body">
+
+
+    <!-- MENSAJE ÉXITO -->
+
+    <div
+      *ngIf="mensaje"
+      class="alert alert-success"
+    >
+
+      {{ mensaje }}
+
+    </div>
+
+
+    <!-- MENSAJE ERROR -->
+
+    <div
+      *ngIf="error"
+      class="alert alert-danger"
+    >
+
+      {{ error }}
+
+    </div>
+
+
+    <!-- ==========================================
+         FORMULARIO
+         ========================================== -->
+
+    <div
+      *ngIf="mostrarFormulario"
+      class="card border mb-4"
+    >
+
+      <div class="card-header">
+
+        <h5 class="mb-0">
+
+          {{
+            editando
+              ? 'Editar Usuario'
+              : 'Nuevo Usuario'
+          }}
+
+        </h5>
+
+      </div>
+
+
+      <div class="card-body">
+
+        <div class="row">
+
+
+          <!-- USERNAME -->
+
+          <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+              Nombre de usuario *
+            </label>
+
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="usuarioFormulario.username"
+              placeholder="Ej: usuario123"
+            >
+
+          </div>
+
+
+          <!-- ROL -->
+
+          <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+              Rol *
+            </label>
+
+            <select
+              class="form-select"
+              [(ngModel)]="usuarioFormulario.rol"
+            >
+
+              <option value="">
+                Seleccione...
+              </option>
+
+              <option value="ADMIN">
+                Administrador
+              </option>
+
+              <option value="MEDICO">
+                Médico
+              </option>
+
+              <option value="CLIENTE">
+                Cliente
+              </option>
+
+              <option value="RECEPCION">
+                Recepción
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- EMAIL -->
+
+          <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+              Correo electrónico *
+            </label>
+
+            <input
+              type="email"
+              class="form-control"
+              [(ngModel)]="usuarioFormulario.email"
+              placeholder="correo@ejemplo.com"
+            >
+
+          </div>
+
+
+          <!-- PASSWORD HASH -->
+
+          <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+
+              {{
+                editando
+                  ? 'Nuevo password hash (opcional)'
+                  : 'Password hash *'
+              }}
+
+            </label>
+
+            <input
+              type="password"
+              class="form-control"
+              [(ngModel)]="usuarioFormulario.passwordHash"
+              [placeholder]="editando
+                ? 'Dejar vacío para conservar el actual'
+                : 'Ingrese el hash'"
+            >
+
+          </div>
+
+
+          <!-- ESTADO -->
+
+          <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+              Estado
+            </label>
+
+            <select
+              class="form-select"
+              [(ngModel)]="usuarioFormulario.activo"
+            >
+
+              <option [ngValue]="true">
+                Activo
+              </option>
+
+              <option [ngValue]="false">
+                Inactivo
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <!-- BOTONES -->
+
+        <div class="d-flex justify-content-end gap-2">
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="guardando"
+            (click)="cancelarFormulario()"
+          >
+
+            Cancelar
+
+          </button>
+
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="guardando"
+            (click)="guardarUsuario()"
+          >
+
+            <span
+              *ngIf="guardando"
+              class="spinner-border spinner-border-sm me-1"
+            ></span>
+
+            {{
+              guardando
+                ? 'Guardando...'
+                : (
+                    editando
+                      ? 'Actualizar Usuario'
+                      : 'Guardar Usuario'
+                  )
+            }}
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ==========================================
+         BUSCADOR
+         ========================================== -->
+
+    <div class="row mb-4">
+
+      <div class="col-md-6">
+
+        <label class="form-label">
+          Buscar usuario
+        </label>
+
+        <div class="input-group">
+
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Usuario, correo o rol"
+            [(ngModel)]="terminoBusqueda"
+          >
+
+          <button
+            *ngIf="terminoBusqueda"
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="limpiarBusqueda()"
+          >
+
+            Limpiar
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ==========================================
+         CARGANDO
+         ========================================== -->
+
+    <div
+      *ngIf="cargando"
+      class="text-center py-4"
+    >
+
+      <div
+        class="spinner-border"
+        role="status"
+      ></div>
+
+      <p class="mt-2">
+        Cargando usuarios...
+      </p>
+
+    </div>
+
+
+    <!-- ==========================================
+         TABLA
+         ========================================== -->
+
+    <div
+      *ngIf="!cargando"
+      class="table-responsive"
+    >
+
+      <table
+        class="table table-hover table-bordered"
+      >
+
+        <thead>
+
+          <tr>
+
+            <th>
+              ID
+            </th>
+
+            <th>
+              Usuario
+            </th>
+
+            <th>
+              Correo
+            </th>
+
+            <th>
+              Rol
+            </th>
+
+            <th>
+              Fecha creación
+            </th>
+
+            <th>
+              Estado
+            </th>
+
+            <th>
+              Acciones
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="let usuario of filtrarUsuarios()"
+          >
+
+            <!-- ID -->
+
+            <td>
+              {{ usuario.id }}
+            </td>
+
+
+            <!-- USERNAME -->
+
+            <td>
+
+              <strong>
+                {{ usuario.username }}
+              </strong>
+
+            </td>
+
+
+            <!-- EMAIL -->
+
+            <td>
+              {{ usuario.email }}
+            </td>
+
+
+            <!-- ROL -->
+
+            <td>
+
+              <span class="badge bg-info">
+
+                {{ usuario.rol }}
+
+              </span>
+
+            </td>
+
+
+            <!-- FECHA -->
+
+            <td>
+
+              {{ usuario.fechaCreacion }}
+
+            </td>
+
+
+            <!-- ESTADO -->
+
+            <td>
+
+              <span
+                [class]="usuario.activo
+                  ? 'badge bg-success'
+                  : 'badge bg-danger'"
+              >
+
+                {{
+                  usuario.activo
+                    ? 'Activo'
+                    : 'Inactivo'
+                }}
+
+              </span>
+
+            </td>
+
+
+            <!-- ACCIONES -->
+
+            <td>
+
+              <div class="d-flex gap-1">
+
+                <button
+                  type="button"
+                  class="btn btn-sm btn-warning"
+                  (click)="editarUsuario(usuario)"
+                >
+
+                  <i class="ti ti-edit"></i>
+
+                  Editar
+
+                </button>
+
+
+                <button
+                  type="button"
+                  [class]="usuario.activo
+                    ? 'btn btn-sm btn-danger'
+                    : 'btn btn-sm btn-success'"
+                  (click)="cambiarEstado(usuario)"
+                >
+
+                  {{
+                    usuario.activo
+                      ? 'Desactivar'
+                      : 'Activar'
+                  }}
+
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+
+      <!-- SIN RESULTADOS -->
+
+      <div
+        *ngIf="filtrarUsuarios().length === 0"
+        class="alert alert-info"
+      >
+
+        No se encontraron usuarios.
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

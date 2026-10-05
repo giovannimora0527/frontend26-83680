@@ -1,0 +1,489 @@
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Gestión de Médicos
+        </h5>
+
+        <span>
+          Registre y administre los médicos de la clínica veterinaria.
+        </span>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- MENSAJE DE ÉXITO -->
+
+        <div
+          *ngIf="mensaje"
+          class="alert alert-success"
+        >
+          {{ mensaje }}
+        </div>
+
+        <!-- MENSAJE DE ERROR -->
+
+        <div
+          *ngIf="error"
+          class="alert alert-danger"
+        >
+          {{ error }}
+        </div>
+
+        <!-- FORMULARIO -->
+
+        <form
+          (ngSubmit)="guardarMedico()"
+          #medicoForm="ngForm"
+        >
+
+          <div class="row">
+
+            <!-- TIPO DOCUMENTO -->
+
+            <div class="col-md-4">
+
+              <div class="form-group">
+
+                <label for="tipoDocumento">
+                  Tipo de documento
+                </label>
+
+                <select
+                  id="tipoDocumento"
+                  name="tipoDocumento"
+                  class="form-control"
+                  [(ngModel)]="medicoFormulario.tipoDocumento"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione
+                  </option>
+
+                  <option
+                    *ngFor="let tipo of tiposDocumento"
+                    [ngValue]="tipo"
+                  >
+                    {{ tipo }}
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+            <!-- NÚMERO DOCUMENTO -->
+
+            <div class="col-md-8">
+
+              <div class="form-group">
+
+                <label for="numeroDocumento">
+                  Número de documento
+                </label>
+
+                <input
+                  type="text"
+                  id="numeroDocumento"
+                  name="numeroDocumento"
+                  class="form-control"
+                  placeholder="Número de documento"
+                  maxlength="20"
+                  [(ngModel)]="medicoFormulario.numeroDocumento"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="row">
+
+            <!-- NOMBRES -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="nombres">
+                  Nombres
+                </label>
+
+                <input
+                  type="text"
+                  id="nombres"
+                  name="nombres"
+                  class="form-control"
+                  placeholder="Nombres del médico"
+                  maxlength="100"
+                  [(ngModel)]="medicoFormulario.nombres"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+            <!-- APELLIDOS -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="apellidos">
+                  Apellidos
+                </label>
+
+                <input
+                  type="text"
+                  id="apellidos"
+                  name="apellidos"
+                  class="form-control"
+                  placeholder="Apellidos del médico"
+                  maxlength="100"
+                  [(ngModel)]="medicoFormulario.apellidos"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="row">
+
+            <!-- TELÉFONO -->
+
+            <div class="col-md-4">
+
+              <div class="form-group">
+
+                <label for="telefono">
+                  Teléfono
+                </label>
+
+                <input
+                  type="text"
+                  id="telefono"
+                  name="telefono"
+                  class="form-control"
+                  placeholder="Teléfono"
+                  maxlength="20"
+                  [(ngModel)]="medicoFormulario.telefono"
+                >
+
+              </div>
+
+            </div>
+
+            <!-- REGISTRO PROFESIONAL -->
+
+            <div class="col-md-4">
+
+              <div class="form-group">
+
+                <label for="registroProfesional">
+                  Registro profesional
+                </label>
+
+                <input
+                  type="text"
+                  id="registroProfesional"
+                  name="registroProfesional"
+                  class="form-control"
+                  placeholder="Registro profesional"
+                  maxlength="50"
+                  [(ngModel)]="medicoFormulario.registroProfesional"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+            <!-- ESPECIALIZACIÓN -->
+
+            <div class="col-md-4">
+
+              <div class="form-group">
+
+                <label for="especializacionId">
+                  Especialización
+                </label>
+
+                <select
+                  id="especializacionId"
+                  name="especializacionId"
+                  class="form-control"
+                  [ngModel]="medicoFormulario.especializacion?.id"
+                  (ngModelChange)="seleccionarEspecializacion($event)"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione una especialización
+                  </option>
+
+                  <option
+                    *ngFor="
+                      let especializacion
+                      of especializaciones
+                    "
+                    [ngValue]="especializacion.id"
+                  >
+
+                    {{ especializacion.nombre }}
+
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- BOTONES -->
+
+          <div class="form-group">
+
+            <button
+              type="submit"
+              class="btn btn-primary mr-2"
+            >
+
+              <i
+                class="feather"
+                [ngClass]="
+                  modoEdicion
+                    ? 'icon-edit'
+                    : 'icon-save'
+                "
+              ></i>
+
+              {{ modoEdicion ? 'Actualizar' : 'Guardar' }}
+
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              *ngIf="modoEdicion"
+              (click)="limpiarFormulario()"
+            >
+
+              <i class="feather icon-x"></i>
+
+              Cancelar
+
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- LISTADO -->
+
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Lista de Médicos
+        </h5>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- BUSCADOR -->
+
+        <div class="row mb-3">
+
+          <div class="col-md-8">
+
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Buscar por documento, nombre, registro o especialización..."
+              [(ngModel)]="terminoBusqueda"
+              (input)="buscarMedicos()"
+              name="busquedaMedicos"
+            >
+
+          </div>
+
+        </div>
+
+
+        <!-- TABLA -->
+
+        <div class="table-responsive">
+
+          <table
+            class="table table-hover table-bordered"
+          >
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Documento
+                </th>
+
+                <th>
+                  Nombres
+                </th>
+
+                <th>
+                  Apellidos
+                </th>
+
+                <th>
+                  Teléfono
+                </th>
+
+                <th>
+                  Registro profesional
+                </th>
+
+                <th>
+                  Especialización
+                </th>
+
+                <th>
+                  Acción
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              <tr
+                *ngFor="
+                  let medico
+                  of medicosFiltrados
+                "
+              >
+
+                <td>
+                  {{ medico.id }}
+                </td>
+
+                <td>
+                  {{ medico.tipoDocumento }}
+                  {{ medico.numeroDocumento }}
+                </td>
+
+                <td>
+                  {{ medico.nombres }}
+                </td>
+
+                <td>
+                  {{ medico.apellidos }}
+                </td>
+
+                <td>
+                  {{ medico.telefono || 'Sin teléfono' }}
+                </td>
+
+                <td>
+                  {{ medico.registroProfesional }}
+                </td>
+
+                <td>
+                  {{
+                    obtenerNombreEspecializacion(
+                      medico.especializacion
+                    )
+                  }}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm"
+                    (click)="editarMedico(medico)"
+                  >
+
+                    <i class="feather icon-edit"></i>
+
+                    Editar
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+
+              <tr
+                *ngIf="
+                  medicosFiltrados.length === 0
+                "
+              >
+
+                <td
+                  colspan="8"
+                  class="text-center"
+                >
+
+                  No se encontraron médicos.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

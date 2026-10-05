@@ -1,0 +1,405 @@
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Gestión de Medicamentos
+        </h5>
+
+        <span>
+          Registre y administre los medicamentos de la clínica veterinaria.
+        </span>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- MENSAJE DE ÉXITO -->
+
+        <div
+          *ngIf="mensaje"
+          class="alert alert-success"
+        >
+          {{ mensaje }}
+        </div>
+
+        <!-- MENSAJE DE ERROR -->
+
+        <div
+          *ngIf="error"
+          class="alert alert-danger"
+        >
+          {{ error }}
+        </div>
+
+
+        <!-- FORMULARIO -->
+
+        <form
+          (ngSubmit)="guardarMedicamento()"
+          #medicamentoForm="ngForm"
+        >
+
+          <div class="row">
+
+            <!-- NOMBRE -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="nombre">
+                  Nombre
+                </label>
+
+                <input
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  class="form-control"
+                  placeholder="Nombre del medicamento"
+                  [(ngModel)]="medicamentoFormulario.nombre"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+
+            <!-- PRESENTACIÓN -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="presentacion">
+                  Presentación
+                </label>
+
+                <input
+                  type="text"
+                  id="presentacion"
+                  name="presentacion"
+                  class="form-control"
+                  placeholder="Ej: Tabletas, jarabe, gotas..."
+                  [(ngModel)]="medicamentoFormulario.presentacion"
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="row">
+
+            <!-- FECHA COMPRA -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="fechaCompra">
+                  Fecha de compra
+                </label>
+
+                <input
+                  type="date"
+                  id="fechaCompra"
+                  name="fechaCompra"
+                  class="form-control"
+                  [(ngModel)]="medicamentoFormulario.fechaCompra"
+                >
+
+              </div>
+
+            </div>
+
+
+            <!-- FECHA VENCIMIENTO -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="fechaVence">
+                  Fecha de vencimiento
+                </label>
+
+                <input
+                  type="date"
+                  id="fechaVence"
+                  name="fechaVence"
+                  class="form-control"
+                  [(ngModel)]="medicamentoFormulario.fechaVence"
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- DESCRIPCIÓN -->
+
+          <div class="row">
+
+            <div class="col-md-12">
+
+              <div class="form-group">
+
+                <label for="descripcion">
+                  Descripción
+                </label>
+
+                <textarea
+                  id="descripcion"
+                  name="descripcion"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Descripción del medicamento"
+                  [(ngModel)]="medicamentoFormulario.descripcion"
+                ></textarea>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- BOTONES -->
+
+          <div class="form-group">
+
+            <button
+              type="submit"
+              class="btn btn-primary mr-2"
+            >
+
+              <i
+                class="feather"
+                [ngClass]="
+                  modoEdicion
+                    ? 'icon-edit'
+                    : 'icon-save'
+                "
+              ></i>
+
+              {{ modoEdicion ? 'Actualizar' : 'Guardar' }}
+
+            </button>
+
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              *ngIf="modoEdicion"
+              (click)="limpiarFormulario()"
+            >
+
+              <i class="feather icon-x"></i>
+
+              Cancelar
+
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- LISTADO -->
+
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Lista de Medicamentos
+        </h5>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- BUSCADOR -->
+
+        <div class="row mb-3">
+
+          <div class="col-md-8">
+
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Buscar por nombre, descripción o presentación..."
+              [(ngModel)]="terminoBusqueda"
+              (input)="buscarMedicamentos()"
+              name="busquedaMedicamentos"
+            >
+
+          </div>
+
+        </div>
+
+
+        <!-- TABLA -->
+
+        <div class="table-responsive">
+
+          <table
+            class="table table-hover table-bordered"
+          >
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Nombre
+                </th>
+
+                <th>
+                  Descripción
+                </th>
+
+                <th>
+                  Presentación
+                </th>
+
+                <th>
+                  Fecha de compra
+                </th>
+
+                <th>
+                  Fecha de vencimiento
+                </th>
+
+                <th>
+                  Acción
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              <tr
+                *ngFor="
+                  let medicamento
+                  of medicamentosFiltrados
+                "
+              >
+
+                <td>
+                  {{ medicamento.id }}
+                </td>
+
+                <td>
+                  {{ medicamento.nombre }}
+                </td>
+
+                <td>
+                  {{
+                    medicamento.descripcion ||
+                    'Sin descripción'
+                  }}
+                </td>
+
+                <td>
+                  {{
+                    medicamento.presentacion ||
+                    'Sin presentación'
+                  }}
+                </td>
+
+                <td>
+                  {{
+                    medicamento.fechaCompra
+                      ? (medicamento.fechaCompra | date:'dd/MM/yyyy')
+                      : 'No registrada'
+                  }}
+                </td>
+
+                <td>
+                  {{
+                    medicamento.fechaVence
+                      ? (medicamento.fechaVence | date:'dd/MM/yyyy')
+                      : 'No registrada'
+                  }}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm"
+                    (click)="editarMedicamento(medicamento)"
+                  >
+
+                    <i class="feather icon-edit"></i>
+
+                    Editar
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+
+              <tr
+                *ngIf="
+                  medicamentosFiltrados.length === 0
+                "
+              >
+
+                <td
+                  colspan="7"
+                  class="text-center"
+                >
+
+                  No se encontraron medicamentos.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

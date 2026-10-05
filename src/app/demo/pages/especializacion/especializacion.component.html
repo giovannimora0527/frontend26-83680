@@ -1,0 +1,327 @@
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Gestión de Especializaciones
+        </h5>
+
+        <span>
+          Registre y administre las especializaciones veterinarias.
+        </span>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- Mensaje de éxito -->
+
+        <div
+          *ngIf="mensaje"
+          class="alert alert-success"
+        >
+          {{ mensaje }}
+        </div>
+
+        <!-- Mensaje de error -->
+
+        <div
+          *ngIf="error"
+          class="alert alert-danger"
+        >
+          {{ error }}
+        </div>
+
+        <!-- FORMULARIO -->
+
+        <form
+          (ngSubmit)="guardarEspecializacion()"
+          #especializacionForm="ngForm"
+        >
+
+          <div class="row">
+
+            <!-- Nombre -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="nombre">
+                  Nombre de la especialización
+                </label>
+
+                <input
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  class="form-control"
+                  placeholder="Ej: Cardiología Veterinaria"
+                  [(ngModel)]="especializacionFormulario.nombre"
+                  required
+                >
+
+              </div>
+
+            </div>
+
+            <!-- Código -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="codigoEspecializacion">
+                  Código de especialización
+                </label>
+
+                <input
+                  type="text"
+                  id="codigoEspecializacion"
+                  name="codigoEspecializacion"
+                  class="form-control"
+                  placeholder="Ej: CARDIO"
+                  maxlength="10"
+                  [(ngModel)]="
+                    especializacionFormulario.codigoEspecializacion
+                  "
+                  required
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Descripción -->
+
+          <div class="row">
+
+            <div class="col-md-12">
+
+              <div class="form-group">
+
+                <label for="descripcion">
+                  Descripción
+                </label>
+
+                <textarea
+                  id="descripcion"
+                  name="descripcion"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Descripción de la especialización"
+                  [(ngModel)]="
+                    especializacionFormulario.descripcion
+                  "
+                ></textarea>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- BOTONES -->
+
+          <div class="form-group">
+
+            <button
+              type="submit"
+              class="btn btn-primary mr-2"
+            >
+
+              <i
+                class="feather"
+                [ngClass]="
+                  modoEdicion
+                    ? 'icon-edit'
+                    : 'icon-save'
+                "
+              ></i>
+
+              {{ modoEdicion ? 'Actualizar' : 'Guardar' }}
+
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              *ngIf="modoEdicion"
+              (click)="limpiarFormulario()"
+            >
+
+              <i class="feather icon-x"></i>
+
+              Cancelar
+
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- LISTADO -->
+
+<div class="row">
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Lista de Especializaciones
+        </h5>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- BUSCADOR -->
+
+        <div class="row mb-3">
+
+          <div class="col-md-8">
+
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Buscar por nombre, código o descripción..."
+              [(ngModel)]="terminoBusqueda"
+              (input)="buscarEspecializaciones()"
+              name="busqueda"
+            >
+
+          </div>
+
+        </div>
+
+        <!-- TABLA -->
+
+        <div class="table-responsive">
+
+          <table
+            class="table table-hover table-bordered"
+          >
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Código
+                </th>
+
+                <th>
+                  Nombre
+                </th>
+
+                <th>
+                  Descripción
+                </th>
+
+                <th>
+                  Acción
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              <tr
+                *ngFor="
+                  let especializacion
+                  of especializacionesFiltradas
+                "
+              >
+
+                <td>
+                  {{ especializacion.id }}
+                </td>
+
+                <td>
+                  {{ especializacion.codigoEspecializacion }}
+                </td>
+
+                <td>
+                  {{ especializacion.nombre }}
+                </td>
+
+                <td>
+                  {{ especializacion.descripcion || 'Sin descripción' }}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm"
+                    (click)="
+                      editarEspecializacion(
+                        especializacion
+                      )
+                    "
+                  >
+
+                    <i class="feather icon-edit"></i>
+
+                    Editar
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+              <tr
+                *ngIf="
+                  especializacionesFiltradas.length === 0
+                "
+              >
+
+                <td
+                  colspan="5"
+                  class="text-center"
+                >
+
+                  No se encontraron especializaciones.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

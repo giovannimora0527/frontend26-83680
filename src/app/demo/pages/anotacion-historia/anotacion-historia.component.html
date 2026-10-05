@@ -1,0 +1,332 @@
+<div class="row">
+
+  <!-- FORMULARIO -->
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Gestión de Anotaciones de Historia
+        </h5>
+
+        <span>
+          Registre las anotaciones realizadas sobre las historias médicas.
+        </span>
+
+      </div>
+
+      <div class="card-body">
+
+        <!-- MENSAJE DE ÉXITO -->
+
+        <div
+          *ngIf="mensaje"
+          class="alert alert-success"
+        >
+          {{ mensaje }}
+        </div>
+
+
+        <!-- MENSAJE DE ERROR -->
+
+        <div
+          *ngIf="error"
+          class="alert alert-danger"
+        >
+          {{ error }}
+        </div>
+
+
+        <form
+          (ngSubmit)="guardar()"
+          #anotacionForm="ngForm"
+        >
+
+          <div class="row">
+
+            <!-- HISTORIA MÉDICA -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="historiaId">
+                  Historia Médica
+                </label>
+
+                <select
+                  id="historiaId"
+                  name="historiaId"
+                  class="form-control"
+                  [(ngModel)]="anotacion.historiaId"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione una historia médica
+                  </option>
+
+                  <option
+                    *ngFor="let historia of historias"
+                    [ngValue]="historia.id"
+                  >
+                    Historia #{{ historia.id }}
+                    -
+                    Paciente {{ historia.pacienteId }}
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            <!-- MÉDICO -->
+
+            <div class="col-md-6">
+
+              <div class="form-group">
+
+                <label for="medicoId">
+                  Médico
+                </label>
+
+                <select
+                  id="medicoId"
+                  name="medicoId"
+                  class="form-control"
+                  [(ngModel)]="anotacion.medicoId"
+                  required
+                >
+
+                  <option
+                    [ngValue]="undefined"
+                  >
+                    Seleccione un médico
+                  </option>
+
+                  <option
+                    *ngFor="let medico of medicos"
+                    [ngValue]="medico.id"
+                  >
+                    {{ medico.nombres }}
+                    {{ medico.apellidos }}
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            <!-- DESCRIPCIÓN -->
+
+            <div class="col-md-12">
+
+              <div class="form-group">
+
+                <label for="descripcion">
+                  Descripción
+                </label>
+
+                <textarea
+                  id="descripcion"
+                  name="descripcion"
+                  class="form-control"
+                  rows="4"
+                  placeholder="Ingrese la descripción de la anotación..."
+                  [(ngModel)]="anotacion.descripcion"
+                  required
+                ></textarea>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- BOTONES -->
+
+          <div class="mt-3">
+
+            <button
+              type="submit"
+              class="btn btn-primary mr-2"
+              [disabled]="anotacionForm.invalid"
+            >
+              {{ editando ? 'Actualizar' : 'Guardar' }}
+            </button>
+
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="limpiar()"
+            >
+              Limpiar
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- LISTADO -->
+
+  <div class="col-md-12">
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <h5>
+          Anotaciones Registradas
+        </h5>
+
+      </div>
+
+
+      <div class="card-body">
+
+        <!-- BUSCADOR -->
+
+        <div class="form-group">
+
+          <label for="buscar">
+            Buscar
+          </label>
+
+          <input
+            id="buscar"
+            type="text"
+            class="form-control"
+            placeholder="Buscar por médico, historia o descripción..."
+            [(ngModel)]="busqueda"
+            name="busqueda"
+          >
+
+        </div>
+
+
+        <!-- TABLA -->
+
+        <div class="table-responsive">
+
+          <table
+            class="table table-bordered table-hover"
+          >
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Historia
+                </th>
+
+                <th>
+                  Médico
+                </th>
+
+                <th>
+                  Fecha
+                </th>
+
+                <th>
+                  Descripción
+                </th>
+
+                <th>
+                  Acciones
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              <tr
+                *ngFor="let anotacion of anotacionesFiltradas"
+              >
+
+                <td>
+                  {{ anotacion.id }}
+                </td>
+
+                <td>
+                  {{ obtenerHistoria(anotacion) }}
+                </td>
+
+                <td>
+                  {{ obtenerNombreMedico(anotacion.medicoId) }}
+                </td>
+
+                <td>
+                  {{ anotacion.fecha | date:'dd/MM/yyyy HH:mm' }}
+                </td>
+
+                <td>
+                  {{ anotacion.descripcion }}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm"
+                    (click)="editar(anotacion)"
+                  >
+                    Editar
+                  </button>
+
+                </td>
+
+              </tr>
+
+
+              <tr
+                *ngIf="anotacionesFiltradas.length === 0"
+              >
+
+                <td
+                  colspan="6"
+                  class="text-center"
+                >
+                  No hay anotaciones registradas.
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
