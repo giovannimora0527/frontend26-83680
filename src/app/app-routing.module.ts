@@ -2,7 +2,7 @@ import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 import { AdminComponent } from './theme/layout/admin/admin.component';
 import { UsuarioComponent } from './demo/pages/usuario/usuario.component';
-import { MascotaComponent } from './demo/pages/mascota/mascota.component';
+import { MascotaComponent } from './pages/mascota/mascota.component';
 import { MedicoComponent } from './demo/pages/medico/medico.component';
 import { ClientesComponent } from './pages/clientes/clientes.component';
 import { EspecializacionesComponent } from './pages/especializaciones/especializaciones.component';
