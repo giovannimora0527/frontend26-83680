@@ -37,7 +37,7 @@ export const NavigationItems: NavigationItem[] = [
         icon: 'feather icon-user',
         classes: 'nav-item'
       },
-      /* ---------- Nuevos menus aqui -------------  */ 
+      /* ---------- Nuevos menus aqui -------------  */
       {
         id: 'medicos',
         title: 'Gestión de Medicos',
@@ -45,7 +45,32 @@ export const NavigationItems: NavigationItem[] = [
         url: '/inicio/medicos',
         icon: 'feather icon-users',
         classes: 'nav-item'
+
+      },
+      {
+        id: 'clientes',
+        title: 'Gestión de Clientes',
+        type: 'item',
+        url: '/inicio/clientes',
+        icon: 'feather icon-users',
+        classes: 'nav-item'
+      },
+      {
+        id: 'especializaciones',
+        title: 'Gestión de Especializaciones',
+        type: 'item',
+        url: '/inicio/especializaciones',
+        icon: 'feather icon-award',
+        classes: 'nav-item'
+      },
+      {
+        id: 'razas',
+        title: 'Gestión de Razas',
+        type: 'item',
+        url: '/inicio/razas',
+        icon: 'feather icon-list',
+        classes: 'nav-item'
       },
     ]
-  },  
+  },
 ];
