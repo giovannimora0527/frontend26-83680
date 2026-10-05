@@ -1,3 +1,6 @@
+import { ClienteComponent } from './demo/pages/cliente/cliente.component';
+import { EspecializacionComponent } from './demo/pages/especializacion/especializacion.component';
+import { RazaComponent } from './demo/pages/raza/raza.component';
 import { CitaComponent } from './demo/pages/cita/cita.component';
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
@@ -21,7 +24,11 @@ export const routes: Routes = [
       { path: 'usuarios', component: UsuarioComponent, data: { title: 'Usuarios' }},
       { path: 'mascotas', component: MascotaComponent, data: { title: 'Mascotas' }},
       { path: 'medicos', component: MedicoComponent, data: { title: 'Medicos' }},  
-      { path: 'citas', component: CitaComponent, data: { title: 'Citas' }}
+      { path: 'citas', component: CitaComponent, data: { title: 'Citas' }},
+{ path: 'clientes', component: ClienteComponent, data: { title: 'Clientes' }},
+{ path: 'especializaciones', component: EspecializacionComponent, data: { title: 'Especializaciones' }},
+{ path: 'razas', component: RazaComponent, data: { title: 'Razas' }}
+
     ]
   },
   { path: '**', redirectTo: 'inicio' }
