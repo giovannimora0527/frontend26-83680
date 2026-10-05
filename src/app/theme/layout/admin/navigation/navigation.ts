@@ -30,11 +30,11 @@ export const NavigationItems: NavigationItem[] = [
         classes: 'nav-item'
       },
       {
-        id: 'mascotas',
-        title: 'Gestión de Mascotas',
+        id: 'clientes',
+        title: 'Gestión de Clientes',
         type: 'item',
-        url: '/inicio/mascotas',
-        icon: 'feather icon-user',
+        url: '/inicio/clientes',
+        icon: 'feather icon-user-check',
         classes: 'nav-item'
       },
       {
@@ -42,15 +42,7 @@ export const NavigationItems: NavigationItem[] = [
         title: 'Gestión de Medicos',
         type: 'item',
         url: '/inicio/medicos',
-        icon: 'feather icon-users',
-        classes: 'nav-item'
-      },
-      {
-        id: 'clientes',
-        title: 'Gestión de Clientes',
-        type: 'item',
-        url: '/inicio/clientes',
-        icon: 'feather icon-user-check',
+        icon: 'feather icon-activity',
         classes: 'nav-item'
       },
       {
@@ -62,11 +54,11 @@ export const NavigationItems: NavigationItem[] = [
         classes: 'nav-item'
       },
       {
-        id: 'medicamentos',
-        title: 'Gestión de Medicamentos',
+        id: 'mascotas',
+        title: 'Gestión de Mascotas',
         type: 'item',
-        url: '/inicio/medicamentos',
-        icon: 'feather icon-package',
+        url: '/inicio/mascotas',
+        icon: 'feather icon-github',
         classes: 'nav-item'
       },
       {
@@ -77,6 +69,14 @@ export const NavigationItems: NavigationItem[] = [
         icon: 'feather icon-heart',
         classes: 'nav-item'
       },
+      {
+        id: 'medicamentos',
+        title: 'Gestión de Medicamentos',
+        type: 'item',
+        url: '/inicio/medicamentos',
+        icon: 'feather icon-package',
+        classes: 'nav-item'
+      }
     ]
-  },  
+  }
 ];
