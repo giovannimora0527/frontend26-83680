@@ -34,7 +34,7 @@ export const NavigationItems: NavigationItem[] = [
         title: 'Gestión de Mascotas',
         type: 'item',
         url: '/inicio/mascotas',
-        icon: 'feather icon-user',
+        icon: 'bi bi-person-lines-fill',
         classes: 'nav-item'
       },
       /* ---------- Nuevos menus aqui -------------  */ 
