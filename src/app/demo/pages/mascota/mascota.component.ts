@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule, formatDate } from '@angular/common';
+import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 
 import { MascotaService } from './service/mascota.service';
 import { Mascota } from 'src/app/models/mascota';
@@ -17,7 +18,7 @@ type ColumnaOrden = 'nombre' | 'especie' | 'raza' | 'edad' | 'cliente' | 'fechaR
 
 @Component({
   selector: 'app-mascota',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgbTooltipModule],
   templateUrl: './mascota.component.html',
   styleUrl: './mascota.component.scss'
 })
@@ -32,7 +33,7 @@ export class MascotaComponent {
   listMascotas: Mascota[] = [];
   terminoBusqueda = '';
   paginaActual = 1;
-  readonly registrosPorPagina = 10;
+  readonly registrosPorPagina = 5;
   columnaOrden: ColumnaOrden = 'nombre';
   direccionOrden: 'asc' | 'desc' = 'asc';
 
