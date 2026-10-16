@@ -72,7 +72,8 @@ export class BackendService {
     endpoint: string,
     service: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: any
+    data: any,
+    routerParams?: HttpParams
   ): Observable<T> {
     const tokenRecuperado = localStorage.getItem('token') || ''; // Evita `null`
     const headers = new HttpHeaders({
@@ -81,6 +82,27 @@ export class BackendService {
     });
     return this.http.put<T>(`${urlApi}/${endpoint}/${service}`, data, {
       headers: headers,
+      params: routerParams,
+    });
+  }
+
+  // Servicio generico para realizar peticiones PATCH al backend (cambios parciales, ej: inactivar).
+  patch<T>(
+    urlApi: string,
+    endpoint: string,
+    service: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: any,
+    routerParams?: HttpParams
+  ): Observable<T> {
+    const tokenRecuperado = localStorage.getItem('token') || ''; // Evita `null`
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: tokenRecuperado ? `Bearer ${tokenRecuperado}` : '',
+    });
+    return this.http.patch<T>(`${urlApi}/${endpoint}/${service}`, data, {
+      headers: headers,
+      params: routerParams,
     });
   }
 
