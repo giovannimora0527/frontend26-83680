@@ -1,111 +1,73 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Price](https://img.shields.io/badge/price-FREE-0098f7.svg)](https://codedthemes.com/item/datta-able-angular-lite/)
-[![GitHub package version](https://img.shields.io/github/package-json/v/codedthemes/datta-able-free-angular-admin-template)](https://github.com/codedthemes/datta-able-free-angular-admin-template/)
+# Segundo parcial — Clínica Veterinaria
 
-| -------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| **9** Demo pages                                                                                   | **45+** demo pages                                                |
-| -                                                                                                  | ✓ Multi-language                                                  |
-| -                                                                                                  | ✓ Dark/Light Mode 🌓                                              |
-| -                                                                                                  | ✓ TypeScript version                                              |
-| -                                                                                                  | ✓ 6+ color Options                                                |
-| -                                                                                                  | ✓ RTL                                                             |
-| ✓ MIT License                                                                                      | ✓ [Pro License](https://codedthemes.com/item/datta-able-angular/?utm_source=free_demo&utm_medium=codedthemes&utm_campaign=button_download_premium) |
+Entrega de trabajo para revisión basada en el frontend Angular trabajado en clase, el esquema SQL suministrado y los requisitos del Segundo Parcial de Programación Web.
 
-#### Preview
+## Contenido
 
-- [Demo](https://codedthemes.com/demos/admin-templates/datta-able/angular/free/dashboard)
+- `frontend/`: aplicación Angular con módulos de fórmulas médicas, citas e historias clínicas/anotaciones conectados a la API REST.
+- `backend/`: API Spring Boot con controladores, servicios, repositorios JDBC, DTO y manejo global de errores.
+- `database/clinica_base_sin_credenciales.sql`: base original de trabajo sin filas de sesiones ni usuarios que contuvieran material de autenticación.
+- `database/migracion_parcial.sql`: columnas adicionales e índices que exige el segundo parcial.
+- `docs/ENDPOINTS_Y_REGLAS.md`: contratos de API, reglas implementadas y decisiones de datos.
+- `docs/GUIA_SUSTENTACION.md`: recorrido técnico sugerido para explicar la solución.
 
-#### Download
+## Importante antes de ejecutar
 
-- [Download from GitHub](https://github.com/codedthemes/datta-able-free-angular-admin-template)
+El modelo de datos que se suministró originalmente no contenía todos los campos de historias clínicas, anotaciones y fórmulas requeridos. Por eso la migración es parte de la entrega. Debe aplicarse después de importar el SQL base y una sola vez.
 
-## Datta Able Pro version
+El código fuente está preparado para uso local, pero esta ejecución del entorno de trabajo no dispone de Maven ni pudo descargar paquetes npm, por lo que **no se pudo certificar aquí una compilación completa**. Antes de subir esta versión final a GitHub, abre los proyectos en tu equipo, compila y ejecuta las pruebas indicadas más abajo. No presentes como probado un flujo que no hayas ejecutado.
 
-#### Preview
+## 1. Preparar MySQL
 
-- [Demo](https://codedthemes.com/demos/admin-templates/datta-able/angular/default/)
+1. En MySQL Workbench, crea/selecciona la base `clinica`.
+2. Importa `database/clinica_base_sin_credenciales.sql`.
+3. Ejecuta completo `database/migracion_parcial.sql` una sola vez.
+4. La base de trabajo original incluye operaciones `DROP TABLE`; revisa el script y no lo ejecutes sobre una base que contenga datos que debas conservar.
 
-#### Purchase
+La migración añade los campos que el esquema previo no tenía para frecuencia, duración, fecha de emisión, inactivación lógica de fórmula, vínculo de historia con cita/veterinario, fecha de consulta, diagnóstico y observaciones. El campo `fecha_creacion_registro` continúa siendo la fecha de auditoría del registro. Las filas históricas reciben una fecha de emisión inicial que nunca queda antes de su cita; esta regla está explicada dentro del SQL.
 
-- [Purchase from CodedThemes](https://codedthemes.com/item/datta-able-angular/?utm_source=free_demo&utm_medium=codedthemes&utm_campaign=button_download_premium)
+## 2. Ejecutar backend
 
-## Table of contents
+Requisitos: JDK 21 y Maven 3.9 o compatible.
 
-- [Getting Started](#getting-started)
-- [Documentation](#documentation)
-- [Technology Stack](#technology-stack)
-- [Author](#author)
-- [Issues?](#issues)
-- [License](#license)
-- [More Free Angular Templates](#more-free-angular-dashboard-templates)
-- [More Pro Angular Templates](#more-premium-angular-dashboard-templates)
-- [Follow us](#follow-us)
+En PowerShell, desde la carpeta `backend`:
 
-## Getting Started
-
-1. Clone from Github
-
-```
-git clone https://github.com/codedthemes/datta-able-free-angular-admin-template.git
+```powershell
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "TU_CLAVE_MYSQL"
+mvn spring-boot:run
 ```
 
-2. Install packages
+Si MySQL no tiene contraseña, puedes dejar `DB_PASSWORD` vacío. La API escucha en `http://localhost:8080/clinica/v1`. Si tienes una clave con caracteres especiales, asígnala directamente a la variable de entorno; no la guardes en el repositorio.
 
+## 3. Ejecutar frontend
+
+Requisitos: Node.js LTS/npm compatibles con Angular 19. Desde `frontend`:
+
+```powershell
+npm install
+npm start
 ```
-yarn
-```
 
-3. Run project
+Abre la URL que indica Angular, normalmente `http://localhost:4200`. El archivo `src/environments/environment.ts` define la base de la API como `http://localhost:8080/clinica/v1`.
 
-```
-yarn start
-```
+## 4. Flujos mínimos para probar
 
-## Documentation
+1. Abre **Fórmulas médicas** y confirma que la tabla carga los registros de MySQL. Crea una fórmula con fecha de emisión igual o posterior a la cita; luego prueba una fecha anterior (debe responder HTTP 400).
+2. Abre **Citas médicas**. Selecciona un cliente y comprueba que el combo de mascotas solo muestra sus mascotas. Crea una cita futura.
+3. Intenta crear dos citas del mismo veterinario con 15 minutos o menos de separación, o dos citas de la misma mascota en ese margen. La API debe rechazar el cruce.
+4. Prueba los estados Pendiente, Confirmada, Atendida, Cancelada y Programada. Las citas canceladas y atendidas no se pueden editar por la operación normal `PUT`.
+5. Marca una cita como Atendida. En **Historias clínicas**, registra una historia usando esa cita. El combo solo muestra citas atendidas de la mascota seleccionada y que todavía no tengan historia.
+6. En “Ver historial”, agrega una anotación, filtra el histórico, abre el detalle y prueba editarla.
+7. Detén el backend y confirma que Angular muestra un mensaje de conexión claro, luego vuelve a iniciarlo.
 
-[Datta Able Angular Documentation](https://codedthemes.gitbook.io/datta-angular/) helps you with installation, deployment, and troubleshooting.
+## Estado de la entrega
 
-## Technology Stack
+- Interfaz: módulos principales conectados a los contratos de API de Spring Boot.
+- Backend: endpoints REST, validaciones de entrada, reglas de negocio, capas y manejo de errores implementados en código fuente.
+- Base de datos: incluye SQL base y migración requeridos.
+- **Pendiente de tu validación local**: confirmar compilación real, disponibilidad de la conexión MySQL y ejecución manual de los flujos anteriores. Tras validar, haz commit y push en tu rama del repositorio del profesor.
 
-- Bootstrap 5
-- Angular 18
 
-## Author
-
-Datta Able is developed by Team [CodedThemes](https://codedthemes.com).
-
-## Issues
-
-To report a bug, please submit an [issue](https://github.com/codedthemes/datta-able-free-angular-admin-template/issues) on Github. We will respond as soon as possible to resolve the issue.
-
-## License
-
-- Licensed cover under [MIT](https://github.com/codedthemes/datta-able-free-angular-admin-template/blob/master/LICENSE)
-
-## Datta Able - React version
-
-- [Free](https://lite.codedthemes.com/datta-able/react/default/dashboard/default)
-- [Premium](https://codedthemes.com/item/datta-able-react-admin-template/?utm_source=free_demo&utm_medium=codedthemes&utm_campaign=button_download_premium)
-
-## More Free Angular Dashboard Templates
-
-- [Mantis Angular](https://codedthemes.com/item/mantis-angular-free-admin-template/)
-- [Gradient Able Angular](https://codedthemes.com/item/gradient-able-angular-free-admin-template/)
-- [Next Angular](https://codedthemes.com/item/next-free-admin-template/)
-- [Berry Angular](https://codedthemes.com/item/berry-angular-free-admin-template/)
-
-## More Premium Angular Dashboard Templates
-
-- [Mantis Angular Pro](https://codedthemes.com/item/mantis-angular-admin-template/?utm_source=free_demo&utm_medium=codedthemes&utm_campaign=button_download_premium)
-- [Gradient Able Angular Pro](https://codedthemes.com/item/gradient-able-angular-admin-template/?utm_source=free_demo&utm_medium=codedthemes&utm_campaign=button_download_premium)
-- [Next Angular Pro](https://codedthemes.com/item/next-angular-admin-template/)
-- [Berry Angular Pro](https://codedthemes.com/item/berry-angular-admin-dashboard-template/?utm_source=free_demo&utm_medium=codedthemes&utm_campaign=button_download_premium)
-
-## Follow us
-
-- Website [https://codedthemes.com/demos/admin-templates/datta-able/angular/default](https://codedthemes.com/demos/admin-templates/datta-able/angular/default)
-- Blog [https://blog.codedthemes.com/](https://blog.codedthemes.com/)
-- CodedThemes [https://codedthemes.com](https://codedthemes.com)
-- Dribbble [https://dribbble.com/codedthemes](https://dribbble.com/codedthemes)
-- Facebook [https://www.facebook.com/codedthemes](https://www.facebook.com/codedthemes)
-- Twitter [https://twitter.com/codedthemes](https://twitter.com/codedthemes)
+## Referencia visual del docente
+La pantalla Gestión de citas fue ajustada para aproximarse a la captura de referencia: fondo claro, tabla blanca con filas alternas, estados con badges y botones Ver/Editar. Consulta `docs/REFERENCIA_VISUAL_Y_INTEGRACION.md` para la decisión sobre el ZIP del compañero y las verificaciones pendientes.

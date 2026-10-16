@@ -1,0 +1,349 @@
+
+<section class="formula-page" aria-labelledby="formulas-title">
+  <header class="formula-page__header">
+    <div>
+      <span class="formula-page__eyebrow">Módulo de gestión · Segundo parcial</span>
+      <h1 id="formulas-title">
+        <i class="feather icon-file-text" aria-hidden="true"></i>
+        Fórmulas médicas
+      </h1>
+      <p>Consulta y administra las fórmulas registradas en la clínica veterinaria.</p>
+    </div>
+    <button type="button" class="formula-button formula-button--primary" (click)="abrirNueva()">
+      <i class="feather icon-plus" aria-hidden="true"></i>
+      Nueva fórmula
+    </button>
+  </header>
+
+  <div class="formula-notice" role="status">
+    <i class="feather icon-info" aria-hidden="true"></i>
+    <span><strong>Conexión real:</strong> la pantalla consulta y guarda por la API de Spring Boot. Las reglas críticas también se validan en el backend.</span>
+  </div>
+
+  <div *ngIf="mensaje" class="formula-message" role="status">
+    <i class="feather icon-check-circle" aria-hidden="true"></i>
+    {{ mensaje }}
+    <button type="button" aria-label="Cerrar mensaje" (click)="mensaje = ''">×</button>
+  </div>
+
+  <div *ngIf="errorGeneral" class="formula-error" role="alert">
+    {{ errorGeneral }}
+    <button type="button" class="formula-button formula-button--secondary" (click)="recargar()">Reintentar</button>
+  </div>
+
+  <section class="formula-card" aria-label="Listado de fórmulas médicas">
+    <div class="formula-card__heading">
+      <div>
+        <h2>Listado de fórmulas</h2>
+        <p>Orden inicial: fecha de emisión, de la más reciente a la más antigua.</p>
+      </div>
+      <span class="formula-count"><strong>{{ formulasFiltradas.length }}</strong> registro(s)</span>
+    </div>
+
+    <div class="formula-filters">
+      <label class="formula-search">
+        <span>Buscar</span>
+        <div class="formula-input-icon">
+          <i class="feather icon-search" aria-hidden="true"></i>
+          <input
+            type="search"
+            name="filtro"
+            [(ngModel)]="filtro"
+            (ngModelChange)="cambiarFiltro()"
+            placeholder="Medicamento, cliente, mascota, dosis o cita"
+          />
+        </div>
+      </label>
+
+      <label>
+        <span>Emitida desde</span>
+        <input type="date" name="fechaDesde" [(ngModel)]="fechaDesde" (ngModelChange)="cambiarFiltro()" />
+      </label>
+
+      <label>
+        <span>Emitida hasta</span>
+        <input type="date" name="fechaHasta" [(ngModel)]="fechaHasta" (ngModelChange)="cambiarFiltro()" />
+      </label>
+
+      <button type="button" class="formula-button formula-button--secondary formula-filter-clear" (click)="limpiarFiltros()">
+        Limpiar
+      </button>
+    </div>
+
+    <div *ngIf="cargando" class="workflow-loading" role="status">
+      Cargando fórmulas desde el backend…
+    </div>
+
+    <div class="formula-table-wrap" *ngIf="!cargando">
+      <table class="formula-table">
+        <thead>
+          <tr>
+            <th>
+              <button class="formula-sort" type="button" (click)="ordenarPor('id')">
+                ID <span>{{ etiquetaOrden('id') }}</span>
+              </button>
+            </th>
+            <th>
+              <button class="formula-sort" type="button" (click)="ordenarPor('citaId')">
+                Cita / paciente <span>{{ etiquetaOrden('citaId') }}</span>
+              </button>
+            </th>
+            <th>
+              <button class="formula-sort" type="button" (click)="ordenarPor('medicamentoNombre')">
+                Medicamento <span>{{ etiquetaOrden('medicamentoNombre') }}</span>
+              </button>
+            </th>
+            <th>
+              <button class="formula-sort" type="button" (click)="ordenarPor('dosis')">
+                Dosis / frecuencia <span>{{ etiquetaOrden('dosis') }}</span>
+              </button>
+            </th>
+            <th>
+              <button class="formula-sort" type="button" (click)="ordenarPor('fechaEmision')">
+                Fecha de emisión <span>{{ etiquetaOrden('fechaEmision') }}</span>
+              </button>
+            </th>
+            <th class="formula-table__actions-heading">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let formula of formulasPagina">
+            <td><span class="formula-id">FM-{{ formula.id }}</span></td>
+
+            <td>
+              <span class="formula-cita">#{{ formula.citaId }} · {{ formula.mascotaNombre || 'Mascota' }}</span>
+              <small>{{ formula.clienteNombre || 'Cliente no disponible' }}</small>
+            </td>
+
+            <td>
+              <strong>{{ formula.medicamentoNombre || ('Medicamento #' + formula.medicamentoId) }}</strong>
+              <small>{{ formula.medicoNombre || 'Veterinario no disponible' }}</small>
+            </td>
+
+            <td class="formula-dose">
+              {{ formula.dosis }}
+              <small>{{ formula.frecuencia || 'Frecuencia no registrada' }} · {{ formula.duracionTratamiento || 'Duración no registrada' }}</small>
+            </td>
+
+            <td>
+              {{ fechaLegible(formula.fechaEmision || formula.fechaCreacionRegistro) }}
+              <small *ngIf="formula.fechaActualizacionRegistro">
+                Actualizada: {{ fechaLegible(formula.fechaActualizacionRegistro) }}
+              </small>
+            </td>
+
+            <td>
+              <div class="formula-row-actions">
+                <button
+                  type="button"
+                  class="formula-icon-button"
+                  title="Ver detalle"
+                  [attr.aria-label]="'Ver fórmula ' + formula.id"
+                  (click)="abrirDetalle(formula)">
+                  <i class="feather icon-eye" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="formula-icon-button"
+                  title="Editar fórmula"
+                  [attr.aria-label]="'Editar fórmula ' + formula.id"
+                  (click)="abrirEdicion(formula)">
+                  <i class="feather icon-edit-2" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="formula-icon-button"
+                  title="Inactivar fórmula"
+                  [attr.aria-label]="'Inactivar fórmula ' + formula.id"
+                  (click)="inactivar(formula)">
+                  <i class="feather icon-slash" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="formulasPagina.length === 0">
+            <td colspan="6" class="formula-empty">
+              <i class="feather icon-search" aria-hidden="true"></i>
+              <strong>No se encontraron fórmulas</strong>
+              <span>Cambia los términos o limpia los filtros para volver a consultar.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="formula-pagination">
+      <span>Mostrando {{ inicioResultados }}–{{ finResultados }} de {{ formulasFiltradas.length }}</span>
+
+      <div class="formula-pagination__controls">
+        <label for="tamanoPagina">Filas</label>
+        <select id="tamanoPagina" name="tamanoPagina" [(ngModel)]="tamanoPagina" (ngModelChange)="paginaActual = 1">
+          <option [ngValue]="5">5</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+        </select>
+
+        <button
+          type="button"
+          class="formula-page-button"
+          [disabled]="paginaActual <= 1"
+          (click)="irAPagina(paginaActual - 1)"
+          aria-label="Página anterior">
+          ‹
+        </button>
+
+        <span class="formula-page-number">{{ paginaActual }} / {{ totalPaginas }}</span>
+
+        <button
+          type="button"
+          class="formula-page-button"
+          [disabled]="paginaActual >= totalPaginas"
+          (click)="irAPagina(paginaActual + 1)"
+          aria-label="Página siguiente">
+          ›
+        </button>
+      </div>
+    </footer>
+  </section>
+
+  <p class="formula-footnote">
+    <i class="feather icon-shield" aria-hidden="true"></i>
+    La operación de inactivar conserva el registro; no se elimina físicamente la fórmula.
+  </p>
+</section>
+
+<div
+  *ngIf="modalDetalleAbierto && formulaDetalle"
+  class="formula-modal-backdrop"
+  (click)="cerrarModales()"
+  (keydown.escape)="cerrarModales()">
+
+  <section
+    class="formula-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="detalle-title"
+    (click)="$event.stopPropagation()">
+
+    <header class="formula-modal__header">
+      <div>
+        <span class="formula-page__eyebrow">Detalle de registro</span>
+        <h2 id="detalle-title">Fórmula FM-{{ formulaDetalle.id }}</h2>
+      </div>
+      <button type="button" class="formula-modal__close" (click)="cerrarModales()" aria-label="Cerrar detalle">×</button>
+    </header>
+
+    <div class="formula-detail-grid">
+      <div><span>Consulta asociada</span><strong>{{ nombreCita(formulaDetalle.citaId) }}</strong></div>
+      <div><span>Cliente / mascota</span><strong>{{ formulaDetalle.clienteNombre }} / {{ formulaDetalle.mascotaNombre }}</strong></div>
+      <div><span>Veterinario</span><strong>{{ formulaDetalle.medicoNombre || 'No disponible' }}</strong></div>
+      <div><span>Medicamento</span><strong>{{ formulaDetalle.medicamentoNombre }} (ID {{ formulaDetalle.medicamentoId }})</strong></div>
+      <div><span>Dosis</span><strong>{{ formulaDetalle.dosis }}</strong></div>
+      <div><span>Frecuencia</span><strong>{{ formulaDetalle.frecuencia }}</strong></div>
+      <div><span>Duración</span><strong>{{ formulaDetalle.duracionTratamiento }}</strong></div>
+      <div><span>Fecha de emisión</span><strong>{{ fechaLegible(formulaDetalle.fechaEmision) }}</strong></div>
+      <div>
+        <span>Creada / actualizada</span>
+        <strong>{{ fechaLegible(formulaDetalle.fechaCreacionRegistro) }} / {{ fechaLegible(formulaDetalle.fechaActualizacionRegistro) }}</strong>
+      </div>
+      <div class="formula-detail-grid__wide">
+        <span>Indicaciones</span>
+        <p>{{ formulaDetalle.indicaciones || 'Sin indicaciones adicionales.' }}</p>
+      </div>
+    </div>
+
+    <footer class="formula-modal__footer">
+      <button type="button" class="formula-button formula-button--secondary" (click)="cerrarModales()">Cerrar</button>
+      <button type="button" class="formula-button formula-button--primary" (click)="abrirEdicion(formulaDetalle)">Editar</button>
+    </footer>
+  </section>
+</div>
+
+<div
+  *ngIf="modalFormularioAbierto"
+  class="formula-modal-backdrop"
+  (click)="cerrarModales()"
+  (keydown.escape)="cerrarModales()">
+
+  <section
+    class="formula-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="formulario-title"
+    (click)="$event.stopPropagation()">
+
+    <header class="formula-modal__header">
+      <div>
+        <span class="formula-page__eyebrow">{{ modoEdicion ? 'Actualizar registro' : 'Nuevo registro' }}</span>
+        <h2 id="formulario-title">{{ modoEdicion ? 'Editar fórmula médica' : 'Registrar fórmula médica' }}</h2>
+      </div>
+      <button type="button" class="formula-modal__close" (click)="cerrarModales()" aria-label="Cerrar formulario">×</button>
+    </header>
+
+    <form (ngSubmit)="guardarFormulario()" #formFormula="ngForm" class="formula-form">
+      <label>
+        <span>Cita asociada <b>*</b></span>
+        <select required name="citaId" [(ngModel)]="formulario.citaId">
+          <option [ngValue]="null" disabled>Selecciona una cita</option>
+          <option *ngFor="let cita of citas" [ngValue]="cita.id">{{ nombreCita(cita.id) }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Medicamento <b>*</b></span>
+        <select required name="medicamentoId" [(ngModel)]="formulario.medicamentoId">
+          <option [ngValue]="null" disabled>Selecciona un medicamento</option>
+          <option *ngFor="let medicamento of medicamentos" [ngValue]="medicamento.id">
+            {{ medicamento.nombre }} (ID {{ medicamento.id }})
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Fecha de emisión <b>*</b></span>
+        <input required type="datetime-local" name="fechaEmision" [(ngModel)]="formulario.fechaEmision" />
+      </label>
+
+      <label>
+        <span>Dosis <b>*</b></span>
+        <input required minlength="2" maxlength="500" name="dosis" [(ngModel)]="formulario.dosis" placeholder="Ej. 1 tableta por toma" />
+      </label>
+
+      <label>
+        <span>Frecuencia <b>*</b></span>
+        <input required maxlength="100" name="frecuencia" [(ngModel)]="formulario.frecuencia" placeholder="Ej. cada 12 horas" />
+      </label>
+
+      <label>
+        <span>Duración del tratamiento <b>*</b></span>
+        <input required maxlength="100" name="duracionTratamiento" [(ngModel)]="formulario.duracionTratamiento" placeholder="Ej. 7 días" />
+      </label>
+
+      <label class="formula-form__wide">
+        <span>Indicaciones</span>
+        <textarea rows="3" maxlength="2000" name="indicaciones" [(ngModel)]="formulario.indicaciones" placeholder="Instrucciones para el tratamiento"></textarea>
+      </label>
+
+      <p class="formula-form__help">
+        La API valida que la cita, su cliente, mascota y veterinario existan, y que la fecha de emisión no sea anterior a la consulta.
+      </p>
+
+      <p *ngIf="errorFormulario" class="formula-error" role="alert">{{ errorFormulario }}</p>
+
+      <footer class="formula-modal__footer formula-form__wide">
+        <button type="button" class="formula-button formula-button--secondary" (click)="cerrarModales()">Cancelar</button>
+        <button
+          type="submit"
+          class="formula-button formula-button--primary"
+          [disabled]="formFormula.invalid || guardando">
+          {{ guardando ? 'Guardando…' : (modoEdicion ? 'Guardar cambios' : 'Registrar fórmula') }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+npm.cmd start
