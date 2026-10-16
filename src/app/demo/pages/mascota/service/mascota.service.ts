@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Mascota } from 'src/app/models/mascota';
 import { BackendService } from 'src/app/services/backend.service';
@@ -16,6 +17,16 @@ export class MascotaService {
 
   listarMascotas(): Observable<Mascota[]> {
     return this.backendService.get(environment.apiUrlAuth, this.api, "listar");
+  }
+
+  /**
+   * Lista solo las mascotas de un cliente (combo dependiente Cliente -> Mascota).
+   * @param clienteId id del cliente.
+   * @returns mascotas del cliente.
+   */
+  listarPorCliente(clienteId: number): Observable<Mascota[]> {
+    const params = new HttpParams().set('clienteId', clienteId);
+    return this.backendService.get(environment.apiUrlAuth, this.api, "listar-by-cliente", params);
   }
 
   crearMascota(mascota: Mascota): Observable<unknown> {
