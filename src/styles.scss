@@ -45,3 +45,15 @@
 	color: #ffffff;
 	transform: translateY(-2px);
 }
+
+/* Las alertas de SweetAlert deben quedar por encima de los modales del tema (z-index 1072). */
+.swal2-container {
+	z-index: 1080 !important;
+}
+
+/* Encabezados de tabla que permiten ordenar al hacer clic. */
+.ordenable {
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
+}
