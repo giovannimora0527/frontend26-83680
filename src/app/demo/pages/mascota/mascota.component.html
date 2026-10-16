@@ -1,132 +1,109 @@
 <div class="container-fluid">
-    <div class="card">
-        <div class="card-header">
-            <div class="row">
-                <div class="col col-md-9">
-                    <input class="form-control" placeholder="Buscar mascota" type="text"
-                        (input)="actualizarBusqueda($event)" />
-                </div>
-                <div class="col col-md-3 text-end">
-                    <button
-                        class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
-                        (click)="nuevaMascota('C')" 
-                        ngbTooltip="Agregar nueva mascota" tooltipClass="tooltip-info" triggers="hover focus" placement="top" container="body">
-                        <i class="fa fa-plus" aria-hidden="true"></i>
-                        &nbsp; Nuevo
-                    </button>
-                </div>
+    <div class="vet-card">
+        <!-- Buscador y boton nuevo -->
+        <div class="vet-toolbar">
+            <div class="vet-search">
+                <i class="feather icon-search"></i>
+                <input class="form-control" placeholder="Buscar por nombre, especie, raza o cliente" type="text"
+                    [(ngModel)]="terminoBusqueda" (ngModelChange)="filtrar()" aria-label="Buscar mascota" />
             </div>
+            <button class="btn-vet" type="button" (click)="nuevaMascota('C')">
+                <i class="feather icon-plus"></i> Nueva mascota
+            </button>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="table table-responsive table-condensed col col-md-12">
-                    <table class="table table-stripped table-condensed table-responsive">
-                        <thead>
-                            <tr>
-                                <th class="text-center"
-                                    [attr.aria-sort]="columnaOrden === 'nombre' ? (direccionOrden === 'asc' ? 'ascending' : 'descending') : 'none'">
-                                    <button type="button" class="btn btn-link p-0 text-dark text-decoration-none"
-                                        (click)="ordenarPor('nombre')">
-                                        Nombre <i class="fa"
-                                            [ngClass]="columnaOrden === 'nombre' ? (direccionOrden === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"
-                                            aria-hidden="true"></i>
-                                    </button>
-                                </th>
-                                <th class="text-center"
-                                    [attr.aria-sort]="columnaOrden === 'especie' ? (direccionOrden === 'asc' ? 'ascending' : 'descending') : 'none'">
-                                    <button type="button" class="btn btn-link p-0 text-dark text-decoration-none"
-                                        (click)="ordenarPor('especie')">
-                                        Especie <i class="fa"
-                                            [ngClass]="columnaOrden === 'especie' ? (direccionOrden === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"
-                                            aria-hidden="true"></i>
-                                    </button>
-                                </th>
-                                <th class="text-center"
-                                    [attr.aria-sort]="columnaOrden === 'raza' ? (direccionOrden === 'asc' ? 'ascending' : 'descending') : 'none'">
-                                    <button type="button" class="btn btn-link p-0 text-dark text-decoration-none"
-                                        (click)="ordenarPor('raza')">
-                                        Raza <i class="fa"
-                                            [ngClass]="columnaOrden === 'raza' ? (direccionOrden === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"
-                                            aria-hidden="true"></i>
-                                    </button>
-                                </th>
-                                <th class="text-center"
-                                    [attr.aria-sort]="columnaOrden === 'edad' ? (direccionOrden === 'asc' ? 'ascending' : 'descending') : 'none'">
-                                    <button type="button" class="btn btn-link p-0 text-dark text-decoration-none"
-                                        (click)="ordenarPor('edad')">
-                                        Edad <i class="fa"
-                                            [ngClass]="columnaOrden === 'edad' ? (direccionOrden === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"
-                                            aria-hidden="true"></i>
-                                    </button>
-                                </th>
-                                <th class="text-center"
-                                    [attr.aria-sort]="columnaOrden === 'cliente' ? (direccionOrden === 'asc' ? 'ascending' : 'descending') : 'none'">
-                                    <button type="button" class="btn btn-link p-0 text-dark text-decoration-none"
-                                        (click)="ordenarPor('cliente')">
-                                        Cliente <i class="fa"
-                                            [ngClass]="columnaOrden === 'cliente' ? (direccionOrden === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"
-                                            aria-hidden="true"></i>
-                                    </button>
-                                </th>
-                                <th class="text-center"
-                                    [attr.aria-sort]="columnaOrden === 'fechaRegistro' ? (direccionOrden === 'asc' ? 'ascending' : 'descending') : 'none'">
-                                    <button type="button" class="btn btn-link p-0 text-dark text-decoration-none"
-                                        (click)="ordenarPor('fechaRegistro')">
-                                        Fecha de Registro <i class="fa"
-                                            [ngClass]="columnaOrden === 'fechaRegistro' ? (direccionOrden === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"
-                                            aria-hidden="true"></i>
-                                    </button>
-                                </th>
-                                <th class="text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody *ngIf="listMascotas.length === 0">
-                            <tr>
-                                <td colspan="7" class="text-center">No hay mascotas registradas</td>
-                            </tr>
-                        </tbody>
-                        <tbody *ngIf="listMascotas.length > 0 && mascotasFiltradas.length === 0">
-                            <tr>
-                                <td colspan="7" class="text-center">No se encontraron mascotas</td>
-                            </tr>
-                        </tbody>
-                        <tbody *ngIf="mascotasFiltradas.length > 0">
-                            <tr *ngFor="let mascota of mascotasPaginadas">
-                                <td class="text-center">{{ mascota.nombreMascota }}</td>
-                                <td class="text-center">{{ mascota.raza.especie }}</td>
-                                <td class="text-center">{{ mascota.raza.nombre }}</td>
-                                <td class="text-center">{{ mascota.edad }}</td>
-                                <td class="text-center">{{ mascota.cliente.nombres }} {{ mascota.cliente.apellidos }}
-                                </td>
-                                <td class="text-center">{{ mascota.fechaRegistro | date:'yyyy-MM-dd HH:mm' }}</td>
-                                <td class="text-center">
-                                    <button class="btn btn-outline-info d-inline-flex 
-                                    align-items-center justify-content-center" (click)="abrirEdicion(mascota)"
-                                    ngbTooltip="Editar" tooltipClass="tooltip-info" triggers="hover focus" placement="top" container="body">
-                                        <i class="fa fa-edit"></i>&nbsp;Editar</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+        <!-- Filtros -->
+        <div class="vet-filtros">
+            <select class="form-select" [(ngModel)]="filtroEspecie" (ngModelChange)="filtrar()" aria-label="Especie">
+                <option value="">Todas las especies</option>
+                <option *ngFor="let especie of especies" [value]="especie">{{ especie }}</option>
+            </select>
+        </div>
+
+        <!-- Tabla (mismo orden de columnas que la original) -->
+        <div class="table-responsive">
+            <table class="vet-table">
+                <thead>
+                    <tr>
+                        <th><button type="button" class="orden" (click)="ordenarPor('nombre')">Nombre<i class="fa" [ngClass]="iconoOrden('nombre')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('especie')">Especie<i class="fa" [ngClass]="iconoOrden('especie')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('raza')">Raza<i class="fa" [ngClass]="iconoOrden('raza')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('edad')">Edad<i class="fa" [ngClass]="iconoOrden('edad')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('cliente')">Cliente<i class="fa" [ngClass]="iconoOrden('cliente')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('fechaRegistro')">Fecha de registro<i class="fa" [ngClass]="iconoOrden('fechaRegistro')"></i></button></th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngIf="cargando">
+                        <td colspan="7" class="vet-vacio"><div class="spinner-border spinner-border-sm text-success"></div> Cargando mascotas...</td>
+                    </tr>
+                    <tr *ngIf="!cargando && mascotasFiltradas.length === 0">
+                        <td colspan="7" class="vet-vacio"><i class="feather icon-heart d-block fs-3 mb-2"></i>No se encontraron mascotas</td>
+                    </tr>
+                    <ng-container *ngIf="!cargando">
+                        <tr *ngFor="let mascota of mascotasPaginadas">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="vet-avatar">{{ mascota.nombreMascota?.charAt(0) }}</span>
+                                    <span class="fw-semibold">{{ mascota.nombreMascota }}</span>
+                                </div>
+                            </td>
+                            <td><span class="estado-pill estado-confirmada">{{ mascota.raza?.especie }}</span></td>
+                            <td>{{ mascota.raza?.nombre }}</td>
+                            <td>{{ mascota.edad }} {{ mascota.edad === 1 ? 'año' : 'años' }}</td>
+                            <td>{{ mascota.cliente?.nombres }} {{ mascota.cliente?.apellidos }}</td>
+                            <td>
+                                {{ mascota.fechaRegistro | date:'dd MMM yyyy' }}
+                                <span class="vet-sub">{{ mascota.fechaRegistro | date:'hh:mm a' }}</span>
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <button class="btn-icono" type="button" (click)="verMascota(mascota)"
+                                    ngbTooltip="Ver detalle" container="body" aria-label="Ver">
+                                    <i class="feather icon-eye"></i>
+                                </button>
+                                <button class="btn-icono" type="button" (click)="abrirEdicion(mascota)"
+                                    ngbTooltip="Editar" container="body" aria-label="Editar">
+                                    <i class="feather icon-edit-2"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </ng-container>
+                </tbody>
+            </table>
+        </div>
+        <div class="vet-pie">
+            <span>{{ mascotasFiltradas.length }} mascota(s)</span>
+            <app-paginacion [paginaActual]="paginaActual" [totalPaginas]="totalPaginas"
+                (cambiarPagina)="cambiarPagina($event)"></app-paginacion>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ver detalle -->
+<div class="modal fade" id="modalDetalleMascota" tabindex="-1" aria-labelledby="modalDetalleMascotaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" *ngIf="mascotaDetalle">
+            <div class="modal-header">
+                <div class="d-flex align-items-center">
+                    <span class="vet-avatar">{{ mascotaDetalle.nombreMascota?.charAt(0) }}</span>
+                    <h1 class="modal-title fs-5" id="modalDetalleMascotaLabel">{{ mascotaDetalle.nombreMascota }}</h1>
                 </div>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="modalDetalle?.hide()"></button>
             </div>
-            <nav *ngIf="totalPaginas > 1" aria-label="Paginación de mascotas">
-                <ul class="pagination justify-content-end mb-0">
-                    <li class="page-item" [class.disabled]="paginaActual === 1">
-                        <button class="page-link" type="button" [disabled]="paginaActual === 1"
-                            (click)="cambiarPagina(paginaActual - 1)">Anterior</button>
-                    </li>
-                    <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
-                        <button class="page-link" type="button"
-                            [attr.aria-current]="pagina === paginaActual ? 'page' : null"
-                            (click)="cambiarPagina(pagina)">{{ pagina }}</button>
-                    </li>
-                    <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
-                        <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas"
-                            (click)="cambiarPagina(paginaActual + 1)">Siguiente</button>
-                    </li>
-                </ul>
-            </nav>
+            <div class="modal-body">
+                <dl class="row mb-0 vet-detalle">
+                    <dt class="col-5">Especie</dt><dd class="col-7">{{ mascotaDetalle.raza?.especie }}</dd>
+                    <dt class="col-5">Raza</dt><dd class="col-7">{{ mascotaDetalle.raza?.nombre }}</dd>
+                    <dt class="col-5">Edad</dt><dd class="col-7">{{ mascotaDetalle.edad }} {{ mascotaDetalle.edad === 1 ? 'año' : 'años' }}</dd>
+                    <dt class="col-5">Dueño</dt><dd class="col-7">{{ mascotaDetalle.cliente?.nombres }} {{ mascotaDetalle.cliente?.apellidos }}</dd>
+                    <dt class="col-5">Teléfono del dueño</dt><dd class="col-7">{{ mascotaDetalle.cliente?.telefono || '-' }}</dd>
+                    <dt class="col-5">Registrada</dt><dd class="col-7">{{ mascotaDetalle.fechaRegistro | date:'dd MMM yyyy, hh:mm a' }}</dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="modalDetalle?.hide()">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -160,7 +137,7 @@
                             <label for="raza" class="form-label">Raza</label>
                             <select id="raza" class="form-select" formControlName="raza" [compareWith]="compararRazas">
                                 <option [ngValue]="null" disabled>Selecciona una raza</option>
-                                <option *ngFor="let raza of listRazas" [ngValue]="raza">{{ raza.nombre }}</option>
+                                <option *ngFor="let raza of listRazas" [ngValue]="raza">{{ raza.nombre }} ({{ raza.especie }})</option>
                             </select>
                             <div class="text-danger" *ngIf="f['raza'].touched && f['raza'].invalid">Ingresa la raza.
                             </div>
@@ -187,7 +164,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                         (click)="closeModal()">Cerrar</button>
-                    <button type="submit" class="btn btn-primary" [disabled]="enviando">
+                    <button type="submit" class="btn-vet" [disabled]="enviando">
                         {{ enviando ? 'Enviando...' : titleBoton }}
                     </button>
                 </div>

@@ -13,12 +13,15 @@ import { Raza } from 'src/app/models/raza';
 import { RazaService } from './service/raza.service';
 import { ClienteService } from '../cliente/service/cliente.service';
 import { Cliente } from 'src/app/models/cliente';
+import { HttpErrorResponse } from '@angular/common/http';
+import { PaginacionComponent } from 'src/app/shared/paginacion/paginacion.component';
+import { obtenerMensajeError } from 'src/app/utils/utilidades';
 
 type ColumnaOrden = 'nombre' | 'especie' | 'raza' | 'edad' | 'cliente' | 'fechaRegistro';
 
 @Component({
   selector: 'app-mascota',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgbTooltipModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgbTooltipModule, PaginacionComponent],
   templateUrl: './mascota.component.html',
   styleUrl: './mascota.component.scss'
 })
@@ -32,6 +35,13 @@ export class MascotaComponent {
   // Variables para la paginación y búsqueda en la datatable.
   listMascotas: Mascota[] = [];
   terminoBusqueda = '';
+  /** Filtro por especie (perro, gato...). */
+  filtroEspecie = '';
+  /** Muestra el spinner mientras carga la tabla. */
+  cargando = false;
+  /** Modal y mascota del detalle (boton Ver). */
+  modalDetalle: Modal | null = null;
+  mascotaDetalle: Mascota | null = null;
   paginaActual = 1;
   readonly registrosPorPagina = 5;
   columnaOrden: ColumnaOrden = 'nombre';
@@ -105,6 +115,9 @@ export class MascotaComponent {
   get mascotasFiltradas(): Mascota[] {
     const termino = this.normalizarTexto(this.terminoBusqueda.trim());
     const filtradas = this.listMascotas.filter((mascota) => {
+      if (this.filtroEspecie && mascota.raza?.especie !== this.filtroEspecie) {
+        return false;
+      }
       if (!termino) {
         return true;
       }
@@ -180,6 +193,7 @@ export class MascotaComponent {
    * Metodo que permite listar las mascotas registradas en la base de datos y mostrarlas en la tabla.
    */
   listar() {
+    this.cargando = true;
     this.mascotaService.listarMascotas()
       .subscribe(
         {
@@ -187,9 +201,11 @@ export class MascotaComponent {
             console.log(data);
             this.listMascotas = data;
             this.paginaActual = 1;
+            this.cargando = false;
           },
-          error: (error) => {
-            console.error('Error al obtener las mascotas:', error);
+          error: (error: HttpErrorResponse) => {
+            this.cargando = false;
+            Swal.fire('Error', obtenerMensajeError(error), 'error');
           }
         }
       );
@@ -224,7 +240,7 @@ export class MascotaComponent {
 
   compararClientes(clienteA: Cliente | null, clienteB: Cliente | null): boolean {
     return clienteA === clienteB || (
-      clienteA?.tipoDocumento === clienteB?.tipoDocumento && clienteA?.numeroDocumento === clienteB?.numeroDocumento
+      clienteA?.clienteId === clienteB?.clienteId
     );
   }
 
@@ -273,10 +289,10 @@ export class MascotaComponent {
     const valores = this.form.getRawValue();    
     const mascota: Mascota = {
       mascotaId: this.mascotaSelected?.mascotaId,
-      nombre: valores.nombreMascota,
+      nombreMascota: valores.nombreMascota,
       edad: Number(valores.edad),
       razaId: valores.raza.razaId,
-      clienteId: valores.cliente.id 
+      clienteId: valores.cliente.clienteId
     };
 
     this.enviando = true;
@@ -298,8 +314,7 @@ export class MascotaComponent {
       },
       error: (error) => {
         this.enviando = false;
-        console.error('Error al guardar la mascota:', error);
-        Swal.fire('Error', error.message, 'error');
+        Swal.fire('No se pudo guardar', obtenerMensajeError(error), 'error');
       }
     });
   }
@@ -335,4 +350,40 @@ export class MascotaComponent {
   }
 
 
+
+  /** Especies distintas para el filtro. */
+  get especies(): string[] {
+    const especies = this.listMascotas.map((mascota) => mascota.raza?.especie).filter((e) => !!e);
+    return [...new Set(especies)].sort();
+  }
+
+  /** Vuelve a la primera pagina al filtrar. */
+  filtrar() {
+    this.paginaActual = 1;
+  }
+
+  /**
+   * Icono de orden de una columna.
+   * @param columna columna.
+   * @returns clase del icono.
+   */
+  iconoOrden(columna: ColumnaOrden): string {
+    if (this.columnaOrden !== columna) {
+      return 'fa-sort';
+    }
+    return this.direccionOrden === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+  }
+
+  /**
+   * Abre el modal con el detalle de la mascota.
+   * @param mascota mascota seleccionada.
+   */
+  verMascota(mascota: Mascota) {
+    this.mascotaDetalle = mascota;
+    const modalElement = document.getElementById('modalDetalleMascota');
+    if (modalElement) {
+      this.modalDetalle ??= new Modal(modalElement);
+      this.modalDetalle.show();
+    }
+  }
 }
