@@ -1,1 +1,197 @@
-<p>cliente works!</p>
+<div class="container-fluid">
+    <div class="vet-card">
+        <!-- Buscador y boton nuevo -->
+        <div class="vet-toolbar">
+            <div class="vet-search">
+                <i class="feather icon-search"></i>
+                <input class="form-control" placeholder="Buscar por nombre, documento, teléfono o dirección" type="text"
+                    [(ngModel)]="terminoBusqueda" (ngModelChange)="filtrar()" aria-label="Buscar cliente" />
+            </div>
+            <button class="btn-vet" type="button" (click)="nuevoCliente()">
+                <i class="feather icon-user-plus"></i> Nuevo cliente
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="vet-filtros">
+            <select class="form-select" [(ngModel)]="filtroEstado" (ngModelChange)="filtrar()" aria-label="Estado">
+                <option value="">Todos</option>
+                <option value="activo">Activos</option>
+                <option value="inactivo">Inactivos</option>
+            </select>
+        </div>
+
+        <div class="table-responsive">
+            <table class="vet-table">
+                <thead>
+                    <tr>
+                        <th><button type="button" class="orden" (click)="ordenarPor('nombre')">Cliente<i class="fa" [ngClass]="iconoOrden('nombre')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('documento')">Documento<i class="fa" [ngClass]="iconoOrden('documento')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('telefono')">Teléfono<i class="fa" [ngClass]="iconoOrden('telefono')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('direccion')">Dirección<i class="fa" [ngClass]="iconoOrden('direccion')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('estado')">Estado<i class="fa" [ngClass]="iconoOrden('estado')"></i></button></th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngIf="cargando">
+                        <td colspan="6" class="vet-vacio"><div class="spinner-border spinner-border-sm text-success"></div> Cargando clientes...</td>
+                    </tr>
+                    <tr *ngIf="!cargando && clientesFiltrados.length === 0">
+                        <td colspan="6" class="vet-vacio"><i class="feather icon-users d-block fs-3 mb-2"></i>No se encontraron clientes</td>
+                    </tr>
+                    <ng-container *ngIf="!cargando">
+                        <tr *ngFor="let cliente of clientesPaginados">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="vet-avatar">{{ iniciales(cliente) }}</span>
+                                    <div>
+                                        <span class="fw-semibold">{{ cliente.nombres }} {{ cliente.apellidos }}</span>
+                                        <span class="vet-sub">{{ cliente.fechaNacimiento | date:'dd MMM yyyy' }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {{ cliente.numeroDocumento }}
+                                <span class="vet-sub">{{ cliente.tipoDocumento }}</span>
+                            </td>
+                            <td>{{ cliente.telefono || '-' }}</td>
+                            <td class="text-truncate" style="max-width: 220px;">{{ cliente.direccion || '-' }}</td>
+                            <td>
+                                <span class="estado-pill" [ngClass]="cliente.activo ? 'estado-activa' : 'estado-inactiva'">
+                                    {{ cliente.activo ? 'activo' : 'inactivo' }}</span>
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <button class="btn-icono" type="button" (click)="verCliente(cliente)"
+                                    ngbTooltip="Ver detalle y mascotas" container="body" aria-label="Ver">
+                                    <i class="feather icon-eye"></i>
+                                </button>
+                                <button class="btn-icono" type="button" (click)="abrirEdicion(cliente)"
+                                    ngbTooltip="Editar" container="body" aria-label="Editar">
+                                    <i class="feather icon-edit-2"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </ng-container>
+                </tbody>
+            </table>
+        </div>
+        <div class="vet-pie">
+            <span>{{ clientesFiltrados.length }} cliente(s)</span>
+            <app-paginacion [paginaActual]="paginaActual" [totalPaginas]="totalPaginas"
+                (cambiarPagina)="paginaActual = $event"></app-paginacion>
+        </div>
+    </div>
+</div>
+
+<!-- Modal crear / editar -->
+<div class="modal fade" id="modalCliente" tabindex="-1" aria-labelledby="modalClienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalClienteLabel">{{ modoFormulario === 'C' ? 'Nuevo cliente' : 'Editar cliente' }}</h1>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="modalFormulario?.hide()"></button>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="guardarCliente()">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="cTipoDoc" class="form-label">Tipo de documento *</label>
+                            <select id="cTipoDoc" class="form-select" formControlName="tipoDocumento">
+                                <option *ngFor="let tipo of tiposDocumento" [value]="tipo.valor">{{ tipo.texto }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cNumDoc" class="form-label">Número de documento *</label>
+                            <input id="cNumDoc" class="form-control" formControlName="numeroDocumento" inputmode="numeric">
+                            <div class="text-danger small" *ngIf="f['numeroDocumento'].touched && f['numeroDocumento'].invalid">
+                                Solo números, entre 5 y 20 dígitos.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cFechaNac" class="form-label">Fecha de nacimiento *</label>
+                            <input id="cFechaNac" type="date" class="form-control" formControlName="fechaNacimiento">
+                            <div class="text-danger small" *ngIf="f['fechaNacimiento'].touched && f['fechaNacimiento'].errors?.['required']">
+                                Ingresa la fecha de nacimiento.</div>
+                            <div class="text-danger small" *ngIf="f['fechaNacimiento'].errors?.['menorDeEdad']">
+                                El cliente debe ser mayor de edad.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="cNombres" class="form-label">Nombres *</label>
+                            <input id="cNombres" class="form-control" formControlName="nombres">
+                            <div class="text-danger small" *ngIf="f['nombres'].touched && f['nombres'].invalid">Ingresa los nombres.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="cApellidos" class="form-label">Apellidos *</label>
+                            <input id="cApellidos" class="form-control" formControlName="apellidos">
+                            <div class="text-danger small" *ngIf="f['apellidos'].touched && f['apellidos'].invalid">Ingresa los apellidos.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cGenero" class="form-label">Género</label>
+                            <select id="cGenero" class="form-select" formControlName="genero">
+                                <option value="">Sin especificar</option>
+                                <option value="F">Femenino</option>
+                                <option value="M">Masculino</option>
+                                <option value="O">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cTelefono" class="form-label">Teléfono</label>
+                            <input id="cTelefono" class="form-control" formControlName="telefono" inputmode="numeric">
+                            <div class="text-danger small" *ngIf="f['telefono'].touched && f['telefono'].invalid">
+                                Solo números, entre 7 y 15 dígitos.</div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end" *ngIf="modoFormulario === 'E'">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="cActivo" formControlName="activo">
+                                <label class="form-check-label" for="cActivo">Cliente activo</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="cDireccion" class="form-label">Dirección</label>
+                            <input id="cDireccion" class="form-control" formControlName="direccion">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="modalFormulario?.hide()">Cerrar</button>
+                    <button type="submit" class="btn-vet" [disabled]="enviando">
+                        <span *ngIf="enviando" class="spinner-border spinner-border-sm"></span>
+                        {{ enviando ? 'Guardando...' : (modoFormulario === 'C' ? 'Guardar cliente' : 'Actualizar cliente') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ver detalle -->
+<div class="modal fade" id="modalDetalleCliente" tabindex="-1" aria-labelledby="modalDetalleClienteLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" *ngIf="clienteDetalle">
+            <div class="modal-header">
+                <div class="d-flex align-items-center">
+                    <span class="vet-avatar">{{ iniciales(clienteDetalle) }}</span>
+                    <h1 class="modal-title fs-5" id="modalDetalleClienteLabel">{{ clienteDetalle.nombres }} {{ clienteDetalle.apellidos }}</h1>
+                </div>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="modalDetalle?.hide()"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0 vet-detalle">
+                    <dt class="col-5">Documento</dt><dd class="col-7">{{ clienteDetalle.tipoDocumento }} {{ clienteDetalle.numeroDocumento }}</dd>
+                    <dt class="col-5">Nacimiento</dt><dd class="col-7">{{ clienteDetalle.fechaNacimiento | date:'dd MMM yyyy' }}</dd>
+                    <dt class="col-5">Teléfono</dt><dd class="col-7">{{ clienteDetalle.telefono || '-' }}</dd>
+                    <dt class="col-5">Dirección</dt><dd class="col-7">{{ clienteDetalle.direccion || '-' }}</dd>
+                </dl>
+                <h2 class="h6 mt-2">Mascotas ({{ mascotasCliente.length }})</h2>
+                <div *ngIf="mascotasCliente.length === 0" class="text-muted small">Este cliente no tiene mascotas registradas.</div>
+                <div class="d-flex flex-wrap gap-2">
+                    <span *ngFor="let mascota of mascotasCliente" class="estado-pill estado-activa">
+                        {{ mascota.nombreMascota }} · {{ mascota.raza?.nombre }}</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="modalDetalle?.hide()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
