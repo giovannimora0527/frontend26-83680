@@ -1,23 +1,41 @@
 <div class="container-fluid">
   <div class="card">
     <div class="card-header">
-      <div class="row">
+      <div class="row g-2">
         <div class="col col-md-9">
-          <input
-            class="form-control"
-            placeholder="Buscar cita"
-            type="text"
-            (input)="actualizarBusqueda($event)"
-          />
+          <input class="form-control" placeholder="Buscar por cliente, mascota, veterinario o motivo" type="text"
+            [value]="terminoBusqueda" (input)="actualizarBusqueda($event)" />
         </div>
         <div class="col col-md-3 text-end">
-          <button
-            class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
-            (click)="nuevaCita('C')"
-            title="Agregar cita"
-          >
+          <button class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
+            (click)="nuevaCita('C')" title="Agregar cita">
             <i class="fa fa-plus" aria-hidden="true"></i>
             &nbsp; Nuevo
+          </button>
+        </div>
+      </div>
+      <!-- Filtros de la tabla -->
+      <div class="row g-2 mt-1 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Estado</label>
+          <select class="form-select form-select-sm" [(ngModel)]="filtroEstado" (ngModelChange)="aplicarFiltros()">
+            <option value="">Todos</option>
+            <option *ngFor="let estado of estados" [value]="estado">{{ textoEstado(estado) }}</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Fecha desde</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroFechaDesde"
+            (ngModelChange)="aplicarFiltros()" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Fecha hasta</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroFechaHasta"
+            (ngModelChange)="aplicarFiltros()" />
+        </div>
+        <div class="col-md-3 text-end">
+          <button class="btn btn-sm btn-outline-secondary" type="button" (click)="limpiarFiltros()">
+            <i class="fa fa-eraser"></i>&nbsp;Limpiar filtros
           </button>
         </div>
       </div>
@@ -25,52 +43,66 @@
     <div class="card-body">
       <div class="row">
         <div class="table table-responsive table-condensed col col-md-12">
-          <table class="table table-stripped table-condensed table-responsive">
+          <table class="table table-stripped table-condensed table-responsive table-hover">
             <thead>
               <tr>
-                <th class="text-center">ID</th>
-                <th class="text-center">Fecha y Hora</th>
-                <th class="text-center">Estado</th>
-                <th class="text-center">Motivo</th>
-                <th class="text-center">Cliente</th>
-                <th class="text-center">Mascota</th>
-                <th class="text-center">Médico</th>
+                <th class="text-center ordenable" (click)="ordenarPor('fechaHora')">
+                  Fecha <i class="fa" [ngClass]="iconoOrden('fechaHora')"></i>
+                </th>
+                <th class="text-center ordenable" (click)="ordenarPor('hora')">
+                  Hora <i class="fa" [ngClass]="iconoOrden('hora')"></i>
+                </th>
+                <th class="text-center ordenable" (click)="ordenarPor('cliente')">
+                  Cliente <i class="fa" [ngClass]="iconoOrden('cliente')"></i>
+                </th>
+                <th class="text-center ordenable" (click)="ordenarPor('mascota')">
+                  Mascota <i class="fa" [ngClass]="iconoOrden('mascota')"></i>
+                </th>
+                <th class="text-center ordenable" (click)="ordenarPor('medico')">
+                  Veterinario <i class="fa" [ngClass]="iconoOrden('medico')"></i>
+                </th>
+                <th class="text-center ordenable" (click)="ordenarPor('estado')">
+                  Estado <i class="fa" [ngClass]="iconoOrden('estado')"></i>
+                </th>
                 <th class="text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody *ngIf="listCitas.length === 0">
+            <tbody *ngIf="cargando">
               <tr>
-                <td colspan="8" class="text-center">No hay citas registradas</td>
+                <td colspan="7" class="text-center text-muted">
+                  <i class="fa fa-spinner fa-spin"></i>&nbsp;Cargando citas...
+                </td>
               </tr>
             </tbody>
-            <tbody *ngIf="listCitas.length > 0 && citasFiltradas.length === 0">
+            <tbody *ngIf="!cargando && listCitas.length === 0">
               <tr>
-                <td colspan="8" class="text-center">No se encontraron citas</td>
+                <td colspan="7" class="text-center">No hay citas registradas</td>
               </tr>
             </tbody>
-            <tbody *ngIf="citasFiltradas.length > 0">
+            <tbody *ngIf="!cargando && listCitas.length > 0 && citasFiltradas.length === 0">
+              <tr>
+                <td colspan="7" class="text-center">No se encontraron citas con los filtros aplicados</td>
+              </tr>
+            </tbody>
+            <tbody *ngIf="!cargando && citasFiltradas.length > 0">
               <tr *ngFor="let cita of citasPaginadas">
-                <td class="text-center">{{ cita.id }}</td>
-                <td class="text-center">{{ cita.fechaHora | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td class="text-center">{{ cita.fechaHora | date:'yyyy-MM-dd' }}</td>
+                <td class="text-center">{{ cita.fechaHora | date:'HH:mm' }}</td>
+                <td class="text-center">{{ nombreCompleto(cita.cliente) }}</td>
+                <td class="text-center">{{ cita.mascota?.nombreMascota }}</td>
+                <td class="text-center">{{ nombreCompleto(cita.medico) }}</td>
                 <td class="text-center">
-                  <span class="badge bg-primary">{{ cita.estado }}</span>
-                </td>
-                <td class="text-center">{{ cita.motivo }}</td>
-                <td class="text-center">
-                  {{ cita.cliente ? cita.cliente.nombres + ' ' + cita.cliente.apellidos : 'Cliente #' + cita.clienteId }}
-                </td>
-                <td class="text-center">
-                  {{ cita.mascota ? cita.mascota.nombreMascota : 'Mascota #' + cita.mascotaId }}
+                  <span class="badge" [ngClass]="claseEstado(cita.estado)">{{ textoEstado(cita.estado) }}</span>
                 </td>
                 <td class="text-center">
-                  {{ cita.medico ? cita.medico.nombres + ' ' + cita.medico.apellidos : 'Médico #' + cita.medicoId }}
-                </td>
-                <td class="text-center">
-                  <button
-                    class="btn btn-outline-info d-inline-flex align-items-center justify-content-center"
-                    (click)="abrirEdicion(cita)"
-                  >
-                    <i class="fa fa-edit"></i>&nbsp;Editar
+                  <button class="btn btn-sm btn-outline-info d-inline-flex align-items-center justify-content-center"
+                    (click)="abrirEdicion(cita)">
+                    <i class="fa fa-edit"></i>&nbsp;{{ esCitaBloqueada(cita) ? 'Ver' : 'Editar' }}
+                  </button>
+                  <button *ngIf="cita.estado?.toUpperCase() === 'CANCELADA'"
+                    class="btn btn-sm btn-outline-warning d-inline-flex align-items-center justify-content-center ms-1"
+                    (click)="reactivarCita(cita)" title="Reactivar cita cancelada">
+                    <i class="fa fa-undo"></i>&nbsp;Reactivar
                   </button>
                 </td>
               </tr>
@@ -78,25 +110,28 @@
           </table>
         </div>
       </div>
-      <nav *ngIf="totalPaginas > 1" aria-label="Paginación de citas">
-        <ul class="pagination justify-content-end mb-0">
-          <li class="page-item" [class.disabled]="paginaActual === 1">
-            <button class="page-link" type="button" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
-              Anterior
-            </button>
-          </li>
-          <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
-            <button class="page-link" type="button" [attr.aria-current]="pagina === paginaActual ? 'page' : null" (click)="cambiarPagina(pagina)">
-              {{ pagina }}
-            </button>
-          </li>
-          <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
-            <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
-              Siguiente
-            </button>
-          </li>
-        </ul>
-      </nav>
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">{{ citasFiltradas.length }} cita(s) encontrada(s)</small>
+        <nav *ngIf="totalPaginas > 1" aria-label="Paginación de citas">
+          <ul class="pagination justify-content-end mb-0">
+            <li class="page-item" [class.disabled]="paginaActual === 1">
+              <button class="page-link" type="button" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+                Anterior
+              </button>
+            </li>
+            <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
+              <button class="page-link" type="button" [attr.aria-current]="pagina === paginaActual ? 'page' : null" (click)="cambiarPagina(pagina)">
+                {{ pagina }}
+              </button>
+            </li>
+            <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+              <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+                Siguiente
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
     </div>
   </div>
 </div>
@@ -110,15 +145,89 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()"></button>
       </div>
       <div class="modal-body">
-        <div class="card">
-          <div class="card-body">
-            <p *ngIf="citaSelected">Cita #{{ citaSelected.id }} - {{ citaSelected.motivo }}</p>
-          </div>
+        <div class="alert alert-warning" *ngIf="esCitaBloqueada(citaSelected)">
+          <i class="fa fa-ban"></i>&nbsp;
+          <span *ngIf="citaSelected?.estado?.toUpperCase() === 'ATENDIDA'">
+            Esta cita ya fue atendida, su información es histórica y no se puede modificar.
+          </span>
+          <span *ngIf="citaSelected?.estado?.toUpperCase() === 'CANCELADA'">
+            Esta cita está cancelada. Para volver a usarla utilice la opción "Reactivar" del listado.
+          </span>
         </div>
+        <div class="alert alert-light border small" *ngIf="modoFormulario === 'E' && !esCitaBloqueada(citaSelected)">
+          En la edición solo se puede cambiar el veterinario, la fecha, la hora, el motivo y el estado.
+        </div>
+        <form [formGroup]="form">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Cliente *</label>
+              <select class="form-select" formControlName="clienteId"
+                [class.is-invalid]="f['clienteId'].touched && f['clienteId'].invalid">
+                <option [ngValue]="null">Seleccione un cliente</option>
+                <option *ngFor="let cliente of listClientes" [ngValue]="cliente.clienteId">
+                  {{ nombreCompleto(cliente) }} - {{ cliente.numeroDocumento }}
+                </option>
+              </select>
+              <div class="invalid-feedback">Seleccione el cliente.</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Mascota *</label>
+              <select class="form-select" formControlName="mascotaId"
+                [class.is-invalid]="f['mascotaId'].touched && f['mascotaId'].invalid">
+                <option [ngValue]="null">{{ f['clienteId'].value ? 'Seleccione una mascota' : 'Primero seleccione el cliente' }}</option>
+                <option *ngFor="let mascota of listMascotas" [ngValue]="mascota.mascotaId">
+                  {{ mascota.nombreMascota }} ({{ mascota.raza?.nombre }})
+                </option>
+              </select>
+              <div class="invalid-feedback">Seleccione la mascota del cliente.</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Veterinario *</label>
+              <select class="form-select" formControlName="medicoId"
+                [class.is-invalid]="f['medicoId'].touched && f['medicoId'].invalid">
+                <option [ngValue]="null">Seleccione un veterinario</option>
+                <option *ngFor="let medico of listMedicos" [ngValue]="medico.id">
+                  {{ nombreCompleto(medico) }} - {{ medico.especializacion?.nombre }}
+                </option>
+              </select>
+              <div class="invalid-feedback">Seleccione el veterinario.</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Estado *</label>
+              <select class="form-select" formControlName="estado">
+                <option *ngFor="let estado of (modoFormulario === 'C' ? estadosIniciales : estados)" [value]="estado">
+                  {{ textoEstado(estado) }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Fecha *</label>
+              <input type="date" class="form-control" formControlName="fecha"
+                [min]="modoFormulario === 'C' ? fechaMinima : null"
+                [class.is-invalid]="f['fecha'].touched && f['fecha'].invalid" />
+              <div class="invalid-feedback">Ingrese la fecha de la cita.</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Hora *</label>
+              <input type="time" class="form-control" formControlName="hora"
+                [class.is-invalid]="f['hora'].touched && f['hora'].invalid" />
+              <div class="invalid-feedback">Ingrese la hora de la cita.</div>
+            </div>
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Motivo de la consulta *</label>
+              <textarea class="form-control" rows="3" formControlName="motivo" maxlength="500"
+                [class.is-invalid]="f['motivo'].touched && f['motivo'].invalid"></textarea>
+              <div class="invalid-feedback">Ingrese el motivo de la consulta.</div>
+            </div>
+          </div>
+        </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeModal()">Cerrar</button>
-        <button type="button" class="btn btn-primary">{{ titleBoton }}</button>
+        <button type="button" class="btn btn-primary" *ngIf="!esCitaBloqueada(citaSelected)" [disabled]="guardando"
+          (click)="guardar()">
+          <i class="fa fa-spinner fa-spin" *ngIf="guardando"></i>&nbsp;{{ titleBoton }}
+        </button>
       </div>
     </div>
   </div>
