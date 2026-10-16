@@ -22,10 +22,10 @@ export const NavigationItems: NavigationItem[] = [
     icon: 'icon-navigation',
     children: [
       {
-        id: 'usuario',
-        title: 'Gestión de Usuarios',
+        id: 'clientes',
+        title: 'Gestión de Clientes',
         type: 'item',
-        url: '/inicio/usuarios',
+        url: '/inicio/clientes',
         icon: 'feather icon-user',
         classes: 'nav-item'
       },
@@ -40,10 +40,34 @@ export const NavigationItems: NavigationItem[] = [
       /* ---------- Nuevos menus aqui -------------  */ 
       {
         id: 'medicos',
-        title: 'Gestión de Medicos',
+        title: 'Gestión de Médicos',
         type: 'item',
         url: '/inicio/medicos',
         icon: 'feather icon-users',
+        classes: 'nav-item'
+      },
+      {
+        id: 'citas',
+        title: 'Gestión de Citas',
+        type: 'item',
+        url: '/inicio/citas',
+        icon: 'feather icon-calendar',
+        classes: 'nav-item'
+      },
+      {
+        id: 'historias',
+        title: 'Historias Clínicas',
+        type: 'item',
+        url: '/inicio/historias',
+        icon: 'feather icon-file-text',
+        classes: 'nav-item'
+      },
+      {
+        id: 'formulas',
+        title: 'Fórmulas Médicas',
+        type: 'item',
+        url: '/inicio/formulas',
+        icon: 'feather icon-clipboard',
         classes: 'nav-item'
       },
     ]
