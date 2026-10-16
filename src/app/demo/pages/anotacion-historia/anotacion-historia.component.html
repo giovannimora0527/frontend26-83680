@@ -3,66 +3,55 @@
     <div class="card-header">
       <div class="row">
         <div class="col col-md-9">
-          <input
-            class="form-control"
-            placeholder="Buscar anotación"
-            type="text"
-            (input)="actualizarBusqueda($event)"
-          />
+          <input class="form-control" placeholder="Buscar anotación por veterinario, descripción o diagnóstico"
+            type="text" (input)="actualizarBusqueda($event)" />
         </div>
         <div class="col col-md-3 text-end">
-          <button
-            class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
-            (click)="nuevaAnotacion('C')"
-            title="Agregar anotación"
-          >
-            <i class="fa fa-plus" aria-hidden="true"></i>
-            &nbsp; Nuevo
-          </button>
+          <small class="text-muted">
+            Para agregar anotaciones use el botón <strong>Ver</strong> en Historias Médicas.
+          </small>
         </div>
       </div>
     </div>
     <div class="card-body">
       <div class="row">
         <div class="table table-responsive table-condensed col col-md-12">
-          <table class="table table-stripped table-condensed table-responsive">
+          <table class="table table-stripped table-condensed table-responsive table-hover">
             <thead>
               <tr>
-                <th class="text-center">ID</th>
-                <th class="text-center">Historia ID</th>
-                <th class="text-center">Médico</th>
-                <th class="text-center">Fecha</th>
+                <th class="text-center ordenable" (click)="cambiarOrden()">
+                  Fecha <i class="fa" [ngClass]="ordenAscendente ? 'fa-sort-up' : 'fa-sort-down'"></i>
+                </th>
+                <th class="text-center">Veterinario</th>
                 <th class="text-center">Descripción</th>
-                <th class="text-center">Acciones</th>
+                <th class="text-center">Observación</th>
+                <th class="text-center">Diagnóstico / evolución</th>
               </tr>
             </thead>
-            <tbody *ngIf="listAnotaciones.length === 0">
+            <tbody *ngIf="cargando">
               <tr>
-                <td colspan="6" class="text-center">No hay anotaciones registradas</td>
+                <td colspan="5" class="text-center text-muted">
+                  <i class="fa fa-spinner fa-spin"></i>&nbsp;Cargando anotaciones...
+                </td>
               </tr>
             </tbody>
-            <tbody *ngIf="listAnotaciones.length > 0 && anotacionesFiltradas.length === 0">
+            <tbody *ngIf="!cargando && listAnotaciones.length === 0">
               <tr>
-                <td colspan="6" class="text-center">No se encontraron anotaciones</td>
+                <td colspan="5" class="text-center">No hay anotaciones registradas</td>
               </tr>
             </tbody>
-            <tbody *ngIf="anotacionesFiltradas.length > 0">
+            <tbody *ngIf="!cargando && listAnotaciones.length > 0 && anotacionesFiltradas.length === 0">
+              <tr>
+                <td colspan="5" class="text-center">No se encontraron anotaciones</td>
+              </tr>
+            </tbody>
+            <tbody *ngIf="!cargando && anotacionesFiltradas.length > 0">
               <tr *ngFor="let anotacion of anotacionesPaginadas">
-                <td class="text-center">{{ anotacion.id }}</td>
-                <td class="text-center">Historia #{{ anotacion.historiaId ?? '-' }}</td>
-                <td class="text-center">
-                  {{ anotacion.medico ? anotacion.medico.nombres + ' ' + anotacion.medico.apellidos : 'Médico #' + (anotacion.medicoId ?? '-') }}
-                </td>
-                <td class="text-center">{{ anotacion.fecha | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td class="text-center text-nowrap">{{ anotacion.fecha | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td class="text-center">{{ nombreCompleto(anotacion.medico) }}</td>
                 <td class="text-center">{{ anotacion.descripcion }}</td>
-                <td class="text-center">
-                  <button
-                    class="btn btn-outline-info d-inline-flex align-items-center justify-content-center"
-                    (click)="abrirEdicion(anotacion)"
-                  >
-                    <i class="fa fa-edit"></i>&nbsp;Editar
-                  </button>
-                </td>
+                <td class="text-center">{{ anotacion.observacion || '-' }}</td>
+                <td class="text-center">{{ anotacion.diagnostico || '-' }}</td>
               </tr>
             </tbody>
           </table>
@@ -87,29 +76,6 @@
           </li>
         </ul>
       </nav>
-    </div>
-  </div>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="modalCrearAnotacion" tabindex="-1" aria-labelledby="modalCrearAnotacionLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h1 class="modal-title fs-5" id="modalCrearAnotacionLabel">{{ titleModal }}</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()"></button>
-      </div>
-      <div class="modal-body">
-        <div class="card">
-          <div class="card-body">
-            <p *ngIf="anotacionSelected">Anotación #{{ anotacionSelected.id }} - {{ anotacionSelected.descripcion }}</p>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeModal()">Cerrar</button>
-        <button type="button" class="btn btn-primary">{{ titleBoton }}</button>
-      </div>
     </div>
   </div>
 </div>

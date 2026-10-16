@@ -1,51 +1,64 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Modal } from 'bootstrap';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AnotacionHistoria } from 'src/app/models/anotacion-historia';
+import { mostrarError } from 'src/app/utils/mensajes-utils';
+import { compararValores, nombreCompleto, normalizarTexto } from 'src/app/utils/tabla-utils';
 import { AnotacionHistoriaService } from './service/anotacion-historia.service';
 
+/**
+ * Listado general de anotaciones (solo consulta).
+ * Las anotaciones se registran desde el detalle (Ver) de cada historia clínica.
+ */
 @Component({
   selector: 'app-anotacion-historia',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule],
   templateUrl: './anotacion-historia.component.html',
   styleUrl: './anotacion-historia.component.scss'
 })
 export class AnotacionHistoriaComponent {
-  modalInstance: Modal | null = null;
-  titleModal: string = '';
-  modoFormulario: string = '';
-  titleBoton: string = '';
-
+  // Variables para la paginación, búsqueda y ordenamiento de la datatable.
   listAnotaciones: AnotacionHistoria[] = [];
   terminoBusqueda = '';
+  ordenAscendente = false;
   paginaActual = 1;
   readonly registrosPorPagina = 5;
+  cargando = false;
 
-  anotacionSelected: AnotacionHistoria | null = null;
+  // Funciones de utilidad que se usan en la plantilla.
+  readonly nombreCompleto = nombreCompleto;
 
   constructor(private readonly anotacionService: AnotacionHistoriaService) {
     this.listar();
   }
 
+  /**
+   * Filtra las anotaciones según la búsqueda y las ordena por fecha.
+   * @returns Un arreglo de anotaciones filtradas y ordenadas.
+   */
   get anotacionesFiltradas(): AnotacionHistoria[] {
-    const termino = this.normalizarTexto(this.terminoBusqueda.trim());
-    if (!termino) {
-      return this.listAnotaciones;
-    }
+    const termino = normalizarTexto(this.terminoBusqueda.trim());
 
-    return this.listAnotaciones.filter((anotacion) => {
+    const filtradas = this.listAnotaciones.filter((anotacion) => {
+      if (!termino) {
+        return true;
+      }
       const valores = [
         anotacion.id,
-        anotacion.historiaId,
         anotacion.descripcion,
-        anotacion.medico ? `${anotacion.medico.nombres} ${anotacion.medico.apellidos}` : ''
+        anotacion.observacion,
+        anotacion.diagnostico,
+        nombreCompleto(anotacion.medico)
       ];
 
       return valores.some((valor) =>
-        this.normalizarTexto(String(valor ?? '')).includes(termino)
+        normalizarTexto(String(valor ?? '')).includes(termino)
       );
     });
+
+    return filtradas.sort((a, b) =>
+      compararValores(String(a.fecha ?? ''), String(b.fecha ?? ''), this.ordenAscendente)
+    );
   }
 
   get anotacionesPaginadas(): AnotacionHistoria[] {
@@ -61,63 +74,40 @@ export class AnotacionHistoriaComponent {
     return Array.from({ length: this.totalPaginas }, (_, indice) => indice + 1);
   }
 
+  /**
+   * Metodo que permite listar las anotaciones registradas y mostrarlas en la tabla.
+   */
   listar() {
+    this.cargando = true;
     this.anotacionService.listar().subscribe({
       next: (data) => {
         this.listAnotaciones = data;
         this.paginaActual = 1;
+        this.cargando = false;
       },
-      error: (error) => {
-        console.error('Error al obtener las anotaciones:', error);
+      error: (error: HttpErrorResponse) => {
+        this.cargando = false;
+        mostrarError(error);
       }
     });
   }
 
+  // Metodo que actualiza el termino de busqueda y reinicia la pagina actual a 1.
   actualizarBusqueda(event: Event) {
     this.terminoBusqueda = (event.target as HTMLInputElement).value;
     this.paginaActual = 1;
   }
 
+  // Invierte el orden por fecha.
+  cambiarOrden() {
+    this.ordenAscendente = !this.ordenAscendente;
+    this.paginaActual = 1;
+  }
+
+  // Cambia paginacion.
   cambiarPagina(pagina: number) {
     if (pagina >= 1 && pagina <= this.totalPaginas) {
       this.paginaActual = pagina;
-    }
-  }
-
-  private normalizarTexto(texto: string): string {
-    return texto
-      .toLocaleLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  }
-
-  nuevaAnotacion(modo: string) {
-    this.titleModal = modo === 'C' ? 'Crear Anotación' : 'Editar Anotación';
-    this.modoFormulario = modo;
-    this.anotacionSelected = null;
-    this.openModal(modo);
-  }
-
-  abrirEdicion(anotacion: AnotacionHistoria) {
-    this.anotacionSelected = anotacion;
-    this.modoFormulario = 'E';
-    this.openModal(this.modoFormulario);
-  }
-
-  closeModal() {
-    if (this.modalInstance) {
-      this.modalInstance.hide();
-    }
-  }
-
-  openModal(modo: string) {
-    this.titleModal = modo === 'C' ? 'Crear Anotación' : 'Editar Anotación';
-    this.titleBoton = modo === 'C' ? 'Guardar Anotación' : 'Actualizar Anotación';
-    this.modoFormulario = modo;
-    const modalElement = document.getElementById('modalCrearAnotacion');
-    if (modalElement) {
-      this.modalInstance ??= new Modal(modalElement);
-      this.modalInstance.show();
     }
   }
 }
