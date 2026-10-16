@@ -1,0 +1,286 @@
+<div class="container-fluid">
+    <div class="vet-card">
+        <!-- Buscador y boton nuevo -->
+        <div class="vet-toolbar">
+            <div class="vet-search">
+                <i class="feather icon-search"></i>
+                <input class="form-control" placeholder="Buscar por mascota, cliente, motivo o diagnóstico" type="text"
+                    [(ngModel)]="terminoBusqueda" (ngModelChange)="filtrar()" aria-label="Buscar historia" />
+            </div>
+            <button class="btn-vet" type="button" (click)="nuevaHistoria()">
+                <i class="feather icon-plus"></i> Nueva historia
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="vet-filtros">
+            <select class="form-select" [(ngModel)]="filtroMedico" (ngModelChange)="filtrar()" aria-label="Médico">
+                <option [ngValue]="null">Todos los médicos</option>
+                <option *ngFor="let medico of listMedicos" [ngValue]="medico.id">{{ medico.nombres }} {{ medico.apellidos }}</option>
+            </select>
+            <small>Desde</small>
+            <input type="date" class="form-control" [(ngModel)]="filtroDesde" (ngModelChange)="filtrar()" aria-label="Desde" />
+            <small>Hasta</small>
+            <input type="date" class="form-control" [(ngModel)]="filtroHasta" (ngModelChange)="filtrar()" aria-label="Hasta" />
+            <button class="vet-link ms-auto" type="button" (click)="limpiarFiltros()">
+                <i class="feather icon-x"></i> Limpiar filtros
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="vet-table">
+                <thead>
+                    <tr>
+                        <th><button type="button" class="orden" (click)="ordenarPor('mascota')">Mascota<i class="fa" [ngClass]="iconoOrden('mascota')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('cliente')">Cliente<i class="fa" [ngClass]="iconoOrden('cliente')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('medico')">Médico<i class="fa" [ngClass]="iconoOrden('medico')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('fecha')">Fecha y hora<i class="fa" [ngClass]="iconoOrden('fecha')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('motivo')">Motivo<i class="fa" [ngClass]="iconoOrden('motivo')"></i></button></th>
+                        <th><button type="button" class="orden" (click)="ordenarPor('estado')">Estado<i class="fa" [ngClass]="iconoOrden('estado')"></i></button></th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngIf="cargando">
+                        <td colspan="7" class="vet-vacio"><div class="spinner-border spinner-border-sm text-success"></div> Cargando historias...</td>
+                    </tr>
+                    <tr *ngIf="!cargando && historiasFiltradas.length === 0">
+                        <td colspan="7" class="vet-vacio"><i class="feather icon-file-text d-block fs-3 mb-2"></i>No se encontraron historias clínicas</td>
+                    </tr>
+                    <ng-container *ngIf="!cargando">
+                        <tr *ngFor="let historia of historiasPaginadas">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="vet-avatar">{{ historia.mascotaNombre?.charAt(0) }}</span>
+                                    <span class="fw-semibold">{{ historia.mascotaNombre }}</span>
+                                </div>
+                            </td>
+                            <td>{{ historia.clienteNombre }}</td>
+                            <td>{{ historia.medicoNombre || '-' }}</td>
+                            <td>
+                                {{ historia.fechaHora | date:'dd MMM yyyy' }}
+                                <span class="vet-sub">{{ historia.fechaHora | date:'hh:mm a' }}</span>
+                            </td>
+                            <td class="text-truncate" style="max-width: 220px;">{{ historia.motivo }}</td>
+                            <td><span class="estado-pill" [ngClass]="claseEstado(historia.estado)">{{ historia.estado || 'sin cita' }}</span></td>
+                            <td class="text-center">
+                                <button class="btn-icono" type="button" (click)="verHistoria(historia)"
+                                    ngbTooltip="Ver historia y anotaciones" container="body" aria-label="Ver">
+                                    <i class="feather icon-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </ng-container>
+                </tbody>
+            </table>
+        </div>
+        <div class="vet-pie">
+            <span>{{ historiasFiltradas.length }} historia(s)</span>
+            <app-paginacion [paginaActual]="paginaActual" [totalPaginas]="totalPaginas"
+                (cambiarPagina)="paginaActual = $event"></app-paginacion>
+        </div>
+    </div>
+</div>
+
+<!-- Modal crear historia -->
+<div class="modal fade" id="modalHistoria" tabindex="-1" aria-labelledby="modalHistoriaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalHistoriaLabel">Nueva historia clínica</h1>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="modalHistoria?.hide()"></button>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="guardarHistoria()">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="hClienteId" class="form-label">Cliente *</label>
+                            <select id="hClienteId" class="form-select" formControlName="clienteId" (change)="cambioCliente()">
+                                <option [ngValue]="null" disabled>Selecciona un cliente</option>
+                                <option *ngFor="let cliente of listClientes" [ngValue]="cliente.clienteId">
+                                    {{ cliente.nombres }} {{ cliente.apellidos }}</option>
+                            </select>
+                            <div class="text-danger small" *ngIf="f['clienteId'].touched && f['clienteId'].invalid">Selecciona el cliente.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="hMascotaId" class="form-label">Mascota *</label>
+                            <select id="hMascotaId" class="form-select" formControlName="mascotaId" (change)="cambioMascota()">
+                                <option [ngValue]="null" disabled>
+                                    {{ f['clienteId'].value ? 'Selecciona una mascota' : 'Primero el cliente' }}</option>
+                                <option *ngFor="let mascota of listMascotas" [ngValue]="mascota.mascotaId">{{ mascota.nombreMascota }}</option>
+                            </select>
+                            <div class="text-danger small" *ngIf="f['mascotaId'].touched && f['mascotaId'].invalid">Selecciona la mascota.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="hCitaId" class="form-label">Cita atendida *</label>
+                            <select id="hCitaId" class="form-select" formControlName="citaId" (change)="cambioCita()">
+                                <option [ngValue]="null" disabled>
+                                    {{ f['mascotaId'].value ? 'Selecciona la cita' : 'Primero la mascota' }}</option>
+                                <option *ngFor="let cita of listCitasAtendidas" [ngValue]="cita.id">
+                                    {{ cita.fechaHora | date:'yyyy-MM-dd hh:mm a' }}</option>
+                            </select>
+                            <div class="text-danger small" *ngIf="f['citaId'].touched && f['citaId'].invalid">Selecciona la cita.</div>
+                            <div class="text-muted small" *ngIf="f['mascotaId'].value && listCitasAtendidas.length === 0">
+                                Esta mascota no tiene citas atendidas.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="hMedicoId" class="form-label">Veterinario *</label>
+                            <select id="hMedicoId" class="form-select" formControlName="medicoId">
+                                <option [ngValue]="null" disabled>Selecciona un veterinario</option>
+                                <option *ngFor="let medico of listMedicos" [ngValue]="medico.id">{{ medico.nombres }} {{ medico.apellidos }}</option>
+                            </select>
+                            <div class="text-danger small" *ngIf="f['medicoId'].touched && f['medicoId'].invalid">Selecciona el veterinario.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="hFechaHora" class="form-label">Fecha y hora *</label>
+                            <input id="hFechaHora" type="datetime-local" class="form-control" formControlName="fechaHora">
+                            <div class="text-danger small" *ngIf="f['fechaHora'].touched && f['fechaHora'].invalid">Ingresa la fecha y hora.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="hMotivo" class="form-label">Motivo de consulta *</label>
+                            <input id="hMotivo" class="form-control" formControlName="motivo">
+                            <div class="text-danger small" *ngIf="f['motivo'].touched && f['motivo'].invalid">Ingresa el motivo.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="hDiagnostico" class="form-label">Diagnóstico *</label>
+                            <textarea id="hDiagnostico" class="form-control" rows="2" formControlName="diagnostico"></textarea>
+                            <div class="text-danger small" *ngIf="f['diagnostico'].touched && f['diagnostico'].invalid">Ingresa el diagnóstico.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="hObservaciones" class="form-label">Observaciones</label>
+                            <textarea id="hObservaciones" class="form-control" rows="2" formControlName="observaciones"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="modalHistoria?.hide()">Cerrar</button>
+                    <button type="submit" class="btn-vet" [disabled]="enviando">
+                        <span *ngIf="enviando" class="spinner-border spinner-border-sm"></span>
+                        {{ enviando ? 'Guardando...' : 'Guardar historia' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ver detalle de la historia -->
+<div class="modal fade" id="modalDetalleHistoria" tabindex="-1" aria-labelledby="modalDetalleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" *ngIf="historiaSeleccionada">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalDetalleLabel">
+                    Historia clínica #{{ historiaSeleccionada.id }} - {{ historiaSeleccionada.mascotaNombre }}</h1>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="modalDetalle?.hide()"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Datos completos de la historia -->
+                <div class="row g-3 mb-3 vet-detalle">
+                    <div class="col-md-3"><b>Mascota:</b><br>{{ historiaSeleccionada.mascotaNombre }}</div>
+                    <div class="col-md-3"><b>Cliente:</b><br>{{ historiaSeleccionada.clienteNombre }}</div>
+                    <div class="col-md-3"><b>Veterinario:</b><br>{{ historiaSeleccionada.medicoNombre || '-' }}</div>
+                    <div class="col-md-3"><b>Fecha:</b><br>{{ historiaSeleccionada.fechaHora | date:'yyyy-MM-dd hh:mm a' }}</div>
+                    <div class="col-md-6"><b>Motivo:</b><br>{{ historiaSeleccionada.motivo }}</div>
+                    <div class="col-md-6"><b>Diagnóstico:</b><br>{{ historiaSeleccionada.diagnostico || '-' }}</div>
+                    <div class="col-12"><b>Observaciones:</b><br>{{ historiaSeleccionada.observaciones || '-' }}</div>
+                </div>
+                <hr>
+
+                <!-- Histórico de anotaciones -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">Histórico de anotaciones</h2>
+                    <button class="btn-vet" style="height: 34px; font-size: .85rem;" type="button" (click)="toggleFormAnotacion()">
+                        <i class="fa" [ngClass]="mostrarFormAnotacion ? 'fa-times' : 'fa-plus'"></i>
+                        {{ mostrarFormAnotacion ? 'Cancelar' : 'Agregar anotación' }}
+                    </button>
+                </div>
+
+                <!-- Formulario nueva anotación -->
+                <form *ngIf="mostrarFormAnotacion" [formGroup]="formAnotacion" (ngSubmit)="guardarAnotacion()"
+                    class="border rounded p-3 mb-3" style="border-color: #2a2f38 !important; background: #14171c;">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label for="aMedico" class="form-label">Veterinario *</label>
+                            <select id="aMedico" class="form-select" formControlName="medicoId">
+                                <option [ngValue]="null" disabled>Selecciona</option>
+                                <option *ngFor="let medico of listMedicos" [ngValue]="medico.id">{{ medico.nombres }} {{ medico.apellidos }}</option>
+                            </select>
+                            <div class="text-danger small" *ngIf="fa['medicoId'].touched && fa['medicoId'].invalid">Selecciona el veterinario.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="aDescripcion" class="form-label">Descripción *</label>
+                            <input id="aDescripcion" class="form-control" formControlName="descripcion">
+                            <div class="text-danger small" *ngIf="fa['descripcion'].touched && fa['descripcion'].invalid">Ingresa la descripción.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="aDiagnostico" class="form-label">Diagnóstico o evolución *</label>
+                            <textarea id="aDiagnostico" class="form-control" rows="2" formControlName="diagnostico"></textarea>
+                            <div class="text-danger small" *ngIf="fa['diagnostico'].touched && fa['diagnostico'].invalid">Ingresa el diagnóstico o evolución.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="aObservacion" class="form-label">Observación</label>
+                            <textarea id="aObservacion" class="form-control" rows="2" formControlName="observacion"></textarea>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary btn-sm" [disabled]="enviandoAnotacion">
+                                {{ enviandoAnotacion ? 'Guardando...' : 'Guardar anotación' }}</button>
+                        </div>
+                    </div>
+                </form>
+
+                <input class="form-control form-control-sm mb-2" style="max-width: 320px;" placeholder="Filtrar anotaciones..."
+                    [(ngModel)]="busquedaAnotacion" (ngModelChange)="paginaAnotaciones = 1" />
+                <div class="table-responsive">
+                    <table class="vet-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <button type="button" class="orden" (click)="cambiarOrdenAnotaciones()">Fecha<i class="fa" [ngClass]="ordenAnotaciones === 'asc' ? 'fa-sort-up' : 'fa-sort-down'"></i></button>
+                                </th>
+                                <th>Veterinario</th>
+                                <th>Descripción</th>
+                                <th class="text-center">Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngIf="cargandoAnotaciones">
+                                <td colspan="4" class="text-center"><div class="spinner-border spinner-border-sm"></div> Cargando...</td>
+                            </tr>
+                            <tr *ngIf="!cargandoAnotaciones && anotacionesFiltradas.length === 0">
+                                <td colspan="4" class="text-center">No hay anotaciones</td>
+                            </tr>
+                            <tr *ngFor="let anotacion of anotacionesPaginadas" [class.table-primary]="anotacion === anotacionSeleccionada">
+                                <td>{{ anotacion.fecha | date:'yyyy-MM-dd hh:mm a' }}</td>
+                                <td>{{ anotacion.medicoNombre }}</td>
+                                <td class="text-truncate" style="max-width: 300px;">{{ anotacion.descripcion }}</td>
+                                <td class="text-center">
+                                    <button class="btn-icono" type="button" (click)="anotacionSeleccionada = anotacion" aria-label="Ver anotación">
+                                        <i class="feather icon-eye"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <app-paginacion [paginaActual]="paginaAnotaciones" [totalPaginas]="totalPaginasAnotaciones"
+                    (cambiarPagina)="paginaAnotaciones = $event"></app-paginacion>
+
+                <!-- Detalle de la anotación seleccionada -->
+                <div class="card border-success mt-3 mb-0" *ngIf="anotacionSeleccionada">
+                    <div class="card-header d-flex justify-content-between py-2">
+                        <b>Anotación del {{ anotacionSeleccionada.fecha | date:'yyyy-MM-dd hh:mm a' }}</b>
+                        <button type="button" class="btn-close" aria-label="Cerrar" (click)="anotacionSeleccionada = null"></button>
+                    </div>
+                    <div class="card-body py-2">
+                        <p class="mb-1"><b>Veterinario:</b> {{ anotacionSeleccionada.medicoNombre }}</p>
+                        <p class="mb-1"><b>Descripción:</b> {{ anotacionSeleccionada.descripcion }}</p>
+                        <p class="mb-1"><b>Diagnóstico / evolución:</b> {{ anotacionSeleccionada.diagnostico || '-' }}</p>
+                        <p class="mb-0"><b>Observación:</b> {{ anotacionSeleccionada.observacion || '-' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="modalDetalle?.hide()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
