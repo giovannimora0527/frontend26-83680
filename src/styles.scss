@@ -42,7 +42,339 @@
 
 .clinic-home__action:hover,
 .clinic-home__action:focus-visible {
-	background: #05626d;
+	background: #047857;
 	color: #ffffff;
 	transform: translateY(-2px);
+}
+
+/* ===== Tema oscuro + verde esmeralda ===== */
+:root {
+	--esmeralda: #10b981;
+	--esmeralda-oscuro: #065f46;
+}
+
+/* Tarjetas y modales sobre el fondo oscuro */
+.card,
+.modal-content {
+	background-color: #1f232a;
+	border-color: #2c313a;
+}
+
+.card .card-header {
+	background-color: #1f232a;
+	border-bottom-color: #2c313a;
+}
+
+/* Titulo y breadcrumb de cada pagina */
+.page-header-title h5,
+.breadcrumb-item a,
+.breadcrumb-item.active {
+	color: #f1f3f5 !important;
+}
+
+/* Barra superior y logo del menu */
+.pcoded-header,
+.pcoded-navbar .navbar-brand {
+	background: var(--esmeralda-oscuro) !important;
+}
+
+/* Opcion activa del menu lateral */
+.pcoded-navbar .pcoded-inner-navbar li.active > a,
+.pcoded-navbar .pcoded-inner-navbar li:hover > a {
+	color: #ffffff !important;
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.pcoded-navbar .pcoded-inner-navbar li.active > a::before {
+	background: var(--esmeralda) !important;
+}
+
+/* Paginacion con el color esmeralda */
+.page-item.active .page-link {
+	background-color: var(--esmeralda);
+	border-color: var(--esmeralda);
+}
+
+/* El menu lateral ocupa todo el alto de la pantalla */
+.pcoded-navbar {
+	position: fixed !important;
+	top: 0;
+	height: 100vh;
+	z-index: 1029;
+}
+
+.pcoded-navbar .navbar-wrapper,
+.pcoded-navbar .navbar-content {
+	min-height: 100vh;
+}
+
+/* Iconos de la barra superior en blanco */
+.pcoded-header a,
+.pcoded-header i {
+	color: #ffffff !important;
+}
+
+/* ======================================================================
+   Estilo de los listados (citas, historias, formulas y clientes)
+   ====================================================================== */
+.vet-card {
+	background: #1b1f26;
+	border: 1px solid #262b34;
+	border-radius: 14px;
+	padding: 1.25rem;
+}
+
+.vet-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	margin-bottom: 0.75rem;
+}
+
+.vet-search {
+	position: relative;
+	flex: 1 1 320px;
+}
+
+.vet-search i {
+	position: absolute;
+	top: 50%;
+	left: 14px;
+	transform: translateY(-50%);
+	color: #6b7280;
+}
+
+.vet-search input {
+	height: 42px;
+	padding-left: 40px;
+	border-radius: 10px;
+	border-color: #2a2f38;
+	background: #14171c;
+}
+
+.btn-vet {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	height: 42px;
+	padding: 0 1.1rem;
+	border: none;
+	border-radius: 10px;
+	background: var(--esmeralda);
+	color: #ffffff;
+	font-weight: 600;
+	transition: background-color 150ms ease;
+}
+
+.btn-vet:hover {
+	background: #059669;
+	color: #ffffff;
+}
+
+.vet-filtros {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+	margin-bottom: 1rem;
+}
+
+.vet-filtros .form-select,
+.vet-filtros .form-control {
+	width: auto;
+	height: 34px;
+	padding: 0.25rem 0.75rem;
+	border-radius: 8px;
+	border-color: #2a2f38;
+	background-color: #14171c;
+	font-size: 0.82rem;
+}
+
+.vet-filtros .form-select {
+	padding-right: 2rem;
+}
+
+.vet-filtros small {
+	color: #8b95a3;
+}
+
+.vet-link {
+	border: none;
+	background: none;
+	color: #8b95a3;
+	font-size: 0.82rem;
+}
+
+.vet-link:hover {
+	color: #34d399;
+}
+
+.vet-table {
+	width: 100%;
+	margin: 0;
+}
+
+.vet-table thead th {
+	padding: 0.75rem;
+	border-bottom: 1px solid #2a2f38;
+	background: transparent;
+	color: #8b95a3;
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.vet-table thead th .orden {
+	padding: 0;
+	border: none;
+	background: none;
+	color: inherit;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+}
+
+.vet-table thead th .orden i {
+	margin-left: 0.25rem;
+	opacity: 0.6;
+}
+
+.vet-table thead th .orden:hover {
+	color: #e5e7eb;
+}
+
+.vet-table tbody td {
+	padding: 0.8rem 0.75rem;
+	border-bottom: 1px solid #232831;
+	background: transparent;
+	color: #e5e7eb;
+	vertical-align: middle;
+}
+
+.vet-table tbody tr:hover td {
+	background: rgba(16, 185, 129, 0.05);
+}
+
+.vet-avatar {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	margin-right: 0.6rem;
+	border-radius: 50%;
+	background: rgba(16, 185, 129, 0.15);
+	color: #34d399;
+	font-size: 0.85rem;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.vet-sub {
+	display: block;
+	color: #8b95a3;
+	font-size: 0.75rem;
+}
+
+.vet-vacio {
+	padding: 2.5rem 1rem !important;
+	color: #6b7280 !important;
+	text-align: center;
+}
+
+/* Estados tipo pildora */
+.estado-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.25rem 0.65rem;
+	border-radius: 999px;
+	font-size: 0.72rem;
+	font-weight: 600;
+	text-transform: capitalize;
+	white-space: nowrap;
+}
+
+.estado-pill::before {
+	content: '';
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.estado-pendiente { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+.estado-confirmada { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+.estado-programada { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.estado-atendida,
+.estado-activa { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.estado-cancelada,
+.estado-inactiva { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.estado-sin-cita { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
+
+/* Botones de accion solo con icono */
+.btn-icono {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: #9ca3af;
+	font-size: 1rem;
+	transition: background-color 150ms ease, color 150ms ease;
+}
+
+.btn-icono:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.06);
+	color: #34d399;
+}
+
+.btn-icono.peligro:hover:not(:disabled) {
+	color: #f87171;
+}
+
+.btn-icono:disabled {
+	cursor: not-allowed;
+	opacity: 0.3;
+}
+
+.vet-pie {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 1rem;
+	color: #8b95a3;
+	font-size: 0.8rem;
+}
+
+.pagination .page-link {
+	border-color: #2a2f38;
+	background: transparent;
+	color: #cbd5e1;
+	font-size: 0.8rem;
+}
+
+/* Detalle en los modales */
+.vet-detalle dt {
+	color: #8b95a3;
+	font-size: 0.78rem;
+	font-weight: 500;
+	text-transform: uppercase;
+}
+
+.vet-detalle dd {
+	margin-bottom: 0.75rem;
+	color: #e5e7eb;
+}
+
+.modal-header,
+.modal-footer {
+	border-color: #2a2f38;
 }

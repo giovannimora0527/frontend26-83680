@@ -26,18 +26,18 @@ $white: #fff;
 
 // header
 $brand-background: #3f4d67;
-$header-dark-background: #3f4d67;
+$header-dark-background: #065f46;
 $header-dark-text-color: #fff;
 $header-light-background: #fff;
 $header-light-text-color: #3f4d67;
 
 // Menu
 $menu-caption-color: #14171d;
-$menu-dark-background: #3f4d67;
-$menu-dark-text-color: #a9b7d0;
+$menu-dark-background: #065f46; // verde esmeralda oscuro
+$menu-dark-text-color: #d1fae5;
 $menu-light-background: #fff;
 $menu-light-text-color: #3f4d67;
-$menu-active-color: #04a9f5;
+$menu-active-color: #6ee7b7;
 
 // dark layout colors
 $dark-layout: #212224;
@@ -60,9 +60,9 @@ $color-title-color: $primary-color, #ff5252, #9575cd, #23b7e5, lighten($dark-lay
 
 $theme-font-family: 'Open Sans', sans-serif;
 $theme-font-size: 14px;
-$theme-background: #f4f7fa;
-$theme-font-color: #888;
-$theme-heading-color: #111;
+$theme-background: #15171c; // fondo oscuro
+$theme-font-color: #c3c8d0;
+$theme-heading-color: #f1f3f5;
 
 $layout-6-bg-color: #23b7e5;
 
