@@ -1,1 +1,172 @@
-<p>especializacion works!</p>
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0">Especializaciones médicas</h5>
+        <button type="button" class="btn btn-primary" (click)="abrirNueva()">
+          <i class="fas fa-plus me-1"></i> Nueva especialización
+        </button>
+      </div>
+
+      <div class="card-body">
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="busquedaEspecializacion">Buscar</label>
+            <input id="busquedaEspecializacion" type="search" class="form-control" placeholder="Código, nombre o descripción"
+                   [ngModel]="tabla.texto" (ngModelChange)="tabla.buscar($event)" />
+          </div>
+          <div class="col-6 col-md-3" *ngIf="tabla.hayBusqueda">
+            <button type="button" class="btn btn-outline-secondary w-100" (click)="tabla.reiniciar()">
+              <i class="fas fa-times me-1"></i> Limpiar búsqueda
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle tabla-datos">
+            <thead>
+              <tr>
+                <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('codigo')"
+                    (click)="tabla.ordenar('codigo')" (keydown.enter)="tabla.ordenar('codigo')">
+                  Código <i class="fas" [ngClass]="tabla.orden.icono('codigo')"></i></th>
+                <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('nombre')"
+                    (click)="tabla.ordenar('nombre')" (keydown.enter)="tabla.ordenar('nombre')">
+                  Nombre <i class="fas" [ngClass]="tabla.orden.icono('nombre')"></i></th>
+                <th>Descripción</th>
+                <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('medicos')"
+                    (click)="tabla.ordenar('medicos')" (keydown.enter)="tabla.ordenar('medicos')">
+                  Veterinarios <i class="fas" [ngClass]="tabla.orden.icono('medicos')"></i></th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="cargando">
+                <td colspan="5" class="text-center py-4">
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Cargando especializaciones...
+                </td>
+              </tr>
+              <tr *ngIf="!cargando && error">
+                <td colspan="5" class="text-center py-4 text-danger">
+                  No se pudieron cargar las especializaciones.
+                  <button type="button" class="btn btn-sm btn-outline-danger ms-2" (click)="listar()">Reintentar</button>
+                </td>
+              </tr>
+              <tr *ngIf="!cargando && !error && tabla.visibles.length === 0">
+                <td colspan="5" class="text-center py-4 text-muted">
+                  {{ tabla.hayBusqueda ? 'No se encontraron especializaciones con la búsqueda.' : 'No hay especializaciones registradas.' }}
+                </td>
+              </tr>
+              <ng-container *ngIf="!cargando && !error">
+                <tr *ngFor="let e of tabla.visibles">
+                  <td class="text-nowrap"><span class="badge bg-light text-dark border">{{ e.codigoEspecializacion }}</span></td>
+                  <td>{{ e.nombre }}</td>
+                  <td class="celda-recortada" [title]="e.descripcion || ''">{{ e.descripcion || '—' }}</td>
+                  <td>{{ contarMedicos(e.id) }}</td>
+                  <td class="text-end text-nowrap">
+                    <button type="button" class="btn btn-sm btn-outline-info me-1" title="Ver" (click)="verDetalle(e)">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" title="Editar" (click)="abrirEdicion(e)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+
+        <app-paginador etiqueta="Paginación de especializaciones"
+                       [pagina]="tabla.pagina" [totalPaginas]="tabla.totalPaginas"
+                       [totalRegistros]="tabla.totalRegistros" [tamano]="tabla.tamano"
+                       (cambioPagina)="tabla.irA($event)" (cambioTamano)="tabla.cambiarTamano($event)">
+        </app-paginador>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal crear / editar -->
+<div class="modal fade" id="modalEspecializacion" tabindex="-1" aria-labelledby="tituloModalEspecializacion" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="tituloModalEspecializacion">{{ editando ? 'Editar especialización' : 'Nueva especialización' }}</h5>
+          <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarFormulario()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-sm-4">
+              <label class="form-label" for="eCodigo">Código *</label>
+              <input id="eCodigo" class="form-control text-uppercase" formControlName="codigoEspecializacion" maxlength="10"
+                     [class.is-invalid]="invalido('codigoEspecializacion') || codigoDuplicado" />
+              <div class="invalid-feedback">
+                {{ codigoDuplicado ? 'Ese código ya existe.' : 'De 2 a 10 letras, números o guiones.' }}
+              </div>
+            </div>
+            <div class="col-sm-8">
+              <label class="form-label" for="eNombre">Nombre *</label>
+              <input id="eNombre" class="form-control" formControlName="nombre" maxlength="100"
+                     [class.is-invalid]="invalido('nombre') || nombreDuplicado" />
+              <div class="invalid-feedback">
+                {{ nombreDuplicado ? 'Ya existe una especialización con ese nombre.' : 'Escriba el nombre (máximo 100 caracteres).' }}
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="eDescripcion">Descripción</label>
+              <textarea id="eDescripcion" rows="3" class="form-control" formControlName="descripcion" maxlength="255"
+                        [class.is-invalid]="invalido('descripcion')"></textarea>
+              <div class="invalid-feedback">Máximo 255 caracteres.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cerrarFormulario()" [disabled]="guardando">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardando">
+            <span *ngIf="guardando" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            {{ guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Guardar') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal detalle -->
+<div class="modal fade" id="modalDetalleEspecializacion" tabindex="-1" aria-labelledby="tituloDetalleEspecializacion" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tituloDetalleEspecializacion">Detalle de la especialización</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body detalle-registro">
+        <div *ngIf="cargandoDetalle" class="text-center py-3">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Cargando...
+        </div>
+        <ng-container *ngIf="detalle as e">
+          <dl class="row">
+            <dt class="col-sm-4">Código</dt><dd class="col-sm-8">{{ e.codigoEspecializacion }}</dd>
+            <dt class="col-sm-4">Nombre</dt><dd class="col-sm-8">{{ e.nombre }}</dd>
+            <dt class="col-sm-4">Descripción</dt><dd class="col-sm-8 texto-largo">{{ e.descripcion || '—' }}</dd>
+          </dl>
+          <h6 class="text-muted">Veterinarios ({{ medicosDetalle.length }})</h6>
+          <p class="text-muted small mb-0" *ngIf="medicosDetalle.length === 0">Ningún veterinario tiene esta especialización.</p>
+          <ul class="list-unstyled mb-0" *ngIf="medicosDetalle.length > 0">
+            <li *ngFor="let m of medicosDetalle">
+              <i class="fas fa-user-md text-muted me-1"></i>{{ m.nombres }} {{ m.apellidos }}
+              <span class="text-muted small">— Reg. {{ m.registroProfesional }}</span>
+            </li>
+          </ul>
+        </ng-container>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

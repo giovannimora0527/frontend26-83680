@@ -1,144 +1,285 @@
-import { Component } from '@angular/core';
-import { CommonModule, formatDate } from '@angular/common';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import Swal from 'sweetalert2';
-import { Modal } from 'bootstrap';
-import { Medico } from 'src/app/models/medico';
-import { FormBuilder } from '@angular/forms';
 import { MedicoService } from './service/medico.service';
+import { EspecializacionService } from '../especializacion/service/especializacion.service';
+import { PaginadorComponent } from 'src/app/shared/paginador/paginador.component';
+import { Medico, MedicoRq, TIPOS_DOCUMENTO_MEDICO } from 'src/app/models/medico';
+import { Especializacion } from 'src/app/models/especializacion';
+import { TablaLocal } from 'src/app/utils/tabla-local';
+import { ModalBootstrap } from 'src/app/utils/modal';
+import { normalizarTexto } from 'src/app/utils/texto';
+import { mostrarError, notificarExito } from 'src/app/utils/mensajes';
+import { SOLO_LETRAS, TELEFONO, TEXTO_OBLIGATORIO } from 'src/app/utils/validadores';
 
+/**
+ * Pantalla de gestión de veterinarios: listado con búsqueda, filtro por
+ * especialización, orden y paginación; registro, edición y detalle. Los
+ * veterinarios no se eliminan porque sus citas, historias y fórmulas los referencian.
+ */
 @Component({
   selector: 'app-medico',
-  imports: [CommonModule],
-  templateUrl: './medico.component.html',
-  styleUrl: './medico.component.scss'
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PaginadorComponent],
+  templateUrl: './medico.component.html'
 })
-export class MedicoComponent {
-  // Variables para el modal.
-  modalInstance: Modal | null = null;
-  titleModal: string = "";
-  modoFormulario: string = "";
-  titleBoton: string = "";
+export class MedicoComponent implements OnInit, OnDestroy {
+  /** Tipos de documento para el combo. */
+  readonly tiposDocumento = TIPOS_DOCUMENTO_MEDICO;
 
-  // Variables para la paginación y búsqueda en la datatable.
-  listMedicos: Medico[] = [];
-  terminoBusqueda = '';
-  paginaActual = 1;
-  readonly registrosPorPagina = 5;
+  /** Tabla de veterinarios resuelta en el navegador (orden inicial por nombre). */
+  readonly tabla = new TablaLocal<Medico>(
+    {
+      documento: (m) => m.numeroDocumento,
+      nombre: (m) => `${m.nombres} ${m.apellidos}`,
+      especializacion: (m) => m.especializacion?.nombre,
+      registro: (m) => m.registroProfesional
+    },
+    (m) => `${m.tipoDocumento} ${m.numeroDocumento} ${m.nombres} ${m.apellidos} ${m.registroProfesional} `
+      + `${m.especializacion?.nombre ?? ''} ${m.telefono ?? ''}`,
+    'nombre'
+  );
+  /** Especializaciones para el filtro y el formulario. */
+  especializaciones: Especializacion[] = [];
+  /** Especialización seleccionada en el filtro (null = todas). */
+  filtroEspecializacion: number | null = null;
+  /** Indica que se está consultando el listado. */
+  cargando = false;
+  /** Indica que la última consulta falló. */
+  error = false;
 
-  constructor(private readonly medicoService: MedicoService,
-    private readonly formBuilder: FormBuilder) {
-    this.listar();
-  }
+  /** Formulario reactivo del veterinario. */
+  form!: FormGroup;
+  /** Veterinario en edición (null al crear). */
+  medicoEditando: Medico | null = null;
+  /** Indica que se está enviando el formulario. */
+  guardando = false;
+
+  /** Veterinario mostrado en el detalle. */
+  medicoDetalle: Medico | null = null;
+  /** Indica que se está consultando el detalle. */
+  cargandoDetalle = false;
+
+  /** Lista completa, para validar duplicados antes de enviar. */
+  private medicos: Medico[] = [];
+  /** Modal del formulario. */
+  private readonly modalFormulario = new ModalBootstrap('modalMedico');
+  /** Modal del detalle. */
+  private readonly modalDetalle = new ModalBootstrap('modalDetalleMedico');
 
   /**
-     * Filtra la lista de médicos según el término de búsqueda ingresado por el usuario.
-     * @returns Un arreglo de médicos filtrados.
-     */
-  get medicoFiltrados(): Medico[] {
-    const termino = this.normalizarTexto(this.terminoBusqueda.trim());
-    if (!termino) {
-      return this.listMedicos;
-    }
+   * @param medicoService servicio de veterinarios.
+   * @param especializacionService servicio de especializaciones.
+   * @param formBuilder constructor de formularios reactivos.
+   */
+  constructor(
+    private readonly medicoService: MedicoService,
+    private readonly especializacionService: EspecializacionService,
+    private readonly formBuilder: FormBuilder
+  ) { }
 
-    return this.listMedicos.filter((medico) => {
-      const valores = [
-        medico.nombres,
-        medico.apellidos,
-        medico.tipoDocumento,
-        medico.numeroDocumento,
-        medico.especializacion.nombre,
-        medico.registroProfesional,
-        medico.telefono
-      ];
-
-      return valores.some((valor) =>
-        this.normalizarTexto(String(valor ?? '')).includes(termino)
-      );
+  /** Crea el formulario y consulta veterinarios y especializaciones. */
+  ngOnInit(): void {
+    this.form = this.formBuilder.group({
+      tipoDocumento: ['CC', Validators.required],
+      numeroDocumento: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]{5,20}$/)]],
+      nombres: ['', [...TEXTO_OBLIGATORIO, SOLO_LETRAS, Validators.maxLength(100)]],
+      apellidos: ['', [...TEXTO_OBLIGATORIO, SOLO_LETRAS, Validators.maxLength(100)]],
+      telefono: ['', TELEFONO],
+      registroProfesional: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9-]{3,50}$/)]],
+      especializacionId: [null, Validators.required]
+    });
+    this.listar();
+    this.especializacionService.listar().subscribe({
+      next: (data) => (this.especializaciones = data),
+      error: (error: HttpErrorResponse) => mostrarError(error, 'No se pudieron cargar las especializaciones')
     });
   }
 
-  get medicoPaginados(): Medico[] {
-    const inicio = (this.paginaActual - 1) * this.registrosPorPagina;
-    return this.medicoFiltrados.slice(inicio, inicio + this.registrosPorPagina);
+  /** Libera los modales. */
+  ngOnDestroy(): void {
+    this.modalFormulario.destruir();
+    this.modalDetalle.destruir();
   }
 
-  get totalPaginas(): number {
-    return Math.ceil(this.medicoFiltrados.length / this.registrosPorPagina);
+  /** Acceso corto a los controles del formulario. */
+  get f(): { [key: string]: AbstractControl } {
+    return this.form.controls;
   }
 
-  get paginas(): number[] {
-    return Array.from({ length: this.totalPaginas }, (_, indice) => indice + 1);
+  /** Indica si hay búsqueda o filtro activo. */
+  get hayFiltros(): boolean {
+    return this.tabla.hayBusqueda || this.filtroEspecializacion !== null;
+  }
+
+  /** Indica que otro veterinario ya tiene ese documento. */
+  get documentoDuplicado(): boolean {
+    const tipo = this.f['tipoDocumento'].value;
+    const numero = normalizarTexto(this.f['numeroDocumento'].value);
+    return !!numero && this.medicos.some((m) =>
+      m.id !== this.medicoEditando?.id && m.tipoDocumento === tipo && normalizarTexto(m.numeroDocumento) === numero);
+  }
+
+  /** Indica que otro veterinario ya tiene ese registro profesional. */
+  get registroDuplicado(): boolean {
+    const registro = normalizarTexto(this.f['registroProfesional'].value);
+    return !!registro && this.medicos.some((m) =>
+      m.id !== this.medicoEditando?.id && normalizarTexto(m.registroProfesional) === registro);
+  }
+
+  // ===================== Listado =====================
+
+  /** Consulta la lista completa de veterinarios. */
+  listar(): void {
+    this.cargando = true;
+    this.error = false;
+    this.medicoService.listar().subscribe({
+      next: (data) => {
+        this.medicos = data;
+        this.tabla.cargar(data);
+        this.cargando = false;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.cargando = false;
+        this.error = true;
+        this.tabla.cargar([]);
+        mostrarError(error, 'No se pudieron cargar los veterinarios');
+      }
+    });
+  }
+
+  /** Aplica el filtro por especialización. */
+  aplicarFiltro(): void {
+    const id = this.filtroEspecializacion;
+    this.tabla.filtrar((m) => id === null || m.especializacion?.id === id);
+  }
+
+  /** Quita búsqueda, filtro y orden personalizados. */
+  limpiarFiltros(): void {
+    this.filtroEspecializacion = null;
+    this.tabla.filtrar(() => true);
+    this.tabla.reiniciar();
+  }
+
+  // ===================== Formulario =====================
+
+  /** Abre el formulario vacío para registrar un veterinario. */
+  abrirNuevo(): void {
+    this.medicoEditando = null;
+    this.form.reset({
+      tipoDocumento: 'CC', numeroDocumento: '', nombres: '', apellidos: '',
+      telefono: '', registroProfesional: '', especializacionId: null
+    });
+    this.modalFormulario.abrir();
   }
 
   /**
-   * Metodo que permite listar los medicos registradas en la base de datos y mostrarlas en la tabla.
+   * Abre el formulario con los datos de un veterinario.
+   *
+   * @param medico veterinario a editar.
    */
-  listar() {
-    this.medicoService.listar()
-      .subscribe(
-        {
-          next: (data) => {
-            console.log(data);
-            this.listMedicos = data;
-            this.paginaActual = 1;
-          },
-          error: (error) => {
-            console.error('Error al obtener los médicos:', error);
-          }
-        }
-      );
+  abrirEdicion(medico: Medico): void {
+    this.medicoEditando = medico;
+    this.form.reset({
+      tipoDocumento: medico.tipoDocumento,
+      numeroDocumento: medico.numeroDocumento,
+      nombres: medico.nombres,
+      apellidos: medico.apellidos,
+      telefono: medico.telefono ?? '',
+      registroProfesional: medico.registroProfesional,
+      especializacionId: medico.especializacion?.id ?? null
+    });
+    this.modalFormulario.abrir();
   }
 
-  // Metodo que actualiza el termino de busqueda y reinicia la pagina actual a 1.
-  actualizarBusqueda(event: Event) {
-    this.terminoBusqueda = (event.target as HTMLInputElement).value;
-    this.paginaActual = 1;
+  /** Cierra el formulario sin guardar. */
+  cerrarFormulario(): void {
+    this.modalFormulario.cerrar();
   }
 
-  // Cambia paginacion.
-  cambiarPagina(pagina: number) {
-    if (pagina >= 1 && pagina <= this.totalPaginas) {
-      this.paginaActual = pagina;
+  /** Envía el formulario: crea el veterinario o actualiza el que se está editando. */
+  guardar(): void {
+    if (this.guardando) {
+      return;
     }
-  }
-
-  // Metodo privado para normalizar el texto, eliminando acentos y convirtiendo a minúsculas.
-  private normalizarTexto(texto: string): string {
-    return texto
-      .toLocaleLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  }
-
-  // Evento para abrir el modal de crear o editar medicos, dependiendo del modo recibido.
-  nuevoMedico(modo: string) {
-    this.titleModal = modo === 'C' ? 'Crear Médico' : 'Editar Médico';
-    this.modoFormulario = modo;
-    this.openModal(modo);
-  }
-
-  abrirEdicion(medico: Medico) {
-    this.modoFormulario = 'E';
-    this.openModal(this.modoFormulario);
-  }
-
-  closeModal() {
-    if (this.modalInstance) {
-      this.modalInstance.hide();
+    if (this.form.invalid || this.documentoDuplicado || this.registroDuplicado) {
+      this.form.markAllAsTouched();
+      return;
     }
+
+    const v = this.form.getRawValue();
+    const rq: MedicoRq = {
+      tipoDocumento: v.tipoDocumento,
+      numeroDocumento: String(v.numeroDocumento).trim().toUpperCase(),
+      nombres: String(v.nombres).trim(),
+      apellidos: String(v.apellidos).trim(),
+      telefono: String(v.telefono ?? '').trim(),
+      registroProfesional: String(v.registroProfesional).trim().toUpperCase(),
+      especializacionId: Number(v.especializacionId)
+    };
+
+    this.guardando = true;
+    const peticion = this.medicoEditando
+      ? this.medicoService.actualizar(this.medicoEditando.id, rq)
+      : this.medicoService.guardar(rq);
+
+    peticion.subscribe({
+      next: (respuesta) => {
+        this.guardando = false;
+        notificarExito(respuesta.message);
+        this.modalFormulario.cerrar();
+        this.listar();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.guardando = false;
+        mostrarError(error, 'No se pudo guardar el veterinario');
+      }
+    });
   }
 
-  openModal(modo: string) {
-    this.titleModal = modo === 'C' ? 'Crear Médico' : 'Editar Médico';
-    this.titleBoton = modo === 'C' ? 'Guardar Médico' : 'Actualizar Médico';
-    this.modoFormulario = modo;
-    const modalElement = document.getElementById('modalCrearMedico');
-    if (modalElement) {
-      // Verificar si ya existe una instancia del modal
-      this.modalInstance ??= new Modal(modalElement);
-      this.modalInstance.show();
-    }
+  /**
+   * Indica si un campo debe mostrarse como inválido.
+   *
+   * @param campo nombre del control.
+   * @returns true si es inválido y el usuario ya interactuó con él.
+   */
+  invalido(campo: string): boolean {
+    const control = this.f[campo];
+    return control.invalid && (control.touched || control.dirty);
   }
 
+  // ===================== Detalle =====================
+
+  /**
+   * Abre el detalle de un veterinario consultado al backend.
+   *
+   * @param medico fila seleccionada.
+   */
+  verDetalle(medico: Medico): void {
+    this.medicoDetalle = null;
+    this.cargandoDetalle = true;
+    this.modalDetalle.abrir();
+    this.medicoService.consultar(medico.id).subscribe({
+      next: (data) => {
+        this.medicoDetalle = data;
+        this.cargandoDetalle = false;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.cargandoDetalle = false;
+        this.modalDetalle.cerrar();
+        mostrarError(error, 'No se pudo consultar el veterinario');
+      }
+    });
+  }
+
+  /**
+   * Nombre legible de un tipo de documento.
+   *
+   * @param codigo código del tipo.
+   * @returns nombre del tipo, o el código si no se reconoce.
+   */
+  nombreTipo(codigo: string): string {
+    return this.tiposDocumento.find((t) => t.codigo === codigo)?.nombre ?? codigo;
+  }
 }

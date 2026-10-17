@@ -45,3 +45,42 @@
 	color: #ffffff;
 	transform: translateY(-2px);
 }
+
+/* ---------- DataTables de los módulos (citas, historias, fórmulas) ---------- */
+
+/* Encabezados ordenables */
+.tabla-datos .sortable {
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
+}
+
+.tabla-datos .sortable:hover {
+	background-color: rgba(0, 0, 0, 0.04);
+}
+
+.tabla-datos .sortable:focus-visible {
+	outline: 2px solid #4680ff;
+	outline-offset: -2px;
+}
+
+/* Etiquetas de estado */
+.tabla-datos .badge,
+.detalle-registro .badge {
+	font-size: 0.75rem;
+	font-weight: 600;
+}
+
+/* Texto largo recortado en una celda (el valor completo va en el title) */
+.celda-recortada {
+	max-width: 220px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Textos largos del detalle: respetan los saltos de línea */
+.texto-largo {
+	white-space: pre-line;
+	word-break: break-word;
+}

@@ -2,6 +2,8 @@ import { ClienteComponent } from './demo/pages/cliente/cliente.component';
 import { EspecializacionComponent } from './demo/pages/especializacion/especializacion.component';
 import { RazaComponent } from './demo/pages/raza/raza.component';
 import { CitaComponent } from './demo/pages/cita/cita.component';
+import { HistoriaComponent } from './demo/pages/historia/historia.component';
+import { FormulaComponent } from './demo/pages/formula/formula.component';
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 import { AdminComponent } from './theme/layout/admin/admin.component';
@@ -25,10 +27,11 @@ export const routes: Routes = [
       { path: 'mascotas', component: MascotaComponent, data: { title: 'Mascotas' }},
       { path: 'medicos', component: MedicoComponent, data: { title: 'Medicos' }},  
       { path: 'citas', component: CitaComponent, data: { title: 'Citas' }},
-{ path: 'clientes', component: ClienteComponent, data: { title: 'Clientes' }},
-{ path: 'especializaciones', component: EspecializacionComponent, data: { title: 'Especializaciones' }},
-{ path: 'razas', component: RazaComponent, data: { title: 'Razas' }}
-
+      { path: 'historias', component: HistoriaComponent, data: { title: 'Historias clínicas' }},
+      { path: 'formulas', component: FormulaComponent, data: { title: 'Fórmulas médicas' }},
+      { path: 'clientes', component: ClienteComponent, data: { title: 'Clientes' }},
+      { path: 'especializaciones', component: EspecializacionComponent, data: { title: 'Especializaciones' }},
+      { path: 'razas', component: RazaComponent, data: { title: 'Razas' }}
     ]
   },
   { path: '**', redirectTo: 'inicio' }

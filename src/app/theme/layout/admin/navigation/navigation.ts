@@ -55,6 +55,22 @@ export const NavigationItems: NavigationItem[] = [
       icon: 'feather icon-calendar',
       classes: 'nav-item'
     },
+    {
+      id: 'historias',
+      title: 'Historias Clínicas',
+      type: 'item',
+      url: '/inicio/historias',
+      icon: 'feather icon-file-text',
+      classes: 'nav-item'
+    },
+    {
+      id: 'formulas',
+      title: 'Fórmulas Médicas',
+      type: 'item',
+      url: '/inicio/formulas',
+      icon: 'feather icon-clipboard',
+      classes: 'nav-item'
+    },
 
         {
       id: 'clientes',
