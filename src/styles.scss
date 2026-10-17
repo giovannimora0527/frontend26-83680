@@ -26,27 +26,6 @@
 
 /* Mis estilos personalizados que pueden usar todos los componentes */
 
-.clinic-home__action {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.65rem;
-	margin-top: 2rem;
-	padding: 0.8rem 1.1rem;
-	border-radius: 4px;
-	background: var(--clinic-teal);
-	color: #ffffff;
-	font-weight: 600;
-	text-decoration: none;
-	transition: background-color 160ms ease, transform 160ms ease;
-}
-
-.clinic-home__action:hover,
-.clinic-home__action:focus-visible {
-	background: #047857;
-	color: #ffffff;
-	transform: translateY(-2px);
-}
-
 /* ===== Tema oscuro + verde esmeralda ===== */
 :root {
 	--esmeralda: #10b981;

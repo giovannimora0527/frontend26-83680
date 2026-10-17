@@ -17,55 +17,40 @@
           <div class="page-wrapper">
             @if (isHome) {
               <section class="clinic-home" aria-labelledby="clinic-home-title">
-                <div class="clinic-home__intro">
-                  <span class="clinic-home__eyebrow">Clinica Veterinaria Uniminuto</span>
-                  <h1 id="clinic-home-title">Bienvenido a tu espacio de gestión</h1>
-                  <p>
-                    Organiza la atención, el seguimiento y el cuidado de nuestras mascotas desde un solo lugar.
-                  </p>
-                  <a class="clinic-home__action" routerLink="/inicio/citas">
+                <h1 id="clinic-home-title">Clínica Veterinaria</h1>
+                <p>Selecciona un módulo para empezar.</p>
+
+                <div class="clinic-home__grid">
+                  <a class="clinic-home__item" routerLink="/inicio/citas">
                     <i class="feather icon-calendar" aria-hidden="true"></i>
-                    Gestionar citas
+                    <strong>Citas</strong>
+                    <span>Agenda y estado de las citas</span>
                   </a>
-                </div>
-
-                <div class="clinic-home__panel" aria-label="Resumen de la clinica">
-                  <div class="clinic-home__logo-wrap">
-                    <img class="clinic-home__logo" src="assets/images/logouniminuto.jpg" alt="Logo de Uniminuto" />
-                  </div>
-                  <div class="clinic-home__panel-mark">
+                  <a class="clinic-home__item" routerLink="/inicio/historias">
+                    <i class="feather icon-file-text" aria-hidden="true"></i>
+                    <strong>Historias clínicas</strong>
+                    <span>Consultas y anotaciones</span>
+                  </a>
+                  <a class="clinic-home__item" routerLink="/inicio/formulas">
+                    <i class="feather icon-clipboard" aria-hidden="true"></i>
+                    <strong>Fórmulas médicas</strong>
+                    <span>Medicamentos recetados</span>
+                  </a>
+                  <a class="clinic-home__item" routerLink="/inicio/clientes">
+                    <i class="feather icon-user" aria-hidden="true"></i>
+                    <strong>Clientes</strong>
+                    <span>Dueños de las mascotas</span>
+                  </a>
+                  <a class="clinic-home__item" routerLink="/inicio/mascotas">
                     <i class="feather icon-heart" aria-hidden="true"></i>
-                  </div>
-                  <span>Atención con proposito</span>
-                  <strong>Cuidado, formación y servicio</strong>
-                  <p>Un punto de encuentro para la comunidad en general al cuidado de las mascotas.</p>
-                </div>
-
-                <div class="clinic-home__highlights">
-                  <article>
-                    <i class="feather icon-calendar" aria-hidden="true"></i>
-                    <div>
-                      <strong>Agenda organizada</strong>
-                      <span>Prepara cada jornada con claridad. Las citas se gestionan de manera eficiente. 
-                        </span>
-                    </div>
-                  </article>
-                  <article>
-                    <i class="feather icon-shield" aria-hidden="true"></i>
-                    <div>
-                      <strong>Gestión responsable</strong>
-                      <span>Información centralizada y accesible. Las herramientas de gestión te permiten mantener el control sobre los horarios, inventario, registros de clientes y mascotas,
-                        profesionales de la salud, inventario de medicamentos y suministros,
-                        y las actividades relacionadas con la clínica.</span>
-                    </div>
-                  </article>
-                  <article>
-                    <i class="feather icon-book-open" aria-hidden="true"></i>
-                    <div>
-                      <strong>Aprendizaje aplicado</strong>
-                      <span>Practica el desarrollo web con Angular aplicado a la Clinica Veterinaria.</span>
-                    </div>
-                  </article>
+                    <strong>Mascotas</strong>
+                    <span>Pacientes registrados</span>
+                  </a>
+                  <a class="clinic-home__item" routerLink="/inicio/medicos">
+                    <i class="feather icon-users" aria-hidden="true"></i>
+                    <strong>Médicos</strong>
+                    <span>Veterinarios de la clínica</span>
+                  </a>
                 </div>
               </section>
             }

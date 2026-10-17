@@ -15,7 +15,7 @@ import { FooterComponent } from './theme/shared/components/footer/footer.compone
 export class AppComponent implements OnInit {
   private router = inject(Router);
 
-  title = 'Clínica Veterinaria Uniminuto';
+  title = 'Clínica Veterinaria';
 
   // life cycle hook
   ngOnInit() {
