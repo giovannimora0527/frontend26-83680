@@ -1,0 +1,57 @@
+package com.uniminuto.clinica.models;
+
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+/**
+ * Detalle completo de una historia clínica (lo que muestra el botón "Ver").
+ *
+ * @author Juan Kamilo Rodriguez Diaz
+ * @version 1.0
+ */
+@Data
+public class HistoriaClinicaDetalleRs {
+
+    /** Identificador de la historia. */
+    private Long id;
+
+    /** Identificador de la cita que originó la historia. */
+    private Long citaId;
+
+    /** Fecha y hora de la consulta. */
+    private LocalDateTime fechaHora;
+
+    /** Identificador de la mascota. */
+    private Integer mascotaId;
+
+    /** Nombre de la mascota. */
+    private String mascotaNombre;
+
+    /** Identificador del cliente. */
+    private Long clienteId;
+
+    /** Nombre completo del cliente. */
+    private String clienteNombre;
+
+    /** Identificador del veterinario. */
+    private Long medicoId;
+
+    /** Nombre completo del veterinario. */
+    private String medicoNombre;
+
+    /** Motivo de la consulta. */
+    private String motivoConsulta;
+
+    /** Diagnóstico. */
+    private String diagnostico;
+
+    /** Observaciones adicionales. */
+    private String observaciones;
+
+    /** Estado de la historia. */
+    private String estado;
+
+    /** Fecha y hora de creación del registro. */
+    private LocalDateTime fechaCreacion;
+}
