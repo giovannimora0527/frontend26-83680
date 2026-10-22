@@ -22,27 +22,11 @@ export const NavigationItems: NavigationItem[] = [
     icon: 'icon-navigation',
     children: [
       {
-        id: 'usuario',
-        title: 'Gestión de Usuarios',
+        id: 'cita',
+        title: 'Gestión de Citas',
         type: 'item',
-        url: '/inicio/usuarios',
-        icon: 'feather icon-user',
-        classes: 'nav-item'
-      },
-      {
-        id: 'mascotas',
-        title: 'Gestión de Mascotas',
-        type: 'item',
-        url: '/inicio/mascotas',
-        icon: 'bi bi-person-lines-fill',
-        classes: 'nav-item'
-      },
-      {
-        id: 'medicos',
-        title: 'Gestión de Medicos',
-        type: 'item',
-        url: '/inicio/medicos',
-        icon: 'feather icon-users',
+        url: '/inicio/citas',
+        icon: 'bi bi-calendar',
         classes: 'nav-item'
       },
       {
@@ -50,7 +34,7 @@ export const NavigationItems: NavigationItem[] = [
         title: 'Gestión de Clientes',
         type: 'item',
         url: '/inicio/clientes',
-        icon: 'feather icon-user-check',
+        icon: 'bi bi-person-check',
         classes: 'nav-item'
       },
       {
@@ -58,7 +42,31 @@ export const NavigationItems: NavigationItem[] = [
         title: 'Gestión de Especializaciones',
         type: 'item',
         url: '/inicio/especializaciones',
-        icon: 'feather icon-award',
+        icon: 'fa-solid fa-user-graduate',
+        classes: 'nav-item'
+      },
+      {
+        id: 'formulas',
+        title: 'Gestión de Formulas',
+        type: 'item',
+        url: '/inicio/formulas',
+        icon: 'fa-solid fa-clipboard-list',
+        classes: 'nav-item'
+      },
+      {
+        id: 'historias',
+        title: 'Gestión de Historias',
+        type: 'item',
+        url: '/inicio/historias',
+        icon: 'fa-solid fa-book-medical',
+        classes: 'nav-item'
+      },
+      {
+        id: 'mascotas',
+        title: 'Gestión de Mascotas',
+        type: 'item',
+        url: '/inicio/mascotas',
+        icon: 'fa-solid fa-paw',
         classes: 'nav-item'
       },
       {
@@ -66,17 +74,33 @@ export const NavigationItems: NavigationItem[] = [
         title: 'Gestión de Medicamentos',
         type: 'item',
         url: '/inicio/medicamentos',
-        icon: 'feather icon-package',
+        icon: 'fa-solid fa-capsules',
         classes: 'nav-item'
       },
       {
-        id: 'razas',
-        title: 'Gestión de Razas',
+        id: 'medicos',
+        title: 'Gestión de Medicos',
         type: 'item',
-        url: '/inicio/razas',
-        icon: 'feather icon-heart',
+        url: '/inicio/medicos',
+        icon: 'fa-solid fa-user-doctor',
+        classes: 'nav-item'
+      },
+      {
+        id: 'usuario',
+        title: 'Gestión de Usuarios',
+        type: 'item',
+        url: '/inicio/usuarios',
+        icon: 'feather icon-users',
+        classes: 'nav-item'
+      },
+      {
+        id: 'despachos',
+        title: 'Despacho de Medicamentos',
+        type: 'item',
+        url: '/inicio/despachos',
+        icon: 'fa-solid fa-box-open',
         classes: 'nav-item'
       },
     ]
-  },  
+  },
 ];
