@@ -6,6 +6,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import Swal from 'sweetalert2';
 
 import { AuthService } from './service/auth.service';
+import { AuthRs } from 'src/app/models/auth-rs';
+import { TokenRq } from 'src/app/models/token-rq';
 
 type Paso = 'credenciales' | 'otp' | 'recuperar';
 
@@ -16,6 +18,7 @@ type Paso = 'credenciales' | 'otp' | 'recuperar';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
+  anio: string = "2026";
   paso: Paso = 'credenciales';
   cargando = false;
   mostrarPassword = false;
@@ -23,6 +26,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   otpForm: FormGroup;
   recuperarForm: FormGroup;
+  authRs?: AuthRs;
 
   constructor(
     private fb: FormBuilder,
@@ -48,10 +52,19 @@ export class LoginComponent {
     }
     this.cargando = true;
     this.authService.login(this.loginForm.value).subscribe({
-      next: () => {
+      next: (data) => {
         this.cargando = false;
+        this.authRs = data;
         this.otpForm.reset();
-        this.paso = 'otp';
+        this.paso = this.authRs.login? 'otp' : 'credenciales';
+        if (this.paso === 'credenciales') {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo iniciar sesión con las credenciales proporcionadas.'
+          });
+          return;
+        }
         Swal.fire({
           icon: 'info',
           title: 'Verificación en dos pasos',
@@ -70,11 +83,14 @@ export class LoginComponent {
       return;
     }
     this.cargando = true;
+    let tokenRq: TokenRq;
+    tokenRq = {
+      usuarioId: this.authRs?.usuarioId!,
+      username: this.loginForm.value.username,
+      token: this.otpForm.value.token
+    };
     this.authService
-      .validateToken({
-        username: this.loginForm.value.username,
-        token: this.otpForm.value.token
-      })
+      .validateToken(tokenRq)
       .subscribe({
         next: () => {
           this.cargando = false;
