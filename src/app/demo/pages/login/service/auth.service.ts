@@ -1,5 +1,6 @@
 ﻿import { Injectable } from '@angular/core';
 import { Observable, tap } from 'rxjs';
+import { AuthRs } from 'src/app/models/auth-rs';
 import { BackendService } from 'src/app/services/backend.service';
 import { environment } from 'src/environments/environment';
 
@@ -28,7 +29,7 @@ export class AuthService {
 
   constructor(private backendService: BackendService) { }
 
-  login(data: LoginRequest): Observable<unknown> {
+  login(data: LoginRequest): Observable<AuthRs> {
     return this.backendService.post(environment.apiUrlAuth, this.api, 'login', data);
   }
 
