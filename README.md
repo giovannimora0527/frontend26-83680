@@ -65,6 +65,25 @@ yarn start
 
 [Datta Able Angular Documentation](https://codedthemes.gitbook.io/datta-angular/) helps you with installation, deployment, and troubleshooting.
 
+### JWT y menus de navegacion
+
+- `getJwtPayload()` en `src/app/utils/jwt.util.ts` lee `sessionStorage['token']`
+  y devuelve `{ sub, username, email, rol, menus, iat, exp }`. Devuelve `null`
+  si no hay token y lanza un error si su formato o contenido no es valido.
+- `getJwtMenus()` convierte el campo `menus` (JSON serializado) en un arreglo
+  tipado. Un contenido invalido lanza un error; sin token devuelve `[]`.
+- `getNavigationItems()` en `navigation.ts` filtra el catalogo `NavigationItems`
+  por `id === code` y `activo === true`, conservando el orden, rutas e iconos
+  locales. Elimina grupos vacios y no modifica el catalogo original. Se ejecuta
+  al construir la barra lateral y los breadcrumbs, no al importar el modulo.
+  Sin token no muestra menus; ante datos invalidos registra el error y tampoco
+  muestra menus.
+
+Esta utilidad solo decodifica el JWT; no valida su firma ni su expiracion.
+La clave secreta no debe incluirse en el frontend. La autorizacion y validacion
+del token deben realizarse en el backend; ocultar menus no protege las rutas ni
+los endpoints.
+
 ## Technology Stack
 
 - Bootstrap 5
