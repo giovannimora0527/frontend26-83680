@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "skills": {
+    "angular-developer": {
+      "source": "angular/skills",
+      "sourceType": "github",
+      "skillPath": "angular-developer/SKILL.md",
+      "computedHash": "b92225159ef7f1b48e2575e421ecce246c2d3201dcafe4285b85c9ebd5f2d76c",
+      "installMode": "copy"
+    },
+    "angular-new-app": {
+      "source": "angular/skills",
+      "sourceType": "github",
+      "skillPath": "angular-new-app/SKILL.md",
+      "computedHash": "d9f712544847ab80ef7ed20043820afd275c394ca05340c2f20a0f051e35d945",
+      "installMode": "copy"
+    },
+    "clean-architecture": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/clean-architecture/SKILL.md",
+      "computedHash": "1c7956fca9bb17f91f1456c4b7a92f3d00391a2307a183368d16c09814f050c8",
+      "installMode": "copy"
+    },
+    "clean-code": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/clean-code/SKILL.md",
+      "computedHash": "f6650d6d6a0914913940eb08e8d72b8d075bee207aa3886159d6c30dd7525f25",
+      "installMode": "copy"
+    },
+    "devops-engineer": {
+      "source": "Jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/devops-engineer/SKILL.md",
+      "computedHash": "65468fbe15355afc2be115b1fcc0b98c5ecbf5371da16a01674a676ed7fd67f0",
+      "installMode": "copy"
+    },
+    "frontend-engineering": {
+      "source": "magnus919/agent-skills",
+      "sourceType": "github",
+      "skillPath": "frontend-engineering/SKILL.md",
+      "computedHash": "ccca45489a0e3106bb8cb02dd31b038e728e44153f1d1e9bf51c9859d50ffbfc",
+      "installMode": "copy"
+    }
+  }
+}
