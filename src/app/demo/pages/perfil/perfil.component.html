@@ -1,0 +1,70 @@
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0">Perfiles y menús</h5>
+        <div class="d-flex gap-2" *ngIf="perfilesModificados.length > 0">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="guardando" (click)="cargar()">Descartar</button>
+          <button type="button" class="btn btn-primary" [disabled]="guardando" (click)="guardar()">
+            <span *ngIf="guardando" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <p class="text-muted">
+          Marque las opciones que verá cada perfil. Los cambios se aplican la próxima vez que cada usuario ingrese al sistema.
+        </p>
+
+        <div class="text-center py-4" *ngIf="cargando">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Cargando perfiles...
+        </div>
+        <div class="text-center py-4 text-danger" *ngIf="!cargando && error">
+          No se pudieron cargar los perfiles.
+          <button type="button" class="btn btn-sm btn-outline-danger ms-2" (click)="cargar()">Reintentar</button>
+        </div>
+
+        <div class="table-responsive" *ngIf="!cargando && !error">
+          <table class="table table-hover align-middle tabla-datos">
+            <thead>
+              <tr>
+                <th>Opción de menú</th>
+                <th class="text-center" *ngFor="let p of perfiles">
+                  {{ p.nombre }}
+                  <small class="d-block text-muted fw-normal">{{ p.totalUsuarios }} {{ p.totalUsuarios === 1 ? 'usuario' : 'usuarios' }}</small>
+                  <button type="button" class="btn btn-sm mt-1" [ngClass]="p.activo ? 'btn-outline-success' : 'btn-outline-secondary'"
+                          [disabled]="p.codigo === 'ADMIN'" [title]="p.activo ? 'Inactivar perfil' : 'Activar perfil'"
+                          (click)="cambiarEstadoPerfil(p)">
+                    {{ p.activo ? 'ACTIVO' : 'INACTIVO' }}
+                  </button>
+                </th>
+                <th class="text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of menus" [class.text-muted]="!m.activo">
+                <td class="text-nowrap">
+                  <i class="me-2" [ngClass]="m.icon" aria-hidden="true"></i>{{ m.title }}
+                  <small class="d-block text-muted">{{ m.url }}</small>
+                </td>
+                <td class="text-center" *ngFor="let p of perfiles">
+                  <input type="checkbox" class="form-check-input" [attr.aria-label]="m.title + ' para ' + p.nombre"
+                         [checked]="asignado(p, m)" [disabled]="bloqueado(p, m)" (change)="alternar(p, m)" />
+                </td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm" [ngClass]="m.activo ? 'btn-outline-success' : 'btn-outline-secondary'"
+                          [disabled]="menuProtegido(m)" [title]="m.activo ? 'Inactivar opción' : 'Activar opción'"
+                          (click)="cambiarEstadoMenu(m)">
+                    {{ m.activo ? 'ACTIVA' : 'INACTIVA' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

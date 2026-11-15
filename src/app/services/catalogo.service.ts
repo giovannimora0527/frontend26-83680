@@ -73,11 +73,12 @@ export class CatalogoService {
   }
 
   /**
-   * Lista los medicamentos disponibles para formular.
+   * Lista los productos activos disponibles para formular.
    *
-   * @returns lista de medicamentos.
+   * @returns lista de productos activos.
    */
   listarMedicamentos(): Observable<MedicamentoOpcion[]> {
-    return this.backendService.get<MedicamentoOpcion[]>(environment.apiUrlAuth, 'medicamento', 'listar');
+    const params = new HttpParams().set('soloActivos', true);
+    return this.backendService.get<MedicamentoOpcion[]>(environment.apiUrlAuth, 'medicamento', 'listar', params);
   }
 }

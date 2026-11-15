@@ -1,4 +1,13 @@
 <ul class="navbar-nav">
+  <li class="d-flex align-items-center gap-3">
+    <span class="text-end lh-sm">
+      <strong class="d-block">{{ nombreUsuario }}</strong>
+      <small class="text-muted">{{ nombreRol }}</small>
+    </span>
+    <button type="button" class="btn btn-sm btn-outline-secondary mb-0" title="Cerrar sesión" (click)="cerrarSesion()">
+      <i class="feather icon-log-out" aria-hidden="true"></i> Salir
+    </button>
+  </li>
  <!--  <li>
     <div class="dropdown" ngbDropdown placement="auto">
       <a ngbDropdownToggle href="javascript:" data-toggle="dropdown"><i class="icon feather icon-bell"></i></a>

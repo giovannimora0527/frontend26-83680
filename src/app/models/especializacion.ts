@@ -8,6 +8,8 @@ export interface Especializacion {
   descripcion: string | null;
   /** Código corto y único (por ejemplo "CIR-01"). */
   codigoEspecializacion: string;
+  /** Si está activa. */
+  activo?: boolean;
 }
 
 /** Datos que se envían al backend para crear o editar una especialización. */

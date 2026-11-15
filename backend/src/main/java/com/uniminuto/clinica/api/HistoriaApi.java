@@ -7,7 +7,6 @@ import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.PaginaRs;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +22,6 @@ import java.util.List;
  * Servicios REST de historias clínicas: GET para consultar, POST para crear
  * y PUT para cerrarlas.
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/historia")
 public interface HistoriaApi {
 

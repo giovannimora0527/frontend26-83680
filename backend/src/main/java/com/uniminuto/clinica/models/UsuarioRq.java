@@ -19,9 +19,9 @@ public class UsuarioRq {
     private String email;
 
     /**
-     * Rol de acceso.
+     * Perfil de acceso.
      */
-    private String rol;
+    private Integer perfilId;
 
     /**
      * Contraseña: obligatoria al crear; al editar solo se cambia si se envía.

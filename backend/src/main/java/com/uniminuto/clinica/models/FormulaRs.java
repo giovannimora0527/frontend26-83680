@@ -2,13 +2,13 @@ package com.uniminuto.clinica.models;
 
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * Fórmula médica con los nombres de las entidades relacionadas, lista para
- * mostrar en el listado y en el detalle.
+ * Fórmula médica. El listado solo trae el resumen; el detalle agrega los
+ * medicamentos, el historial de estados y las entregas.
  */
 @Data
 public class FormulaRs {
@@ -64,44 +64,34 @@ public class FormulaRs {
     private String medicoNombre;
 
     /**
-     * Medicamento formulado.
+     * Observaciones generales.
      */
-    private Long medicamentoId;
+    private String observaciones;
 
     /**
-     * Nombre del medicamento.
-     */
-    private String medicamentoNombre;
-
-    /**
-     * Cantidad por toma.
-     */
-    private BigDecimal dosis;
-
-    /**
-     * Unidad de la dosis.
-     */
-    private String unidadDosis;
-
-    /**
-     * Horas entre tomas.
-     */
-    private Integer frecuenciaHoras;
-
-    /**
-     * Días de tratamiento.
-     */
-    private Integer duracionDias;
-
-    /**
-     * Indicaciones.
-     */
-    private String indicaciones;
-
-    /**
-     * Estado (ACTIVA o INACTIVA).
+     * Estado de la fórmula: BORRADOR, CONFIRMADA o ANULADA.
      */
     private String estado;
+
+    /**
+     * Estado del despacho.
+     */
+    private String estadoDespacho;
+
+    /**
+     * Cantidad de medicamentos formulados.
+     */
+    private int totalMedicamentos;
+
+    /**
+     * Nombres de los medicamentos, para el listado.
+     */
+    private String medicamentosResumen;
+
+    /**
+     * Fecha y hora de confirmación.
+     */
+    private LocalDateTime fechaConfirmacion;
 
     /**
      * Fecha y hora de registro.
@@ -112,4 +102,19 @@ public class FormulaRs {
      * Fecha y hora de la última modificación.
      */
     private LocalDateTime fechaModificacion;
+
+    /**
+     * Medicamentos formulados (solo en el detalle).
+     */
+    private List<FormulaDetalleRs> detalles;
+
+    /**
+     * Historial de estados (solo en el detalle).
+     */
+    private List<EstadoHistorialRs> historial;
+
+    /**
+     * Entregas realizadas (solo en el detalle).
+     */
+    private List<DespachoRs> despachos;
 }

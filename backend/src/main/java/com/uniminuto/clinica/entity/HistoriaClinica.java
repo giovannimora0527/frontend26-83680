@@ -68,8 +68,26 @@ public class HistoriaClinica {
     /**
      * Diagnóstico del veterinario.
      */
-    @Column(name = "diagnostico", nullable = false, length = 1000)
+    @Column(name = "diagnostico", length = 1000)
     private String diagnostico;
+
+    /**
+     * Síntomas identificados en la atención.
+     */
+    @Column(name = "sintomas", length = 1000)
+    private String sintomas;
+
+    /**
+     * Recomendaciones para el propietario.
+     */
+    @Column(name = "recomendaciones", length = 1000)
+    private String recomendaciones;
+
+    /**
+     * Fecha y hora en que se finalizó la atención.
+     */
+    @Column(name = "fecha_finalizacion")
+    private LocalDateTime fechaFinalizacion;
 
     /**
      * Tratamiento indicado (opcional).

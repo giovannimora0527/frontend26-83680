@@ -46,24 +46,26 @@
                 <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('registro')"
                     (click)="tabla.ordenar('registro')" (keydown.enter)="tabla.ordenar('registro')">
                   Registro profesional <i class="fas" [ngClass]="tabla.orden.icono('registro')"></i></th>
+                <th>Cita</th>
+                <th>Estado</th>
                 <th class="text-end">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="cargando">
-                <td colspan="5" class="text-center py-4">
+                <td colspan="7" class="text-center py-4">
                   <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                   Cargando veterinarios...
                 </td>
               </tr>
               <tr *ngIf="!cargando && error">
-                <td colspan="5" class="text-center py-4 text-danger">
+                <td colspan="7" class="text-center py-4 text-danger">
                   No se pudieron cargar los veterinarios.
                   <button type="button" class="btn btn-sm btn-outline-danger ms-2" (click)="listar()">Reintentar</button>
                 </td>
               </tr>
               <tr *ngIf="!cargando && !error && tabla.visibles.length === 0">
-                <td colspan="5" class="text-center py-4 text-muted">
+                <td colspan="7" class="text-center py-4 text-muted">
                   {{ hayFiltros ? 'No se encontraron veterinarios con los filtros indicados.' : 'No hay veterinarios registrados.' }}
                 </td>
               </tr>
@@ -73,12 +75,21 @@
                   <td class="text-nowrap"><span class="text-muted">{{ m.tipoDocumento }}</span> {{ m.numeroDocumento }}</td>
                   <td>{{ m.especializacion?.nombre || '—' }}</td>
                   <td>{{ m.registroProfesional }}</td>
+                  <td class="text-nowrap">{{ m.duracionCitaMin }} min</td>
+                  <td><span class="badge" [ngClass]="m.activo ? 'bg-success' : 'bg-secondary'">{{ m.activo ? 'Activo' : 'Inactivo' }}</span></td>
                   <td class="text-end text-nowrap">
                     <button type="button" class="btn btn-sm btn-outline-info me-1" title="Ver" (click)="verDetalle(m)">
                       <i class="fas fa-eye"></i>
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" title="Editar" (click)="abrirEdicion(m)">
+                    <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Editar" (click)="abrirEdicion(m)">
                       <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary me-1" title="Horario de atención" (click)="abrirHorario(m)">
+                      <i class="fas fa-clock"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm" [ngClass]="m.activo ? 'btn-outline-danger' : 'btn-outline-success'"
+                            [title]="m.activo ? 'Inactivar' : 'Activar'" (click)="cambiarActivo(m)">
+                      <i class="fas" [ngClass]="m.activo ? 'fa-user-slash' : 'fa-user-check'"></i>
                     </button>
                   </td>
                 </tr>
@@ -158,6 +169,21 @@
                      [class.is-invalid]="invalido('telefono')" />
               <div class="invalid-feedback">Entre 7 y 20 dígitos.</div>
             </div>
+            <div class="col-md-6">
+              <label class="form-label" for="mUsuario">Usuario de acceso</label>
+              <select id="mUsuario" class="form-select" formControlName="usuarioId">
+                <option [ngValue]="null">Sin usuario</option>
+                <option *ngFor="let u of usuariosDisponibles" [ngValue]="u.id">{{ u.username }}</option>
+              </select>
+              <div class="form-text">Solo aparecen usuarios con rol veterinario que no estén enlazados a otro médico.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="mDuracion">Duración de la cita (minutos) *</label>
+              <input id="mDuracion" type="number" class="form-control" formControlName="duracionCitaMin" min="10" max="240" step="5"
+                     [class.is-invalid]="invalido('duracionCitaMin')" />
+              <div class="invalid-feedback">Entre 10 y 240 minutos, en múltiplos de 5.</div>
+              <div class="form-text">Se usa cuando la cita se agenda sin hora de fin.</div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -190,6 +216,8 @@
           <dt class="col-sm-4">Documento</dt><dd class="col-sm-8">{{ nombreTipo(m.tipoDocumento) }} {{ m.numeroDocumento }}</dd>
           <dt class="col-sm-4">Registro profesional</dt><dd class="col-sm-8">{{ m.registroProfesional }}</dd>
           <dt class="col-sm-4">Teléfono</dt><dd class="col-sm-8">{{ m.telefono || '—' }}</dd>
+          <dt class="col-sm-4">Usuario de acceso</dt><dd class="col-sm-8">{{ nombreUsuario(m.usuarioId) }}</dd>
+          <dt class="col-sm-4">Estado</dt><dd class="col-sm-8">{{ m.activo ? 'Activo' : 'Inactivo' }} · citas de {{ m.duracionCitaMin }} min</dd>
           <dt class="col-sm-4">Especialización</dt>
           <dd class="col-sm-8">
             {{ m.especializacion?.nombre }}
@@ -200,6 +228,68 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal horario de atención -->
+<div class="modal fade" id="modalHorarioMedico" tabindex="-1" aria-labelledby="tituloHorarioMedico" aria-hidden="true"
+     data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tituloHorarioMedico">
+          Horario de atención<span *ngIf="medicoHorario"> — {{ medicoHorario.nombres }} {{ medicoHorario.apellidos }}</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted">
+          Las citas solo se pueden agendar dentro de estas franjas. Las citas ya agendadas se conservan aunque queden por fuera.
+        </p>
+        <div class="d-flex gap-2 mb-3">
+          <button type="button" class="btn btn-sm btn-outline-primary" (click)="agregarFranja()">
+            <i class="fas fa-plus me-1"></i> Agregar franja
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="copiarLunes()">
+            <i class="fas fa-copy me-1"></i> Copiar el lunes a martes–viernes
+          </button>
+        </div>
+        <div *ngIf="cargandoHorario && !franjas.length" class="text-center py-3">
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> Cargando...
+        </div>
+        <table class="table table-sm align-middle" *ngIf="franjas.length">
+          <thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let f of franjas; let i = index; trackBy: porIndice">
+              <td>
+                <select class="form-select form-select-sm" [(ngModel)]="f.diaSemana" (change)="ordenarFranjas()" [attr.aria-label]="'Día de la franja ' + (i + 1)">
+                  <option *ngFor="let d of [1,2,3,4,5,6,7]" [ngValue]="d">{{ dias[d] }}</option>
+                </select>
+              </td>
+              <td><input type="time" class="form-control form-control-sm" step="900" [(ngModel)]="f.horaInicio" aria-label="Hora de inicio" /></td>
+              <td><input type="time" class="form-control form-control-sm" step="900" [(ngModel)]="f.horaFin" aria-label="Hora de fin" /></td>
+              <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-danger" title="Quitar franja" (click)="quitarFranja(i)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-light border text-center" *ngIf="!cargandoHorario && !franjas.length">
+          Sin franjas: el veterinario no podrá recibir citas nuevas.
+        </div>
+        <div class="alert alert-warning py-2 small" *ngIf="erroresHorario.length">
+          <div *ngFor="let e of erroresHorario">{{ e }}</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="cargandoHorario || erroresHorario.length > 0" (click)="guardarHorario()">
+          Guardar horario
+        </button>
       </div>
     </div>
   </div>

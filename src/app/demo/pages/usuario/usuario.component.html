@@ -12,14 +12,14 @@
         <div class="row g-2 mb-3 align-items-end">
           <div class="col-12 col-md-5">
             <label class="form-label" for="busquedaUsuario">Buscar</label>
-            <input id="busquedaUsuario" type="search" class="form-control" placeholder="Usuario, correo o rol"
+            <input id="busquedaUsuario" type="search" class="form-control" placeholder="Usuario, correo o perfil"
                    [ngModel]="tabla.texto" (ngModelChange)="tabla.buscar($event)" />
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label" for="filtroRol">Rol</label>
-            <select id="filtroRol" class="form-select" [(ngModel)]="filtroRol" (change)="aplicarFiltros()">
-              <option value="">Todos</option>
-              <option *ngFor="let r of roles" [value]="r.codigo">{{ r.nombre }}</option>
+            <label class="form-label" for="filtroPerfil">Perfil</label>
+            <select id="filtroPerfil" class="form-select" [(ngModel)]="filtroPerfil" (change)="aplicarFiltros()">
+              <option [ngValue]="null">Todos</option>
+              <option *ngFor="let p of perfiles" [ngValue]="p.perfilId">{{ p.nombre }}</option>
             </select>
           </div>
           <div class="col-6 col-md-2">
@@ -49,7 +49,7 @@
                   Correo <i class="fas" [ngClass]="tabla.orden.icono('email')"></i></th>
                 <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('rol')"
                     (click)="tabla.ordenar('rol')" (keydown.enter)="tabla.ordenar('rol')">
-                  Rol <i class="fas" [ngClass]="tabla.orden.icono('rol')"></i></th>
+                  Perfil <i class="fas" [ngClass]="tabla.orden.icono('rol')"></i></th>
                 <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('estado')"
                     (click)="tabla.ordenar('estado')" (keydown.enter)="tabla.ordenar('estado')">
                   Estado <i class="fas" [ngClass]="tabla.orden.icono('estado')"></i></th>
@@ -78,7 +78,7 @@
                 <tr *ngFor="let u of tabla.visibles">
                   <td>{{ u.username }}</td>
                   <td>{{ u.email }}</td>
-                  <td>{{ nombreRol(u.rol) }}</td>
+                  <td>{{ u.perfilNombre }}</td>
                   <td>
                     <span class="badge" [ngClass]="u.activo ? 'bg-success' : 'bg-secondary'">{{ u.activo ? 'ACTIVO' : 'INACTIVO' }}</span>
                   </td>
@@ -132,12 +132,12 @@
               </div>
             </div>
             <div class="col-sm-6">
-              <label class="form-label" for="uRol">Rol *</label>
-              <select id="uRol" class="form-select" formControlName="rol" [class.is-invalid]="invalido('rol')">
-                <option value="">Seleccione un rol</option>
-                <option *ngFor="let r of roles" [value]="r.codigo">{{ r.nombre }}</option>
+              <label class="form-label" for="uPerfil">Perfil *</label>
+              <select id="uPerfil" class="form-select" formControlName="perfilId" [class.is-invalid]="invalido('perfilId')">
+                <option [ngValue]="null">Seleccione un perfil</option>
+                <option *ngFor="let p of perfiles" [ngValue]="p.perfilId" [disabled]="!p.activo">{{ p.nombre }}</option>
               </select>
-              <div class="invalid-feedback">Seleccione el rol.</div>
+              <div class="invalid-feedback">Seleccione el perfil.</div>
             </div>
             <div class="col-12">
               <label class="form-label" for="uEmail">Correo electrónico *</label>
@@ -199,7 +199,7 @@
         <dl class="row mb-0" *ngIf="usuarioDetalle as u">
           <dt class="col-sm-4">Usuario</dt><dd class="col-sm-8">{{ u.username }}</dd>
           <dt class="col-sm-4">Correo</dt><dd class="col-sm-8">{{ u.email }}</dd>
-          <dt class="col-sm-4">Rol</dt><dd class="col-sm-8">{{ nombreRol(u.rol) }}</dd>
+          <dt class="col-sm-4">Perfil</dt><dd class="col-sm-8">{{ u.perfilNombre }}</dd>
           <dt class="col-sm-4">Estado</dt>
           <dd class="col-sm-8"><span class="badge" [ngClass]="u.activo ? 'bg-success' : 'bg-secondary'">{{ u.activo ? 'ACTIVO' : 'INACTIVO' }}</span></dd>
           <dt class="col-sm-4">Creado</dt><dd class="col-sm-8">{{ u.fechaCreacion ? (u.fechaCreacion | date: 'yyyy-MM-dd HH:mm') : '—' }}</dd>

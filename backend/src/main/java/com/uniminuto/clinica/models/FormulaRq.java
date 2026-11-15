@@ -2,13 +2,12 @@ package com.uniminuto.clinica.models;
 
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
- * Solicitud para crear o editar una fórmula médica. Mascota, historia y
- * veterinario solo se tienen en cuenta al crear: una fórmula emitida no
- * cambia de paciente, de consulta ni de veterinario.
+ * Solicitud para crear o editar una fórmula médica. El veterinario se toma
+ * del usuario autenticado; mascota e historia solo se tienen en cuenta al crear.
  */
 @Data
 public class FormulaRq {
@@ -24,42 +23,22 @@ public class FormulaRq {
     private Long historiaId;
 
     /**
-     * Veterinario que formula (solo al crear).
-     */
-    private Long medicoId;
-
-    /**
      * Fecha de emisión.
      */
     private LocalDate fechaEmision;
 
     /**
-     * Medicamento formulado.
+     * Observaciones generales (opcional).
      */
-    private Long medicamentoId;
+    private String observaciones;
 
     /**
-     * Cantidad por toma.
+     * Medicamentos formulados (uno o varios).
      */
-    private BigDecimal dosis;
+    private List<FormulaDetalleRq> detalles;
 
     /**
-     * Unidad de la dosis.
+     * true para confirmarla al guardar; false para dejarla como borrador.
      */
-    private String unidadDosis;
-
-    /**
-     * Horas entre tomas.
-     */
-    private Integer frecuenciaHoras;
-
-    /**
-     * Días de tratamiento.
-     */
-    private Integer duracionDias;
-
-    /**
-     * Indicaciones para el cliente.
-     */
-    private String indicaciones;
+    private boolean confirmar;
 }

@@ -4,7 +4,6 @@ import com.uniminuto.clinica.entity.Mascota;
 import com.uniminuto.clinica.models.MascotaRq;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +18,6 @@ import java.util.List;
  * Servicios REST de mascotas: GET para consultar, POST para crear y PUT para
  * editar. No se eliminan porque sus citas, historias y fórmulas las referencian.
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/mascota")
 public interface MascotaApi {
 

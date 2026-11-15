@@ -32,4 +32,10 @@ public class Especializacion {
     @Column(name = "codigo_especializacion", nullable = false, length = 10, unique = true)
     private String codigoEspecializacion;
 
+    /**
+     * Una especialidad inactiva no se asigna a veterinarios nuevos ni a tarifas nuevas.
+     */
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = Boolean.TRUE;
+
 }

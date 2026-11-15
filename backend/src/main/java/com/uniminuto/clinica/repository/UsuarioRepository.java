@@ -4,11 +4,21 @@ import com.uniminuto.clinica.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 /**
  * Acceso a datos de los usuarios del sistema.
  */
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+
+    /**
+     * Busca un usuario por su nombre, sin distinguir mayúsculas.
+     *
+     * @param username nombre de usuario.
+     * @return el usuario, si existe.
+     */
+    Optional<Usuario> findByUsernameIgnoreCase(String username);
 
     /**
      * Indica si otro usuario (distinto del indicado) ya usa el nombre de usuario.
@@ -29,11 +39,19 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Integer id);
 
     /**
-     * Cuenta los usuarios activos con un rol.
+     * Cuenta los usuarios de un perfil según su estado.
      *
-     * @param rol    rol.
+     * @param codigo código del perfil.
      * @param activo estado.
      * @return cantidad.
      */
-    long countByRolAndActivo(String rol, Boolean activo);
+    long countByPerfil_CodigoAndActivo(String codigo, Boolean activo);
+
+    /**
+     * Cuenta los usuarios de un perfil.
+     *
+     * @param perfilId identificador del perfil.
+     * @return cantidad.
+     */
+    long countByPerfil_PerfilId(Integer perfilId);
 }

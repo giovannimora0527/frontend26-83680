@@ -11,7 +11,7 @@ import { Medico } from 'src/app/models/medico';
 import { TablaLocal } from 'src/app/utils/tabla-local';
 import { ModalBootstrap } from 'src/app/utils/modal';
 import { normalizarTexto } from 'src/app/utils/texto';
-import { mostrarError, notificarExito } from 'src/app/utils/mensajes';
+import { confirmar, mostrarError, notificarExito } from 'src/app/utils/mensajes';
 import { TEXTO_OBLIGATORIO } from 'src/app/utils/validadores';
 
 /**
@@ -259,4 +259,27 @@ export class EspecializacionComponent implements OnInit, OnDestroy {
     return !!buscado && this.especializaciones.some((e) =>
       e.id !== this.editando?.id && normalizarTexto(campo(e)) === buscado);
   }
+
+  /**
+   * Activa o inactiva una especialidad tras confirmar.
+   *
+   * @param e especialidad.
+   */
+  async cambiarActivo(e: Especializacion): Promise<void> {
+    const activar = e.activo === false;
+    const ok = await confirmar(activar ? '¿Activar la especialidad?' : '¿Inactivar la especialidad?',
+      activar ? 'Podrá asignarse de nuevo a tarifas.' : 'No se podrá usar en tarifas nuevas; los registros existentes se conservan.',
+      activar ? 'Sí, activar' : 'Sí, inactivar');
+    if (!ok) {
+      return;
+    }
+    this.especializacionService.cambiarActivo(e.id, activar).subscribe({
+      next: (r) => {
+        notificarExito(r.message);
+        this.listar();
+      },
+      error: (error: HttpErrorResponse) => mostrarError(error, 'No se pudo cambiar el estado')
+    });
+  }
 }
+

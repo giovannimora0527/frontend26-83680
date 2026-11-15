@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { HorarioMedico } from 'src/app/models/cita';
 import { Medico, MedicoRq } from 'src/app/models/medico';
 import { RespuestaApi } from 'src/app/models/respuesta-api';
 import { BackendService } from 'src/app/services/backend.service';
@@ -58,4 +59,25 @@ export class MedicoService {
   actualizar(id: number, rq: MedicoRq): Observable<RespuestaApi> {
     return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, String(id), rq);
   }
+
+  /** Activa un veterinario. */
+  activar(id: number): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${id}/activar`, {});
+  }
+
+  /** Inactiva un veterinario (falla si tiene citas futuras activas). */
+  inactivar(id: number): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${id}/inactivar`, {});
+  }
+
+  /** Horario semanal de disponibilidad. */
+  horarios(id: number): Observable<HorarioMedico[]> {
+    return this.backendService.get<HorarioMedico[]>(environment.apiUrlAuth, this.api, `${id}/horarios`);
+  }
+
+  /** Reemplaza el horario semanal. */
+  guardarHorarios(id: number, franjas: HorarioMedico[]): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${id}/horarios`, franjas);
+  }
 }
+

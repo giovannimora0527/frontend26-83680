@@ -37,6 +37,11 @@ public class CitaRq {
     private LocalTime hora;
 
     /**
+     * Hora de finalización (opcional: si no se envía se usa la duración por defecto del veterinario).
+     */
+    private LocalTime horaFin;
+
+    /**
      * Motivo de la consulta.
      */
     private String motivo;

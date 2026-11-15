@@ -21,7 +21,7 @@ public class FormulaFiltroRq {
     private int size = 10;
 
     /**
-     * Columna de orden: creacion, emision, mascota, cliente, medicamento, medico o estado.
+     * Columna de orden: creacion, emision, numero, mascota, cliente, medico, estado o despacho.
      */
     private String orden;
 
@@ -31,14 +31,24 @@ public class FormulaFiltroRq {
     private String direccion;
 
     /**
-     * Texto libre (mascota, cliente, veterinario, medicamento).
+     * Texto libre: número de fórmula, mascota, cliente, veterinario o medicamento.
      */
     private String texto;
 
     /**
-     * Estado (ACTIVA o INACTIVA).
+     * Estado de la fórmula.
      */
     private String estado;
+
+    /**
+     * Estado del despacho.
+     */
+    private String estadoDespacho;
+
+    /**
+     * true para listar solo fórmulas confirmadas con medicamentos por entregar.
+     */
+    private boolean pendientesDespacho;
 
     /**
      * Veterinario.
@@ -46,7 +56,7 @@ public class FormulaFiltroRq {
     private Long medicoId;
 
     /**
-     * Medicamento.
+     * Medicamento formulado.
      */
     private Long medicamentoId;
 

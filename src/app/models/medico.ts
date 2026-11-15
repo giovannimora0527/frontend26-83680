@@ -25,6 +25,12 @@ export interface Medico {
   registroProfesional: string;
   /** Especialización del veterinario. */
   especializacion: Especializacion;
+  /** Usuario de acceso enlazado, si tiene. */
+  usuarioId?: number | null;
+  /** Si recibe citas. */
+  activo: boolean;
+  /** Duración por defecto de sus citas, en minutos. */
+  duracionCitaMin: number;
 }
 
 /** Datos que se envían al backend para crear o editar un veterinario. */
@@ -43,4 +49,8 @@ export interface MedicoRq {
   registroProfesional: string;
   /** Especialización elegida. */
   especializacionId: number;
+  /** Usuario de acceso con rol veterinario (opcional). */
+  usuarioId: number | null;
+  /** Duración por defecto de sus citas, en minutos. */
+  duracionCitaMin?: number;
 }

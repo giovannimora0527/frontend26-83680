@@ -26,9 +26,19 @@ public class UsuarioRs {
     private String email;
 
     /**
-     * Rol de acceso.
+     * Código del perfil, usado como rol.
      */
     private String rol;
+
+    /**
+     * Identificador del perfil.
+     */
+    private Integer perfilId;
+
+    /**
+     * Nombre visible del perfil.
+     */
+    private String perfilNombre;
 
     /**
      * Indica si puede iniciar sesión.

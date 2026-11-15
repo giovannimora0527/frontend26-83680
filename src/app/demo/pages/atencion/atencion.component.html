@@ -1,0 +1,217 @@
+<div class="row">
+  <!-- Agenda -->
+  <div class="col-12 col-xl-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-2">Atención médica</h5>
+        <div class="input-group input-group-sm">
+          <button type="button" class="btn btn-outline-secondary" title="Día anterior" aria-label="Día anterior" (click)="moverDia(-1)">
+            <i class="fas fa-chevron-left"></i></button>
+          <input type="date" class="form-control" aria-label="Día de la agenda" [(ngModel)]="fecha" (change)="cargarAgenda()" />
+          <button type="button" class="btn btn-outline-secondary" title="Día siguiente" aria-label="Día siguiente" (click)="moverDia(1)">
+            <i class="fas fa-chevron-right"></i></button>
+        </div>
+      </div>
+      <div class="list-group list-group-flush">
+        <div *ngIf="cargandoAgenda" class="list-group-item text-center py-3">
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> Cargando...
+        </div>
+        <div *ngIf="!cargandoAgenda && !agenda.length" class="list-group-item text-muted text-center py-3">
+          No hay citas para este día.
+        </div>
+        <button type="button" *ngFor="let a of agenda" class="list-group-item list-group-item-action"
+                [class.active]="atencion?.citaId === a.citaId" (click)="abrir(a)">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong>{{ hora(a.inicio) }}–{{ hora(a.fin) }}</strong>
+              <span class="small ms-1" *ngIf="a.inicio.slice(0, 10) !== fecha">({{ a.inicio.slice(0, 10) }})</span>
+              <div>{{ a.mascotaNombre }} <span class="small">· {{ a.clienteNombre }}</span></div>
+              <div class="small text-truncate" style="max-width: 16rem">{{ a.motivo }}</div>
+            </div>
+            <span class="badge" [ngClass]="estadoAgenda(a.estadoAtencion).clase">{{ estadoAgenda(a.estadoAtencion).texto }}</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Atención -->
+  <div class="col-12 col-xl-8">
+    <div class="card" *ngIf="!atencion">
+      <div class="card-body text-center text-muted py-5">
+        <i class="fas fa-stethoscope fa-2x mb-3"></i>
+        <p class="mb-0">Seleccione una cita de la agenda para iniciar o continuar la atención.</p>
+      </div>
+    </div>
+
+    <ng-container *ngIf="atencion as a">
+      <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div>
+            <h5 class="mb-0">{{ a.mascotaNombre }} <small class="text-muted">· Atención N.° {{ a.historiaId }}</small></h5>
+            <small class="text-muted">Cita N.° {{ a.citaId }} · {{ a.citaInicio | date: 'yyyy-MM-dd HH:mm' }}</small>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge" [ngClass]="a.estado === 'ABIERTA' ? 'bg-warning text-dark' : 'bg-success'">
+              {{ a.estado === 'ABIERTA' ? 'En curso' : 'Finalizada ' + (a.fechaFinalizacion | date: 'yyyy-MM-dd HH:mm') }}</span>
+            <span class="badge bg-info text-dark" *ngIf="a.facturaNumero">Factura {{ a.facturaNumero }}</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <dl class="row small mb-0">
+            <dt class="col-sm-2">Paciente</dt>
+            <dd class="col-sm-4">{{ a.mascotaNombre }}{{ a.mascotaRaza ? ' · ' + a.mascotaRaza : '' }}{{ a.mascotaEdad != null ? ' · ' + a.mascotaEdad + ' años' : '' }}</dd>
+            <dt class="col-sm-2">Propietario</dt>
+            <dd class="col-sm-4">{{ a.clienteNombre }} · {{ a.clienteDocumento }}<span *ngIf="a.clienteTelefono"> · Tel. {{ a.clienteTelefono }}</span></dd>
+            <dt class="col-sm-2">Veterinario</dt><dd class="col-sm-4">{{ a.medicoNombre }}</dd>
+            <dt class="col-sm-2">Especialidad</dt><dd class="col-sm-4">{{ a.especialidad || '—' }}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- Antecedentes -->
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Antecedentes médicos ({{ a.antecedentes.length }})</h6></div>
+        <div class="card-body py-2">
+          <div *ngIf="!a.antecedentes.length" class="text-muted small">Sin atenciones anteriores.</div>
+          <div class="border-bottom py-2 small" *ngFor="let h of a.antecedentes">
+            <strong>{{ h.fechaHora | date: 'yyyy-MM-dd' }}</strong> · {{ h.medicoNombre }} · {{ h.motivo }}
+            <div *ngIf="h.sintomas"><span class="text-muted">Síntomas:</span> {{ h.sintomas }}</div>
+            <div *ngIf="h.diagnostico"><span class="text-muted">Diagnóstico:</span> {{ h.diagnostico }}</div>
+            <div *ngIf="h.recomendaciones"><span class="text-muted">Recomendaciones:</span> {{ h.recomendaciones }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registro clínico -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Registro clínico</h6>
+          <span class="small text-warning" *ngIf="sinGuardar"><i class="fas fa-circle-exclamation me-1"></i>Cambios sin guardar</span>
+        </div>
+        <div class="card-body">
+          <fieldset [disabled]="!abierta">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="aMotivo">Motivo de consulta *</label>
+                <input id="aMotivo" class="form-control" maxlength="500" [(ngModel)]="datos.motivo" (ngModelChange)="sinGuardar = true" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="aSintomas">Síntomas identificados *</label>
+                <textarea id="aSintomas" rows="3" class="form-control" maxlength="1000" [(ngModel)]="datos.sintomas" (ngModelChange)="sinGuardar = true"></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="aDiagnostico">Diagnóstico *</label>
+                <textarea id="aDiagnostico" rows="3" class="form-control" maxlength="1000" [(ngModel)]="datos.diagnostico" (ngModelChange)="sinGuardar = true"></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="aObservaciones">Observaciones médicas</label>
+                <textarea id="aObservaciones" rows="3" class="form-control" maxlength="1000" [(ngModel)]="datos.observaciones" (ngModelChange)="sinGuardar = true"></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="aRecomendaciones">Recomendaciones</label>
+                <textarea id="aRecomendaciones" rows="3" class="form-control" maxlength="1000" [(ngModel)]="datos.recomendaciones" (ngModelChange)="sinGuardar = true"></textarea>
+              </div>
+            </div>
+          </fieldset>
+          <div class="text-end mt-3" *ngIf="abierta">
+            <button type="button" class="btn btn-outline-primary" [disabled]="procesando || !sinGuardar" (click)="guardar()">
+              <i class="fas fa-save me-1"></i> Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Servicios -->
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Servicios prestados</h6></div>
+        <div class="card-body">
+          <div class="row g-2 mb-3 align-items-end" *ngIf="abierta">
+            <div class="col-md-7">
+              <label class="form-label" for="aServicio">Agregar servicio</label>
+              <select id="aServicio" class="form-select" [(ngModel)]="servicioNuevo">
+                <option [ngValue]="null">Seleccione un servicio</option>
+                <option *ngFor="let s of serviciosDisponibles" [ngValue]="s.servicioId">
+                  {{ s.codigo }} · {{ s.nombre }} — {{ s.valorTotal | currency: 'COP' : '$' : '1.0-0' }}
+                </option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label" for="aCantidad">Cantidad</label>
+              <input id="aCantidad" type="number" class="form-control" min="1" max="100" step="1" [(ngModel)]="cantidadNueva" />
+            </div>
+            <div class="col-6 col-md-3">
+              <button type="button" class="btn btn-outline-primary w-100" [disabled]="!servicioNuevo" (click)="agregarServicio()">
+                <i class="fas fa-plus me-1"></i> Agregar
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr><th>Servicio</th><th class="text-end">Cant.</th><th class="text-end">Vr. unitario</th><th class="text-end">IVA</th><th class="text-end">Total</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of a.servicios">
+                  <td><span class="text-muted small me-1">{{ s.codigo }}</span>{{ s.descripcion }}</td>
+                  <td class="text-end">{{ s.cantidad }}</td>
+                  <td class="text-end">{{ s.valorUnitario | currency: 'COP' : '$' : '1.0-2' }}</td>
+                  <td class="text-end">{{ s.iva | currency: 'COP' : '$' : '1.0-2' }}</td>
+                  <td class="text-end">{{ s.total | currency: 'COP' : '$' : '1.0-2' }}</td>
+                  <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger" *ngIf="abierta" title="Quitar"
+                            [attr.aria-label]="'Quitar ' + s.descripcion" (click)="quitarServicio(s.atencionServicioId, s.descripcion)">
+                      <i class="fas fa-trash"></i></button>
+                  </td>
+                </tr>
+                <tr *ngIf="!a.servicios.length"><td colspan="6" class="text-muted text-center">Sin servicios registrados.</td></tr>
+              </tbody>
+              <tfoot>
+                <tr><th colspan="4" class="text-end">Total servicios</th><th class="text-end">{{ a.totalServicios | currency: 'COP' : '$' : '1.0-2' }}</th><th></th></tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fórmulas -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Fórmulas médicas</h6>
+          <button type="button" class="btn btn-sm btn-outline-primary" *ngIf="abierta" (click)="nuevaFormula()">
+            <i class="fas fa-prescription me-1"></i> Nueva fórmula
+          </button>
+        </div>
+        <div class="card-body py-2">
+          <div *ngIf="!a.formulas.length" class="text-muted small">Sin fórmulas en esta atención.</div>
+          <div class="d-flex justify-content-between align-items-center border-bottom py-2 small" *ngFor="let f of a.formulas">
+            <div>
+              <strong>N.° {{ f.formulaId }}</strong> · {{ f.medicamentosResumen }}
+            </div>
+            <div>
+              <span class="badge me-1" [ngClass]="f.estado === 'BORRADOR' ? 'bg-warning text-dark' : f.estado === 'ANULADA' ? 'bg-secondary' : 'bg-success'">{{ f.estado }}</span>
+              <span class="badge" *ngIf="f.estadoDespacho" [ngClass]="claseDespacho(f.estadoDespacho)">{{ textoDespacho(f.estadoDespacho) }}</span>
+            </div>
+          </div>
+          <div class="small text-muted mt-2" *ngIf="abierta">Las fórmulas en borrador se confirman o anulan en el módulo de fórmulas.</div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="card">
+        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div class="small text-muted" *ngIf="abierta && faltantes.length">Para finalizar falta: {{ faltantes.join(', ') }}.</div>
+          <div class="small text-muted" *ngIf="!abierta">Atención finalizada; ya no se puede modificar.</div>
+          <div class="d-flex gap-2 ms-auto">
+            <button type="button" class="btn btn-outline-secondary" (click)="descargarPrefactura()">
+              <i class="fas fa-file-pdf me-1"></i> Prefactura
+            </button>
+            <button type="button" class="btn btn-success" *ngIf="abierta" [disabled]="procesando" (click)="finalizar()">
+              <i class="fas fa-check-double me-1"></i> Finalizar atención
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>

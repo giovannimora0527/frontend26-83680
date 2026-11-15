@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -46,10 +48,11 @@ public class Usuario {
     private String passwordHash;
 
     /**
-     * Rol de acceso: ADMIN, VETERINARIO, RECEPCIONISTA o CLIENTE.
+     * Perfil de acceso del usuario.
      */
-    @Column(name = "rol", nullable = false, length = 20)
-    private String rol;
+    @ManyToOne
+    @JoinColumn(name = "perfil_id", nullable = false)
+    private Perfil perfil;
 
     /**
      * Indica si puede iniciar sesión.
@@ -68,4 +71,13 @@ public class Usuario {
      */
     @Column(name = "fecha_modificacion")
     private LocalDateTime fechaModificacion;
+
+    /**
+     * Código del perfil, que es el rol con el que se validan los permisos.
+     *
+     * @return código del perfil.
+     */
+    public String getRol() {
+        return perfil == null ? null : perfil.getCodigo();
+    }
 }

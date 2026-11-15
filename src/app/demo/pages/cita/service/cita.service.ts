@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { Cita, CitaRq, FiltroCitas } from 'src/app/models/cita';
+import { HttpParams } from '@angular/common/http';
+
+import { Cita, CitaHistorial, CitaRq, EstadoCitaInfo, FiltroCitas, HorarioMedico } from 'src/app/models/cita';
 import { Pagina } from 'src/app/models/pagina';
 import { RespuestaApi } from 'src/app/models/respuesta-api';
 import { BackendService } from 'src/app/services/backend.service';
@@ -74,4 +76,73 @@ export class CitaService {
   reactivar(citaId: number): Observable<RespuestaApi> {
     return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${citaId}/reactivar`, {});
   }
+
+  /**
+   * Citas de un rango para el calendario (el veterinario recibe solo las suyas).
+   *
+   * @param desde fecha inicial (yyyy-MM-dd).
+   * @param hasta fecha final incluida (yyyy-MM-dd).
+   * @param medicoId veterinario (opcional).
+   */
+  calendario(desde: string, hasta: string, medicoId?: number | null): Observable<Cita[]> {
+    return this.backendService.get<Cita[]>(environment.apiUrlAuth, this.api, 'calendario',
+      aParametros({ desde, hasta, medicoId }));
+  }
+
+  /**
+   * Cambia el estado de una cita (confirmar, atender o cancelar con motivo).
+   */
+  cambiarEstado(citaId: number, estado: string, motivo?: string): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${citaId}/estado`, { estado, motivo });
+  }
+
+  /**
+   * Cambia la fecha y hora de una cita.
+   */
+  reprogramar(citaId: number, fecha: string, hora: string, horaFin: string | null, observacion?: string): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${citaId}/reprogramar`,
+      { fecha, hora, horaFin, observacion });
+  }
+
+  /**
+   * Historial de cambios de una cita.
+   */
+  historial(citaId: number): Observable<CitaHistorial[]> {
+    return this.backendService.get<CitaHistorial[]>(environment.apiUrlAuth, this.api, `${citaId}/historial`);
+  }
+
+  /**
+   * Catálogo de estados con su color.
+   */
+  estados(): Observable<EstadoCitaInfo[]> {
+    return this.backendService.get<EstadoCitaInfo[]>(environment.apiUrlAuth, this.api, 'estados');
+  }
+
+  /**
+   * Reporte de citas en Excel.
+   */
+  descargarExcel(desde: string, hasta: string, medicoId?: number | null, estado?: string): Observable<Blob> {
+    return this.backendService.getArchivo(environment.apiUrlAuth, this.api, 'reporte/excel',
+      aParametros({ desde, hasta, medicoId, estado }));
+  }
+
+  /**
+   * Horario semanal de un veterinario.
+   */
+  horarios(medicoId: number): Observable<HorarioMedico[]> {
+    return this.backendService.get<HorarioMedico[]>(environment.apiUrlAuth, 'medico', `${medicoId}/horarios`);
+  }
+
+  /**
+   * Historial de citas de una mascota (todas, de la más reciente a la más antigua).
+   */
+  historialMascota(mascotaId: number): Observable<Cita[]> {
+    const params = new HttpParams().set('mascotaId', mascotaId).set('size', 100).set('orden', 'fecha').set('direccion', 'desc');
+    return new Observable<Cita[]>((obs) => {
+      const sub = this.backendService.get<{ content: Cita[] }>(environment.apiUrlAuth, this.api, 'listar', params)
+        .subscribe({ next: (p) => { obs.next(p.content); obs.complete(); }, error: (e) => obs.error(e) });
+      return () => sub.unsubscribe();
+    });
+  }
 }
+

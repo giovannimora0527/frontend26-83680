@@ -4,10 +4,11 @@ import com.uniminuto.clinica.models.FormulaFiltroRq;
 import com.uniminuto.clinica.models.FormulaRq;
 import com.uniminuto.clinica.models.FormulaRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
+import com.uniminuto.clinica.models.MotivoRq;
 import com.uniminuto.clinica.models.PaginaRs;
 
 /**
- * Operaciones de negocio de las fórmulas médicas.
+ * Operaciones de negocio de las fórmulas médicas (formulación por el veterinario).
  */
 public interface FormulaService {
 
@@ -24,12 +25,12 @@ public interface FormulaService {
      * Consulta el detalle completo de una fórmula.
      *
      * @param formulaId identificador de la fórmula.
-     * @return la fórmula encontrada.
+     * @return la fórmula con sus líneas, historial y entregas.
      */
     FormulaRs consultarFormula(Long formulaId);
 
     /**
-     * Registra una fórmula validando todas las reglas de negocio.
+     * Registra una fórmula como borrador o confirmada.
      *
      * @param formulaRq datos de la fórmula.
      * @return mensaje de éxito.
@@ -37,7 +38,7 @@ public interface FormulaService {
     MiRespuestaRS guardarFormula(FormulaRq formulaRq);
 
     /**
-     * Modifica los datos del tratamiento de una fórmula activa.
+     * Modifica una fórmula en borrador.
      *
      * @param formulaId identificador de la fórmula.
      * @param formulaRq nuevos datos.
@@ -46,10 +47,27 @@ public interface FormulaService {
     MiRespuestaRS actualizarFormula(Long formulaId, FormulaRq formulaRq);
 
     /**
-     * Inactiva una fórmula (no se elimina porque es información clínica).
+     * Confirma una fórmula en borrador para que pase a despacho.
      *
      * @param formulaId identificador de la fórmula.
      * @return mensaje de éxito.
      */
-    MiRespuestaRS inactivarFormula(Long formulaId);
+    MiRespuestaRS confirmarFormula(Long formulaId);
+
+    /**
+     * Anula una fórmula que no tiene entregas.
+     *
+     * @param formulaId identificador de la fórmula.
+     * @param rq        motivo de la anulación.
+     * @return mensaje de éxito.
+     */
+    MiRespuestaRS anularFormula(Long formulaId, MotivoRq rq);
+
+    /**
+     * Genera la fórmula en PDF.
+     *
+     * @param formulaId identificador de la fórmula.
+     * @return contenido del PDF.
+     */
+    byte[] generarPdf(Long formulaId);
 }

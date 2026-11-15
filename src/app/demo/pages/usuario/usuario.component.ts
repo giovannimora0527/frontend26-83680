@@ -5,7 +5,9 @@ import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModu
 
 import { UsuarioService } from './service/usuario.service';
 import { PaginadorComponent } from 'src/app/shared/paginador/paginador.component';
-import { ROLES_USUARIO, Usuario, UsuarioRq } from 'src/app/models/usuario';
+import { Usuario, UsuarioRq } from 'src/app/models/usuario';
+import { PerfilAcceso } from 'src/app/models/perfil';
+import { PerfilService } from '../perfil/service/perfil.service';
 import { TablaLocal } from 'src/app/utils/tabla-local';
 import { ModalBootstrap } from 'src/app/utils/modal';
 import { normalizarTexto } from 'src/app/utils/texto';
@@ -24,23 +26,23 @@ import { camposIguales, contrasenaSegura } from 'src/app/utils/validadores';
   templateUrl: './usuario.component.html'
 })
 export class UsuarioComponent implements OnInit, OnDestroy {
-  /** Roles para el filtro y el formulario. */
-  readonly roles = ROLES_USUARIO;
+  /** Perfiles para el filtro y el formulario. */
+  perfiles: PerfilAcceso[] = [];
 
   /** Tabla de usuarios resuelta en el navegador (orden inicial por usuario). */
   readonly tabla = new TablaLocal<Usuario>(
     {
       username: (u) => u.username,
       email: (u) => u.email,
-      rol: (u) => this.nombreRol(u.rol),
+      rol: (u) => u.perfilNombre,
       estado: (u) => (u.activo ? 'Activo' : 'Inactivo'),
       creacion: (u) => u.fechaCreacion
     },
-    (u) => `${u.username} ${u.email} ${this.nombreRol(u.rol)}`,
+    (u) => `${u.username} ${u.email} ${u.perfilNombre}`,
     'username'
   );
-  /** Rol seleccionado en el filtro (vacío = todos). */
-  filtroRol = '';
+  /** Perfil seleccionado en el filtro (null = todos). */
+  filtroPerfil: number | null = null;
   /** Estado seleccionado en el filtro: '', 'activo' o 'inactivo'. */
   filtroEstado = '';
   /** Indica que se está consultando el listado. */
@@ -71,10 +73,12 @@ export class UsuarioComponent implements OnInit, OnDestroy {
 
   /**
    * @param usuarioService servicio de usuarios.
+   * @param perfilService servicio de perfiles.
    * @param formBuilder constructor de formularios reactivos.
    */
   constructor(
     private readonly usuarioService: UsuarioService,
+    private readonly perfilService: PerfilService,
     private readonly formBuilder: FormBuilder
   ) { }
 
@@ -84,13 +88,17 @@ export class UsuarioComponent implements OnInit, OnDestroy {
       {
         username: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9._-]{4,30}$/)]],
         email: ['', [Validators.required, Validators.email, Validators.maxLength(120)]],
-        rol: ['', Validators.required],
+        perfilId: [null, Validators.required],
         password: [''],
         confirmar: ['']
       },
       { validators: camposIguales('password', 'confirmar') }
     );
     this.listar();
+    this.perfilService.listar().subscribe({
+      next: (data) => (this.perfiles = data),
+      error: (error: HttpErrorResponse) => mostrarError(error, 'No se pudieron cargar los perfiles')
+    });
   }
 
   /** Libera los modales. */
@@ -106,7 +114,7 @@ export class UsuarioComponent implements OnInit, OnDestroy {
 
   /** Indica si hay búsqueda o filtro activo. */
   get hayFiltros(): boolean {
-    return this.tabla.hayBusqueda || !!this.filtroRol || !!this.filtroEstado;
+    return this.tabla.hayBusqueda || this.filtroPerfil !== null || !!this.filtroEstado;
   }
 
   /** Indica que otro usuario ya tiene ese nombre de usuario. */
@@ -145,16 +153,16 @@ export class UsuarioComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Aplica los filtros de rol y estado. */
+  /** Aplica los filtros de perfil y estado. */
   aplicarFiltros(): void {
-    const rol = this.filtroRol;
+    const perfilId = this.filtroPerfil;
     const estado = this.filtroEstado;
-    this.tabla.filtrar((u) => (!rol || u.rol === rol) && (!estado || (estado === 'activo') === u.activo));
+    this.tabla.filtrar((u) => (perfilId === null || u.perfilId === perfilId) && (!estado || (estado === 'activo') === u.activo));
   }
 
   /** Quita búsqueda, filtros y orden personalizados. */
   limpiarFiltros(): void {
-    this.filtroRol = '';
+    this.filtroPerfil = null;
     this.filtroEstado = '';
     this.tabla.filtrar(() => true);
     this.tabla.reiniciar();
@@ -166,7 +174,7 @@ export class UsuarioComponent implements OnInit, OnDestroy {
   abrirNuevo(): void {
     this.usuarioEditando = null;
     this.configurarContrasena(true);
-    this.form.reset({ username: '', email: '', rol: '', password: '', confirmar: '' });
+    this.form.reset({ username: '', email: '', perfilId: null, password: '', confirmar: '' });
     this.verContrasena = false;
     this.modalFormulario.abrir();
   }
@@ -184,7 +192,7 @@ export class UsuarioComponent implements OnInit, OnDestroy {
     }
     this.usuarioEditando = usuario;
     this.configurarContrasena(false);
-    this.form.reset({ username: usuario.username, email: usuario.email, rol: usuario.rol, password: '', confirmar: '' });
+    this.form.reset({ username: usuario.username, email: usuario.email, perfilId: usuario.perfilId, password: '', confirmar: '' });
     this.verContrasena = false;
     this.modalFormulario.abrir();
   }
@@ -219,7 +227,7 @@ export class UsuarioComponent implements OnInit, OnDestroy {
     const usuarioRq: UsuarioRq = {
       username: String(v.username).trim(),
       email: String(v.email).trim().toLowerCase(),
-      rol: v.rol
+      perfilId: Number(v.perfilId)
     };
     if (v.password) {
       usuarioRq.password = v.password;
@@ -301,16 +309,6 @@ export class UsuarioComponent implements OnInit, OnDestroy {
       },
       error: (error: HttpErrorResponse) => mostrarError(error, 'No se pudo cambiar el estado del usuario')
     });
-  }
-
-  /**
-   * Nombre legible de un rol.
-   *
-   * @param codigo código del rol.
-   * @returns nombre del rol, o el código si no se reconoce.
-   */
-  nombreRol(codigo: string): string {
-    return this.roles.find((r) => r.codigo === codigo)?.nombre ?? codigo;
   }
 
   /**

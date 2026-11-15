@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -17,6 +17,7 @@ import { Modal } from 'bootstrap';
 
 import { HistoriaService } from './service/historia.service';
 import { CatalogoService } from 'src/app/services/catalogo.service';
+import { AuthService } from 'src/app/services/auth.service';
 import { PaginadorComponent } from 'src/app/shared/paginador/paginador.component';
 import { ClienteOpcion, MascotaOpcion, MedicoOpcion } from 'src/app/models/catalogo';
 import {
@@ -60,6 +61,8 @@ export class HistoriaComponent implements OnInit, OnDestroy {
   readonly estados: EstadoHistoria[] = ESTADOS_HISTORIA;
   /** Recorta la hora a HH:mm en la plantilla. */
   readonly horaCorta = horaCorta;
+  /** Solo el veterinario registra información clínica; el administrador la consulta. */
+  readonly puedeRegistrar = inject(AuthService).tieneRol('VETERINARIO');
 
   // ----- Listado -----
 

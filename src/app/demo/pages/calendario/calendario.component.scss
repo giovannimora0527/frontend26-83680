@@ -1,0 +1,47 @@
+:host ::ng-deep {
+  .fc {
+    font-size: 0.85rem;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 1.15rem;
+  }
+
+  .fc .fc-toolbar-title::first-letter {
+    text-transform: uppercase;
+  }
+
+  .fc .fc-button-primary {
+    background-color: #04a9f5;
+    border-color: #04a9f5;
+  }
+
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active {
+    background-color: #0383bf;
+    border-color: #0383bf;
+  }
+
+  .fc .fc-non-business {
+    background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.03) 6px,
+      rgba(0, 0, 0, 0.06) 6px, rgba(0, 0, 0, 0.06) 12px);
+  }
+
+  .fc-event {
+    cursor: pointer;
+  }
+
+  .cita-cancelada .fc-event-title,
+  .cita-cancelada .fc-event-time {
+    text-decoration: line-through;
+  }
+}
+
+.leyenda-color {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}

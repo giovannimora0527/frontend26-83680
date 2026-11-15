@@ -1,12 +1,15 @@
 package com.uniminuto.clinica.api;
 
+import com.uniminuto.clinica.entity.EstadoCitaCatalogo;
+import com.uniminuto.clinica.models.CitaHistorialRs;
 import com.uniminuto.clinica.models.CitaRq;
 import com.uniminuto.clinica.models.CitaRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
+import com.uniminuto.clinica.models.EstadoCitaRq;
 import com.uniminuto.clinica.models.PaginaRs;
+import com.uniminuto.clinica.models.ReprogramarCitaRq;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,12 +19,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Servicios REST para la gestión de citas médicas.
  * GET para consultar, POST para crear y PUT para modificar.
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/cita")
 public interface CitaApi {
 
@@ -100,4 +103,72 @@ public interface CitaApi {
      */
     @PutMapping(value = "/{citaId}/reactivar", produces = {"application/json"})
     ResponseEntity<MiRespuestaRS> reactivarCita(@PathVariable Long citaId);
+    /**
+     * Cambia el estado de una cita: confirmar, marcar como atendida o cancelar (con motivo).
+     *
+     * @param citaId identificador de la cita.
+     * @param rq     estado nuevo y motivo.
+     * @return mensaje de éxito.
+     */
+    @PutMapping(value = "/{citaId}/estado", produces = {"application/json"}, consumes = {"application/json"})
+    ResponseEntity<MiRespuestaRS> cambiarEstado(@PathVariable Long citaId, @RequestBody EstadoCitaRq rq);
+
+    /**
+     * Cambia la fecha y hora de una cita (por ejemplo, al arrastrarla en el calendario).
+     *
+     * @param citaId identificador de la cita.
+     * @param rq     nueva fecha, hora de inicio y hora de fin.
+     * @return mensaje de éxito.
+     */
+    @PutMapping(value = "/{citaId}/reprogramar", produces = {"application/json"}, consumes = {"application/json"})
+    ResponseEntity<MiRespuestaRS> reprogramarCita(@PathVariable Long citaId, @RequestBody ReprogramarCitaRq rq);
+
+    /**
+     * Citas de un rango de fechas para el calendario (máximo 62 días). El
+     * veterinario siempre recibe solo las suyas.
+     *
+     * @param desde    fecha inicial (yyyy-MM-dd).
+     * @param hasta    fecha final, incluida (yyyy-MM-dd).
+     * @param medicoId veterinario (administrador y recepción).
+     * @return citas del rango.
+     */
+    @GetMapping(value = "/calendario", produces = {"application/json"})
+    ResponseEntity<List<CitaRs>> calendario(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long medicoId);
+
+    /**
+     * Historial de cambios de una cita (creación, reprogramaciones, estados).
+     *
+     * @param citaId identificador de la cita.
+     * @return cambios registrados.
+     */
+    @GetMapping(value = "/{citaId}/historial", produces = {"application/json"})
+    ResponseEntity<List<CitaHistorialRs>> historialCita(@PathVariable Long citaId);
+
+    /**
+     * Catálogo de estados de la cita con su color.
+     *
+     * @return estados.
+     */
+    @GetMapping(value = "/estados", produces = {"application/json"})
+    ResponseEntity<List<EstadoCitaCatalogo>> listarEstados();
+
+    /**
+     * Reporte de citas en Excel (.xlsx) con hoja de detalle y resumen por estado.
+     *
+     * @param desde    fecha inicial (yyyy-MM-dd).
+     * @param hasta    fecha final (yyyy-MM-dd).
+     * @param medicoId veterinario (el veterinario siempre recibe las suyas).
+     * @param estado   estado (opcional).
+     * @return archivo Excel.
+     */
+    @GetMapping(value = "/reporte/excel",
+            produces = {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/json"})
+    ResponseEntity<byte[]> reporteExcel(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long medicoId,
+            @RequestParam(required = false) String estado);
 }

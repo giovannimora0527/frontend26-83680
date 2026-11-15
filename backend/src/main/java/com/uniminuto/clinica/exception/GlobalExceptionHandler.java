@@ -45,6 +45,28 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Credenciales inválidas (HTTP 401).
+     *
+     * @param ex excepción de autenticación.
+     * @return respuesta de error con estado 401.
+     */
+    @ExceptionHandler(NoAutenticadoException.class)
+    public ResponseEntity<ErrorResponse> handleNoAutenticado(NoAutenticadoException ex) {
+        return construir(ex.getStatus(), "UNAUTHORIZED", ex.getMessage());
+    }
+
+    /**
+     * Operación no permitida sobre el registro (HTTP 403).
+     *
+     * @param ex excepción de permiso.
+     * @return respuesta de error con estado 403.
+     */
+    @ExceptionHandler(SinPermisoException.class)
+    public ResponseEntity<ErrorResponse> handleSinPermiso(SinPermisoException ex) {
+        return construir(ex.getStatus(), "FORBIDDEN", ex.getMessage());
+    }
+
+    /**
      * Registro inexistente (HTTP 404).
      *
      * @param ex excepción de registro no encontrado.

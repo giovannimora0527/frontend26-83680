@@ -4,7 +4,6 @@ import com.uniminuto.clinica.entity.Raza;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.RazaRq;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +17,6 @@ import java.util.List;
  * Servicios REST de razas: GET para consultar, POST para crear y PUT para
  * editar. Las razas no se eliminan porque las mascotas las referencian.
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/raza")
 public interface RazaApi {
 

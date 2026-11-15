@@ -53,6 +53,18 @@ public class Cita {
     private LocalDateTime fechaHora;
 
     /**
+     * Fecha y hora de finalización de la cita.
+     */
+    @Column(name = "fecha_hora_fin", nullable = false)
+    private LocalDateTime fechaHoraFin;
+
+    /**
+     * Motivo de la cancelación, si se canceló.
+     */
+    @Column(name = "motivo_cancelacion", length = 255)
+    private String motivoCancelacion;
+
+    /**
      * Motivo de la consulta.
      */
     @Column(name = "motivo", nullable = false, length = 500)

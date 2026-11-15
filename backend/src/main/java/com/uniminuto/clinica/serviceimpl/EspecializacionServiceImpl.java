@@ -108,4 +108,17 @@ public class EspecializacionServiceImpl implements EspecializacionService {
         especializacion.setNombre(nombre);
         especializacion.setDescripcion(Validaciones.opcional(rq.getDescripcion(), "La descripción", 255));
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public MiRespuestaRS cambiarActivo(Long id, boolean activo) {
+        Especializacion especializacion = this.consultarEspecializacion(id);
+        especializacion.setActivo(activo);
+        especializacionRepository.save(especializacion);
+        return MiRespuestaRS.de(200, activo ? "Especialidad activada" : "Especialidad inactivada");
+    }
 }
+

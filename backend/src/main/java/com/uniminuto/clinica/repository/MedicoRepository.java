@@ -4,6 +4,8 @@ import com.uniminuto.clinica.entity.Medico;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 /**
  * Acceso a datos de los veterinarios.
  */
@@ -28,4 +30,28 @@ public interface MedicoRepository extends JpaRepository<Medico, Long> {
      * @return true si existe.
      */
     boolean existsByRegistroProfesionalIgnoreCaseAndIdNot(String registroProfesional, Long id);
+
+    /**
+     * Busca el veterinario enlazado a un usuario.
+     *
+     * @param usuarioId identificador del usuario.
+     * @return el veterinario, si existe.
+     */
+    Optional<Medico> findByUsuarioId(Integer usuarioId);
+
+    /**
+     * Busca el primer veterinario que no tiene usuario enlazado.
+     *
+     * @return el veterinario, si existe.
+     */
+    Optional<Medico> findFirstByUsuarioIdIsNullOrderByIdAsc();
+
+    /**
+     * Indica si otro veterinario (distinto del indicado) ya usa ese usuario.
+     *
+     * @param usuarioId usuario a buscar.
+     * @param id        veterinario que se edita (-1 al crear).
+     * @return true si existe.
+     */
+    boolean existsByUsuarioIdAndIdNot(Integer usuarioId, Long id);
 }

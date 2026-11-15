@@ -42,4 +42,14 @@ public interface EspecializacionService {
      * @return mensaje de éxito.
      */
     MiRespuestaRS actualizarEspecializacion(Long id, EspecializacionRq rq);
+
+    /**
+     * Activa o inactiva una especialidad.
+     *
+     * @param id     identificador.
+     * @param activo estado nuevo.
+     * @return mensaje de éxito.
+     */
+    MiRespuestaRS cambiarActivo(Long id, boolean activo);
 }
+

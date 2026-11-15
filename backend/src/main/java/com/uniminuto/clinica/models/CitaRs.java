@@ -29,6 +29,46 @@ public class CitaRs {
     private LocalTime hora;
 
     /**
+     * Hora de finalización.
+     */
+    private LocalTime horaFin;
+
+    /**
+     * Fecha y hora de inicio (para el calendario).
+     */
+    private LocalDateTime inicio;
+
+    /**
+     * Fecha y hora de finalización (para el calendario).
+     */
+    private LocalDateTime fin;
+
+    /**
+     * Teléfono del propietario.
+     */
+    private String clienteTelefono;
+
+    /**
+     * Raza de la mascota.
+     */
+    private String mascotaRaza;
+
+    /**
+     * Edad de la mascota en años.
+     */
+    private Integer mascotaEdad;
+
+    /**
+     * Especialidad del veterinario.
+     */
+    private String especialidad;
+
+    /**
+     * Motivo de la cancelación.
+     */
+    private String motivoCancelacion;
+
+    /**
      * Identificador del cliente dueño de la mascota.
      */
     private Long clienteId;

@@ -1,0 +1,509 @@
+<!-- Alertas -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <button type="button" class="card h-100 w-100 text-start mb-0 border-danger" [class.border-2]="filtroAlerta === 'AGOTADO'"
+            (click)="filtrarPorAlerta('AGOTADO')">
+      <span class="card-body py-3 d-block">
+        <span class="text-muted d-block">Agotados</span>
+        <strong class="h3 mb-0 text-danger">{{ resumen.agotados }}</strong>
+      </span>
+    </button>
+  </div>
+  <div class="col-6 col-lg-3">
+    <button type="button" class="card h-100 w-100 text-start mb-0 border-warning" [class.border-2]="filtroAlerta === 'STOCK_BAJO'"
+            (click)="filtrarPorAlerta('STOCK_BAJO')">
+      <span class="card-body py-3 d-block">
+        <span class="text-muted d-block">Existencias bajas</span>
+        <strong class="h3 mb-0 text-warning">{{ resumen.bajos }}</strong>
+      </span>
+    </button>
+  </div>
+  <div class="col-6 col-lg-3">
+    <button type="button" class="card h-100 w-100 text-start mb-0 border-warning" [class.border-2]="filtroAlerta === 'PROXIMO_A_VENCER'"
+            (click)="filtrarPorAlerta('PROXIMO_A_VENCER')">
+      <span class="card-body py-3 d-block">
+        <span class="text-muted d-block">Próximos a vencer (60 días)</span>
+        <strong class="h3 mb-0 text-warning">{{ resumen.porVencer }}</strong>
+      </span>
+    </button>
+  </div>
+  <div class="col-6 col-lg-3">
+    <button type="button" class="card h-100 w-100 text-start mb-0 border-danger" [class.border-2]="filtroAlerta === 'VENCIDOS'"
+            (click)="filtrarPorAlerta('VENCIDOS')">
+      <span class="card-body py-3 d-block">
+        <span class="text-muted d-block">Con unidades vencidas</span>
+        <strong class="h3 mb-0 text-danger">{{ resumen.vencidos }}</strong>
+      </span>
+    </button>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0">Inventario</h5>
+        <button type="button" class="btn btn-primary" *ngIf="puedeAdministrar" (click)="abrirNuevo()">
+          <i class="fas fa-plus me-1"></i> Nuevo producto
+        </button>
+      </div>
+
+      <div class="card-body">
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-12 col-md-5">
+            <label class="form-label" for="busquedaProducto">Buscar</label>
+            <input id="busquedaProducto" type="search" class="form-control" placeholder="Código, nombre, presentación o Invima"
+                   [ngModel]="tabla.texto" (ngModelChange)="tabla.buscar($event)" />
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label" for="filtroTipoProducto">Tipo</label>
+            <select id="filtroTipoProducto" class="form-select" [(ngModel)]="filtroTipo" (change)="aplicarFiltros()">
+              <option value="">Todos</option>
+              <option *ngFor="let t of tipos" [value]="t.codigo">{{ t.nombre }}</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label" for="filtroAlertaProducto">Estado</label>
+            <select id="filtroAlertaProducto" class="form-select" [(ngModel)]="filtroAlerta" (change)="aplicarFiltros()">
+              <option value="">Todos</option>
+              <option value="AGOTADO">Agotados</option>
+              <option value="STOCK_BAJO">Existencias bajas</option>
+              <option value="PROXIMO_A_VENCER">Próximos a vencer</option>
+              <option value="VENCIDOS">Con unidades vencidas</option>
+              <option value="INACTIVOS">Inactivos</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-2" *ngIf="hayFiltros">
+            <button type="button" class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()">
+              <i class="fas fa-times me-1"></i> Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle tabla-datos">
+            <thead>
+              <tr>
+                <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('codigo')"
+                    (click)="tabla.ordenar('codigo')" (keydown.enter)="tabla.ordenar('codigo')">
+                  Código <i class="fas" [ngClass]="tabla.orden.icono('codigo')"></i></th>
+                <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('nombre')"
+                    (click)="tabla.ordenar('nombre')" (keydown.enter)="tabla.ordenar('nombre')">
+                  Producto <i class="fas" [ngClass]="tabla.orden.icono('nombre')"></i></th>
+                <th class="sortable text-end" tabindex="0" [attr.aria-sort]="tabla.orden.aria('disponible')"
+                    (click)="tabla.ordenar('disponible')" (keydown.enter)="tabla.ordenar('disponible')">
+                  Disponible <i class="fas" [ngClass]="tabla.orden.icono('disponible')"></i></th>
+                <th class="sortable text-end" tabindex="0" [attr.aria-sort]="tabla.orden.aria('precioCompra')"
+                    (click)="tabla.ordenar('precioCompra')" (keydown.enter)="tabla.ordenar('precioCompra')">
+                  P. compra <i class="fas" [ngClass]="tabla.orden.icono('precioCompra')"></i></th>
+                <th class="sortable text-end" tabindex="0" [attr.aria-sort]="tabla.orden.aria('precioVenta')"
+                    (click)="tabla.ordenar('precioVenta')" (keydown.enter)="tabla.ordenar('precioVenta')">
+                  P. venta <i class="fas" [ngClass]="tabla.orden.icono('precioVenta')"></i></th>
+                <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('vencimiento')"
+                    (click)="tabla.ordenar('vencimiento')" (keydown.enter)="tabla.ordenar('vencimiento')">
+                  Próx. vencimiento <i class="fas" [ngClass]="tabla.orden.icono('vencimiento')"></i></th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="cargando">
+                <td colspan="8" class="text-center py-4">
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Cargando inventario...
+                </td>
+              </tr>
+              <tr *ngIf="!cargando && error">
+                <td colspan="8" class="text-center py-4 text-danger">
+                  No se pudo cargar el inventario.
+                  <button type="button" class="btn btn-sm btn-outline-danger ms-2" (click)="listar()">Reintentar</button>
+                </td>
+              </tr>
+              <tr *ngIf="!cargando && !error && tabla.visibles.length === 0">
+                <td colspan="8" class="text-center py-4 text-muted">
+                  {{ hayFiltros ? 'No se encontraron productos con los filtros indicados.' : 'No hay productos registrados.' }}
+                </td>
+              </tr>
+              <ng-container *ngIf="!cargando && !error">
+                <tr *ngFor="let p of tabla.visibles">
+                  <td class="text-nowrap"><code>{{ p.codigo }}</code></td>
+                  <td>
+                    {{ p.nombre }}
+                    <small class="text-muted d-block">{{ nombreTipo(p.tipo) }}<ng-container *ngIf="p.presentacion"> · {{ p.presentacion }}</ng-container></small>
+                  </td>
+                  <td class="text-end text-nowrap">
+                    <strong>{{ p.cantidadDisponible | number }}</strong>
+                    <small class="text-muted d-block">mín. {{ p.stockMinimo | number }}</small>
+                  </td>
+                  <td class="text-end text-nowrap">{{ p.ultimoPrecioCompra ? '$' + (p.ultimoPrecioCompra | number: '1.0-2') : '—' }}</td>
+                  <td class="text-end text-nowrap">{{ p.precioVenta > 0 ? '$' + (p.precioVenta | number: '1.0-2') : '—' }}</td>
+                  <td class="text-nowrap">{{ p.proximoVencimiento || '—' }}</td>
+                  <td>
+                    <span class="badge bg-secondary" *ngIf="!p.activo">INACTIVO</span>
+                    <ng-container *ngIf="p.activo">
+                      <span class="badge bg-danger me-1" *ngIf="p.estadoStock === 'AGOTADO'">AGOTADO</span>
+                      <span class="badge bg-warning text-dark me-1" *ngIf="p.estadoStock === 'STOCK_BAJO'">STOCK BAJO</span>
+                      <span class="badge bg-success me-1" *ngIf="p.estadoStock === 'NORMAL'">NORMAL</span>
+                      <span class="badge bg-warning text-dark me-1" *ngIf="p.proximoAVencer">POR VENCER</span>
+                      <span class="badge bg-danger me-1" *ngIf="p.tieneVencidos">VENCIDOS</span>
+                    </ng-container>
+                  </td>
+                  <td class="text-end text-nowrap">
+                    <button type="button" class="btn btn-sm btn-outline-info me-1" title="Ver" (click)="verDetalle(p)">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <ng-container *ngIf="puedeAdministrar">
+                      <button type="button" class="btn btn-sm btn-outline-success me-1" title="Registrar lote"
+                              [disabled]="!p.activo" (click)="abrirLote(p)">
+                        <i class="fas fa-boxes"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Editar"
+                              [disabled]="!p.activo" (click)="abrirEdicion(p)">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm" [ngClass]="p.activo ? 'btn-outline-danger' : 'btn-outline-success'"
+                              [title]="p.activo ? 'Inactivar' : 'Activar'" (click)="cambiarEstado(p)">
+                        <i class="fas" [ngClass]="p.activo ? 'fa-ban' : 'fa-check'"></i>
+                      </button>
+                    </ng-container>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+
+        <app-paginador etiqueta="Paginación del inventario"
+                       [pagina]="tabla.pagina" [totalPaginas]="tabla.totalPaginas"
+                       [totalRegistros]="tabla.totalRegistros" [tamano]="tabla.tamano"
+                       (cambioPagina)="tabla.irA($event)" (cambioTamano)="tabla.cambiarTamano($event)">
+        </app-paginador>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal producto -->
+<div class="modal fade" id="modalProducto" tabindex="-1" aria-labelledby="tituloModalProducto" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form [formGroup]="formProducto" (ngSubmit)="guardarProducto()" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="tituloModalProducto">{{ productoEditando ? 'Editar producto' : 'Nuevo producto' }}</h5>
+          <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarProducto()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label" for="pCodigo">Código *</label>
+              <input id="pCodigo" class="form-control text-uppercase" formControlName="codigo" maxlength="8"
+                     [class.is-invalid]="invalido(formProducto, 'codigo') || codigoDuplicado" />
+              <div class="invalid-feedback">{{ codigoDuplicado ? 'Ese código ya existe.' : 'Exactamente 8 letras o números.' }}</div>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label" for="pNombreProducto">Nombre *</label>
+              <input id="pNombreProducto" class="form-control" formControlName="nombre" maxlength="100"
+                     [class.is-invalid]="invalido(formProducto, 'nombre') || nombreDuplicado" />
+              <div class="invalid-feedback">{{ nombreDuplicado ? 'Ya existe un producto con ese nombre.' : 'Escriba el nombre.' }}</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="pTipo">Tipo *</label>
+              <select id="pTipo" class="form-select" formControlName="tipo">
+                <option *ngFor="let t of tipos" [value]="t.codigo">{{ t.nombre }}</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="pInvima">Registro Invima {{ fp['tipo'].value === 'MEDICAMENTO' ? '*' : '' }}</label>
+              <input id="pInvima" class="form-control" formControlName="registroInvima" maxlength="30"
+                     [class.is-invalid]="invalido(formProducto, 'registroInvima')" />
+              <div class="invalid-feedback">
+                {{ fp['registroInvima'].hasError('required') ? 'Obligatorio para medicamentos.' : 'De 5 a 30 letras, números, guiones o barras.' }}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="pPresentacion">Presentación</label>
+              <input id="pPresentacion" class="form-control" formControlName="presentacion" maxlength="100" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="pPrecioVenta">Precio de venta *</label>
+              <input id="pPrecioVenta" type="number" class="form-control" formControlName="precioVenta" min="0.01" step="0.01"
+                     [class.is-invalid]="invalido(formProducto, 'precioVenta')" />
+              <div class="invalid-feedback">Indique un valor mayor que 0.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="pIva">IVA (%) *</label>
+              <input id="pIva" type="number" class="form-control" formControlName="ivaPorcentaje" min="0" max="100" step="0.01"
+                     [class.is-invalid]="invalido(formProducto, 'ivaPorcentaje')" />
+              <div class="invalid-feedback">Entre 0 y 100.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="pStockMinimo">Stock mínimo *</label>
+              <input id="pStockMinimo" type="number" class="form-control" formControlName="stockMinimo" min="0" step="1"
+                     [class.is-invalid]="invalido(formProducto, 'stockMinimo')" />
+              <div class="invalid-feedback">Indique un entero mayor o igual a 0.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="pProximoPedido">Próximo pedido</label>
+              <input id="pProximoPedido" type="date" class="form-control" formControlName="fechaProximoPedido" />
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="pDescripcion">Descripción</label>
+              <textarea id="pDescripcion" rows="2" class="form-control" formControlName="descripcion" maxlength="255"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cerrarProducto()" [disabled]="guardandoProducto">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoProducto">
+            <span *ngIf="guardandoProducto" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            {{ guardandoProducto ? 'Guardando...' : (productoEditando ? 'Actualizar producto' : 'Guardar producto') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal lote -->
+<div class="modal fade" id="modalLote" tabindex="-1" aria-labelledby="tituloModalLote" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form [formGroup]="formLote" (ngSubmit)="guardarLote()" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="tituloModalLote">Registrar lote<span *ngIf="productoLote"> — {{ productoLote.nombre }}</span></h5>
+          <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarLote()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label" for="lNumero">Número de lote *</label>
+              <input id="lNumero" class="form-control text-uppercase" formControlName="numeroLote" maxlength="40"
+                     [class.is-invalid]="invalido(formLote, 'numeroLote')" />
+              <div class="invalid-feedback">Solo letras, números y guiones.</div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="lCompra">Fecha de compra *</label>
+              <input id="lCompra" type="date" class="form-control" formControlName="fechaCompra" [max]="hoy"
+                     [class.is-invalid]="invalido(formLote, 'fechaCompra')" />
+              <div class="invalid-feedback">Indique una fecha que no sea futura.</div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="lIngreso">Fecha de ingreso *</label>
+              <input id="lIngreso" type="date" class="form-control" formControlName="fechaIngreso" [max]="hoy"
+                     [class.is-invalid]="invalido(formLote, 'fechaIngreso') || formLote.hasError('ingresoAnterior')" />
+              <div class="invalid-feedback">
+                {{ formLote.hasError('ingresoAnterior') ? 'No puede ser anterior a la compra.' : 'Indique una fecha que no sea futura.' }}
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="lVencimiento">Vencimiento {{ loteExigeVencimiento ? '*' : '' }}</label>
+              <input id="lVencimiento" type="date" class="form-control" formControlName="fechaVencimiento" [min]="manana"
+                     [class.is-invalid]="invalido(formLote, 'fechaVencimiento')" />
+              <div class="invalid-feedback">
+                {{ formLote.controls['fechaVencimiento'].hasError('vencido') ? 'No se puede ingresar un lote vencido.' : 'Obligatorio para medicamentos.' }}
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="lCantidad">Cantidad *</label>
+              <input id="lCantidad" type="number" class="form-control" formControlName="cantidad" min="1" step="1"
+                     [class.is-invalid]="invalido(formLote, 'cantidad')" />
+              <div class="invalid-feedback">Indique un entero mayor que 0.</div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="lPrecio">Precio de compra por unidad *</label>
+              <input id="lPrecio" type="number" class="form-control" formControlName="precioCompra" min="0.01" step="0.01"
+                     [class.is-invalid]="invalido(formLote, 'precioCompra')" />
+              <div class="invalid-feedback">Indique un valor mayor que 0.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cerrarLote()" [disabled]="guardandoLote">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoLote">
+            <span *ngIf="guardandoLote" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            {{ guardandoLote ? 'Guardando...' : 'Registrar lote' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal detalle -->
+<div class="modal fade" id="modalDetalleProducto" tabindex="-1" aria-labelledby="tituloDetalleProducto" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tituloDetalleProducto">
+          Detalle del producto<span *ngIf="detalle"> — {{ detalle.nombre }}</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body detalle-registro">
+        <div *ngIf="cargandoDetalle && !detalle" class="text-center py-3">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Cargando...
+        </div>
+
+        <ng-container *ngIf="detalle as d">
+          <dl class="row mb-2">
+            <dt class="col-sm-3">Código</dt><dd class="col-sm-3"><code>{{ d.codigo }}</code></dd>
+            <dt class="col-sm-3">Tipo</dt><dd class="col-sm-3">{{ nombreTipo(d.tipo) }}</dd>
+            <dt class="col-sm-3">Registro Invima</dt>
+            <dd class="col-sm-3">
+              <span *ngIf="d.registroInvima">{{ d.registroInvima }}</span>
+              <span class="text-danger" *ngIf="!d.registroInvima && d.tipo === 'MEDICAMENTO'">Sin registrar</span>
+              <span *ngIf="!d.registroInvima && d.tipo !== 'MEDICAMENTO'">No aplica</span>
+            </dd>
+            <dt class="col-sm-3">Presentación</dt><dd class="col-sm-3">{{ d.presentacion || '—' }}</dd>
+            <dt class="col-sm-3">Disponible</dt><dd class="col-sm-3">{{ d.cantidadDisponible | number }} (mínimo {{ d.stockMinimo | number }})</dd>
+            <dt class="col-sm-3">Unidades vencidas</dt><dd class="col-sm-3">{{ d.cantidadVencida | number }}</dd>
+            <dt class="col-sm-3">Precio de venta</dt><dd class="col-sm-3">{{ d.precioVenta > 0 ? '$' + (d.precioVenta | number: '1.0-2') : 'Sin definir' }}</dd>
+            <dt class="col-sm-3">Próximo pedido</dt><dd class="col-sm-3">{{ d.fechaProximoPedido || '—' }}</dd>
+            <dt class="col-sm-3">Descripción</dt><dd class="col-sm-9 texto-largo">{{ d.descripcion || '—' }}</dd>
+          </dl>
+
+          <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+              <button type="button" class="nav-link" [class.active]="pestana === 'lotes'" (click)="pestana = 'lotes'">Lotes</button>
+            </li>
+            <li class="nav-item">
+              <button type="button" class="nav-link" [class.active]="pestana === 'movimientos'" (click)="pestana = 'movimientos'">Entradas y salidas</button>
+            </li>
+          </ul>
+
+          <!-- Lotes -->
+          <ng-container *ngIf="pestana === 'lotes'">
+            <form *ngIf="loteAjuste" class="border rounded p-3 mb-3" [formGroup]="formAjuste" (ngSubmit)="guardarAjuste()" novalidate>
+              <h6>Ajuste del lote {{ loteAjuste.numeroLote }} <small class="text-muted">({{ loteAjuste.cantidadDisponible }} disponibles)</small></h6>
+              <div class="row g-3">
+                <div class="col-sm-3">
+                  <label class="form-label" for="aSentido">Sentido *</label>
+                  <select id="aSentido" class="form-select" formControlName="sentido">
+                    <option value="SALIDA">Disminuir</option>
+                    <option value="ENTRADA">Aumentar</option>
+                  </select>
+                </div>
+                <div class="col-sm-3">
+                  <label class="form-label" for="aCantidad">Cantidad *</label>
+                  <input id="aCantidad" type="number" class="form-control" formControlName="cantidad" min="1" step="1"
+                         [class.is-invalid]="invalido(formAjuste, 'cantidad') || ajusteExcede" />
+                  <div class="invalid-feedback">{{ ajusteExcede ? 'Supera lo disponible en el lote.' : 'Indique un entero mayor que 0.' }}</div>
+                </div>
+                <div class="col-sm-6">
+                  <label class="form-label" for="aMotivo">Motivo *</label>
+                  <input id="aMotivo" class="form-control" formControlName="motivo" maxlength="255"
+                         [class.is-invalid]="invalido(formAjuste, 'motivo')" />
+                  <div class="invalid-feedback">Explique el motivo del ajuste.</div>
+                </div>
+              </div>
+              <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-sm btn-secondary" (click)="cancelarAjuste()" [disabled]="guardandoAjuste">Cancelar</button>
+                <button type="submit" class="btn btn-sm btn-primary" [disabled]="guardandoAjuste">
+                  {{ guardandoAjuste ? 'Guardando...' : 'Registrar ajuste' }}
+                </button>
+              </div>
+            </form>
+
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle tabla-datos mb-0">
+                <thead>
+                  <tr>
+                    <th>Lote</th>
+                    <th>Compra</th>
+                    <th>Ingreso</th>
+                    <th>Vencimiento</th>
+                    <th class="text-end">Inicial</th>
+                    <th class="text-end">Disponible</th>
+                    <th class="text-end">P. compra</th>
+                    <th>Estado</th>
+                    <th class="text-end" *ngIf="puedeAdministrar">Ajuste</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngIf="!d.lotes?.length">
+                    <td [attr.colspan]="puedeAdministrar ? 9 : 8" class="text-center py-3 text-muted">El producto no tiene lotes.</td>
+                  </tr>
+                  <tr *ngFor="let l of d.lotes">
+                    <td>{{ l.numeroLote }}</td>
+                    <td class="text-nowrap">{{ l.fechaCompra }}</td>
+                    <td class="text-nowrap">{{ l.fechaIngreso }}</td>
+                    <td class="text-nowrap">{{ l.fechaVencimiento || 'No aplica' }}</td>
+                    <td class="text-end">{{ l.cantidadInicial | number }}</td>
+                    <td class="text-end"><strong>{{ l.cantidadDisponible | number }}</strong></td>
+                    <td class="text-end text-nowrap">{{ l.precioCompra > 0 ? '$' + (l.precioCompra | number: '1.0-2') : '—' }}</td>
+                    <td><span class="badge" [ngClass]="claseLote(l.estado)">{{ textoLote(l.estado) }}</span></td>
+                    <td class="text-end" *ngIf="puedeAdministrar">
+                      <button type="button" class="btn btn-sm btn-outline-secondary" title="Ajustar existencias" (click)="abrirAjuste(l)">
+                        <i class="fas fa-sliders-h"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+
+          <!-- Movimientos -->
+          <ng-container *ngIf="pestana === 'movimientos'">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle tabla-datos mb-0">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Lote</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">Saldo lote</th>
+                    <th>Usuario</th>
+                    <th>Referencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngIf="cargandoMovimientos">
+                    <td colspan="7" class="text-center py-3">
+                      <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Cargando movimientos...
+                    </td>
+                  </tr>
+                  <tr *ngIf="!cargandoMovimientos && errorMovimientos">
+                    <td colspan="7" class="text-center py-3 text-danger">
+                      No se pudieron cargar los movimientos.
+                      <button type="button" class="btn btn-sm btn-outline-danger ms-2" (click)="listarMovimientos()">Reintentar</button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="!cargandoMovimientos && !errorMovimientos && movimientos.length === 0">
+                    <td colspan="7" class="text-center py-3 text-muted">El producto no tiene movimientos.</td>
+                  </tr>
+                  <ng-container *ngIf="!cargandoMovimientos && !errorMovimientos">
+                    <tr *ngFor="let m of movimientos">
+                      <td class="text-nowrap">{{ m.fecha | date: 'yyyy-MM-dd HH:mm' }}</td>
+                      <td class="text-nowrap">{{ textoMovimiento(m.tipo) }}</td>
+                      <td>{{ m.numeroLote }}</td>
+                      <td class="text-end">{{ m.cantidad | number }}</td>
+                      <td class="text-end">{{ m.saldoLote | number }}</td>
+                      <td>{{ m.usuario }}</td>
+                      <td class="celda-recortada" [title]="m.observacion || m.referencia">
+                        {{ m.referencia }}<span class="text-muted" *ngIf="m.observacion"> — {{ m.observacion }}</span>
+                      </td>
+                    </tr>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+            <app-paginador etiqueta="Paginación de movimientos"
+                           [pagina]="paginaMovimientos" [totalPaginas]="totalPaginasMovimientos"
+                           [totalRegistros]="totalMovimientos" [tamano]="movimientosPorPagina"
+                           (cambioPagina)="irAPaginaMovimientos($event)" (cambioTamano)="cambiarTamanoMovimientos($event)">
+            </app-paginador>
+          </ng-container>
+        </ng-container>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -42,5 +42,23 @@ public class Medico {
     @JoinColumn(name = "especializacion_id", nullable = false)
     private Especializacion especializacion;
 
+    /**
+     * Usuario de acceso del veterinario, si tiene.
+     */
+    @Column(name = "usuario_id", unique = true)
+    private Integer usuarioId;
+
+    /**
+     * Un veterinario inactivo no recibe citas nuevas.
+     */
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = Boolean.TRUE;
+
+    /**
+     * Duración por defecto de sus citas, en minutos.
+     */
+    @Column(name = "duracion_cita_min", nullable = false)
+    private Integer duracionCitaMin = 30;
+
 
 }

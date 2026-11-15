@@ -58,4 +58,10 @@ export class EspecializacionService {
   actualizar(id: number, rq: EspecializacionRq): Observable<RespuestaApi> {
     return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, String(id), rq);
   }
+
+  /** Activa o inactiva una especialidad. */
+  cambiarActivo(id: number, activo: boolean): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${id}/${activo ? 'activar' : 'inactivar'}`, {});
+  }
 }
+

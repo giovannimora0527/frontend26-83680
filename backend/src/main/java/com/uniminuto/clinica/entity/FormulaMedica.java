@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,17 +10,22 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Fórmula médica emitida por un veterinario dentro de una historia clínica.
- * La mascota y el cliente se obtienen de la historia, así no se pueden
- * guardar datos contradictorios.
+ * Encabezado de una fórmula médica emitida en una consulta (historia
+ * clínica). La mascota y el cliente se obtienen de la historia; cada
+ * medicamento formulado es una línea ({@link FormulaDetalle}).
  */
 @Entity
 @Table(name = "formula_medica")
@@ -27,7 +33,7 @@ import java.time.LocalDateTime;
 public class FormulaMedica {
 
     /**
-     * Identificador único de la fórmula.
+     * Identificador de la fórmula.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,54 +55,36 @@ public class FormulaMedica {
     private Medico medico;
 
     /**
-     * Medicamento formulado.
-     */
-    @ManyToOne
-    @JoinColumn(name = "medicamento_id", nullable = false)
-    private Medicamento medicamento;
-
-    /**
      * Fecha de emisión; no puede ser anterior a la consulta.
      */
     @Column(name = "fecha_emision", nullable = false)
     private LocalDate fechaEmision;
 
     /**
-     * Cantidad por toma.
+     * Observaciones generales de la fórmula.
      */
-    @Column(name = "dosis", nullable = false, precision = 10, scale = 2)
-    private BigDecimal dosis;
-
-    /**
-     * Unidad de la dosis (mg, ml, tableta...).
-     */
-    @Column(name = "unidad_dosis", nullable = false, length = 20)
-    private String unidadDosis;
-
-    /**
-     * Horas entre tomas.
-     */
-    @Column(name = "frecuencia_horas", nullable = false)
-    private Integer frecuenciaHoras;
-
-    /**
-     * Días de tratamiento.
-     */
-    @Column(name = "duracion_dias", nullable = false)
-    private Integer duracionDias;
-
-    /**
-     * Indicaciones para el cliente.
-     */
-    @Column(name = "indicaciones", nullable = false, length = 1000)
-    private String indicaciones;
+    @Column(name = "observaciones", length = 1000)
+    private String observaciones;
 
     /**
      * Estado de la fórmula.
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "estado", nullable = false, length = 10)
+    @Column(name = "estado", nullable = false, length = 12)
     private EstadoFormula estado;
+
+    /**
+     * Estado del despacho (nulo mientras es borrador).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_despacho", length = 25)
+    private EstadoDespacho estadoDespacho;
+
+    /**
+     * Fecha y hora en que el veterinario la confirmó.
+     */
+    @Column(name = "fecha_confirmacion")
+    private LocalDateTime fechaConfirmacion;
 
     /**
      * Fecha y hora de registro.
@@ -109,4 +97,13 @@ public class FormulaMedica {
      */
     @Column(name = "fecha_modificacion")
     private LocalDateTime fechaModificacion;
+
+    /**
+     * Medicamentos formulados.
+     */
+    @OneToMany(mappedBy = "formula", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("detalleId")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<FormulaDetalle> detalles = new ArrayList<>();
 }

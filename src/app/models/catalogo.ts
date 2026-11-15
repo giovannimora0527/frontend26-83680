@@ -29,6 +29,8 @@ export interface MedicoOpcion {
   nombres: string;
   /** Apellidos del veterinario. */
   apellidos: string;
+  /** Si recibe citas. */
+  activo?: boolean;
 }
 
 /** Medicamento reducido para el combo de medicamentos. */
@@ -39,4 +41,8 @@ export interface MedicamentoOpcion {
   nombre: string;
   /** Presentación (tabletas, jarabe, ampolla...). */
   presentacion: string;
+  /** Código interno de 8 caracteres. */
+  codigo?: string;
+  /** Existencias vigentes. */
+  cantidadDisponible?: number;
 }

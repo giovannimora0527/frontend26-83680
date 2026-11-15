@@ -55,4 +55,21 @@ public class EspecializacionApiController implements EspecializacionApi {
     public ResponseEntity<MiRespuestaRS> actualizarEspecializacion(Long id, EspecializacionRq rq) {
         return ResponseEntity.ok(especializacionService.actualizarEspecializacion(id, rq));
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<MiRespuestaRS> activarEspecializacion(Long id) {
+        return ResponseEntity.ok(especializacionService.cambiarActivo(id, true));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<MiRespuestaRS> inactivarEspecializacion(Long id) {
+        return ResponseEntity.ok(especializacionService.cambiarActivo(id, false));
+    }
 }
+

@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.serviceimpl;
 
+import com.uniminuto.clinica.entity.Perfil;
 import com.uniminuto.clinica.entity.Usuario;
 import com.uniminuto.clinica.exception.BadRequestException;
 import com.uniminuto.clinica.exception.ConflictException;
@@ -7,6 +8,8 @@ import com.uniminuto.clinica.exception.NotFoundException;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.UsuarioRq;
 import com.uniminuto.clinica.models.UsuarioRs;
+import com.uniminuto.clinica.repository.MedicoRepository;
+import com.uniminuto.clinica.repository.PerfilRepository;
 import com.uniminuto.clinica.repository.UsuarioRepository;
 import com.uniminuto.clinica.service.UsuarioService;
 import com.uniminuto.clinica.util.ClaveSegura;
@@ -35,9 +38,9 @@ public class UsuarioServiceImpl implements UsuarioService {
     private static final String ROL_ADMIN = "ADMIN";
 
     /**
-     * Roles aceptados.
+     * Rol de médico veterinario.
      */
-    private static final List<String> ROLES = List.of(ROL_ADMIN, "VETERINARIO", "RECEPCIONISTA", "CLIENTE");
+    private static final String ROL_VETERINARIO = "VETERINARIO";
 
     /**
      * Nombre de usuario: 4 a 30 letras, números, punto, guion o guion bajo.
@@ -59,6 +62,18 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    /**
+     * Repositorio de perfiles.
+     */
+    @Autowired
+    private PerfilRepository perfilRepository;
+
+    /**
+     * Repositorio de veterinarios (para validar los enlaces con usuarios).
+     */
+    @Autowired
+    private MedicoRepository medicoRepository;
 
     /**
      * {@inheritDoc}
@@ -104,11 +119,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (!Boolean.TRUE.equals(usuario.getActivo())) {
             throw new ConflictException("El usuario está inactivo; actívelo antes de modificarlo");
         }
-        String rolAnterior = usuario.getRol();
         this.aplicarDatos(usuario, rq, id);
-        if (ROL_ADMIN.equals(rolAnterior) && !ROL_ADMIN.equals(usuario.getRol())) {
-            this.validarQueQuedeAdministrador();
-        }
         if (rq.getPassword() != null && !rq.getPassword().isEmpty()) {
             usuario.setPasswordHash(ClaveSegura.generarHash(this.validarClave(rq.getPassword())));
         }
@@ -151,9 +162,14 @@ public class UsuarioServiceImpl implements UsuarioService {
                 "El nombre de usuario debe tener de 4 a 30 letras, números, punto, guion o guion bajo");
         String email = Validaciones.conPatron(rq.getEmail(), "El correo", 120, EMAIL,
                 "El correo electrónico no es válido").toLowerCase();
-        String rol = Validaciones.obligatorio(rq.getRol(), "El rol", 20).toUpperCase();
-        if (!ROLES.contains(rol)) {
-            throw new BadRequestException("El rol no es válido. Use: " + String.join(", ", ROLES));
+        if (rq.getPerfilId() == null) {
+            throw new BadRequestException("Debe seleccionar el perfil");
+        }
+        Perfil perfil = perfilRepository.findById(rq.getPerfilId())
+                .orElseThrow(() -> new NotFoundException("El perfil seleccionado no existe"));
+        boolean cambiaPerfil = !perfil.getCodigo().equals(usuario.getRol());
+        if (cambiaPerfil && !Boolean.TRUE.equals(perfil.getActivo())) {
+            throw new ConflictException("El perfil seleccionado está inactivo");
         }
         if (usuarioRepository.existsByUsernameIgnoreCaseAndIdNot(username, id)) {
             throw new ConflictException("El nombre de usuario " + username + " ya existe");
@@ -161,9 +177,12 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (usuarioRepository.existsByEmailIgnoreCaseAndIdNot(email, id)) {
             throw new ConflictException("El correo " + email + " ya está registrado");
         }
+        if (!id.equals(SIN_ID) && cambiaPerfil) {
+            this.validarCambioDeRol(usuario);
+        }
         usuario.setUsername(username);
         usuario.setEmail(email);
-        usuario.setRol(rol);
+        usuario.setPerfil(perfil);
     }
 
     /**
@@ -181,10 +200,26 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     /**
+     * Valida que el usuario pueda dejar su rol actual. Se ejecuta antes de
+     * modificar la entidad para que las consultas vean el estado guardado.
+     *
+     * @param usuario usuario con su rol actual.
+     */
+    private void validarCambioDeRol(Usuario usuario) {
+        if (ROL_ADMIN.equals(usuario.getRol())) {
+            this.validarQueQuedeAdministrador();
+        }
+        if (ROL_VETERINARIO.equals(usuario.getRol())
+                && medicoRepository.findByUsuarioId(usuario.getId()).isPresent()) {
+            throw new ConflictException("El usuario está enlazado a un veterinario; desenlácelo antes de cambiar su rol");
+        }
+    }
+
+    /**
      * Impide dejar el sistema sin administradores activos.
      */
     private void validarQueQuedeAdministrador() {
-        if (usuarioRepository.countByRolAndActivo(ROL_ADMIN, true) <= 1) {
+        if (usuarioRepository.countByPerfil_CodigoAndActivo(ROL_ADMIN, true) <= 1) {
             throw new ConflictException("Debe quedar al menos un administrador activo en el sistema");
         }
     }
@@ -212,6 +247,8 @@ public class UsuarioServiceImpl implements UsuarioService {
         rs.setUsername(usuario.getUsername());
         rs.setEmail(usuario.getEmail());
         rs.setRol(usuario.getRol());
+        rs.setPerfilId(usuario.getPerfil().getPerfilId());
+        rs.setPerfilNombre(usuario.getPerfil().getNombre());
         rs.setActivo(usuario.getActivo());
         rs.setFechaCreacion(usuario.getFechaCreacion());
         return rs;

@@ -1,0 +1,177 @@
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0">Tarifas y servicios</h5>
+        <button type="button" class="btn btn-primary" (click)="abrirNuevo()">
+          <i class="fas fa-plus me-1"></i> Nuevo servicio
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-5">
+            <label class="form-label" for="buscarServicio">Buscar</label>
+            <input id="buscarServicio" type="search" class="form-control" placeholder="Código, nombre o especialidad" [(ngModel)]="texto" />
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label" for="filtroTipoServicio">Tipo</label>
+            <select id="filtroTipoServicio" class="form-select" [(ngModel)]="filtroTipo">
+              <option value="">Todos</option>
+              <option *ngFor="let t of tipos" [value]="t.valor">{{ t.texto }}</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label" for="filtroEstadoServicio">Estado</label>
+            <select id="filtroEstadoServicio" class="form-select" [(ngModel)]="filtroEstado">
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle tabla-datos">
+            <thead>
+              <tr>
+                <th>Código</th><th>Servicio</th><th>Tipo</th><th>Especialidad</th>
+                <th class="text-end">Valor</th><th class="text-end">IVA</th><th class="text-end">Total</th>
+                <th>Estado</th><th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="cargando"><td colspan="9" class="text-center py-4">
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> Cargando...</td></tr>
+              <tr *ngIf="!cargando && !visibles.length"><td colspan="9" class="text-center py-4 text-muted">No hay servicios con esos filtros.</td></tr>
+              <tr *ngFor="let s of visibles">
+                <td><span class="badge bg-light text-dark border">{{ s.codigo }}</span></td>
+                <td>{{ s.nombre }}<div class="small text-muted" *ngIf="s.descripcion">{{ s.descripcion }}</div></td>
+                <td>{{ textoTipo(s.tipo) }}</td>
+                <td>{{ s.especializacionNombre || 'Todas' }}</td>
+                <td class="text-end text-nowrap">{{ s.valor | currency: 'COP' : '$' : '1.0-2' }}</td>
+                <td class="text-end text-nowrap">{{ s.ivaPorcentaje | number: '1.0-2' }} %</td>
+                <td class="text-end text-nowrap fw-semibold">{{ s.valorTotal | currency: 'COP' : '$' : '1.0-2' }}</td>
+                <td><span class="badge" [ngClass]="s.activo ? 'bg-success' : 'bg-secondary'">{{ s.activo ? 'Activo' : 'Inactivo' }}</span></td>
+                <td class="text-end text-nowrap">
+                  <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Editar" (click)="abrirEdicion(s)"><i class="fas fa-edit"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary me-1" title="Historial de la tarifa" (click)="verHistorial(s)"><i class="fas fa-clock-rotate-left"></i></button>
+                  <button type="button" class="btn btn-sm" [ngClass]="s.activo ? 'btn-outline-danger' : 'btn-outline-success'"
+                          [title]="s.activo ? 'Inactivar' : 'Activar'" (click)="cambiarActivo(s)">
+                    <i class="fas" [ngClass]="s.activo ? 'fa-toggle-on' : 'fa-toggle-off'"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal crear / editar -->
+<div class="modal fade" id="modalServicio" tabindex="-1" aria-labelledby="tituloServicio" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tituloServicio">{{ editando ? 'Editar servicio' : 'Nuevo servicio' }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label" for="sCodigo">Código *</label>
+            <input id="sCodigo" class="form-control text-uppercase" maxlength="20" [(ngModel)]="form.codigo" />
+          </div>
+          <div class="col-md-8">
+            <label class="form-label" for="sNombre">Nombre *</label>
+            <input id="sNombre" class="form-control" maxlength="150" [(ngModel)]="form.nombre" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="sTipo">Tipo *</label>
+            <select id="sTipo" class="form-select" [(ngModel)]="form.tipo">
+              <option *ngFor="let t of tipos" [value]="t.valor">{{ t.texto }}</option>
+            </select>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label" for="sEspecialidad">Especialidad {{ form.tipo === 'CONSULTA' ? '*' : '' }}</label>
+            <select id="sEspecialidad" class="form-select" [(ngModel)]="form.especializacionId">
+              <option [ngValue]="null">{{ form.tipo === 'CONSULTA' ? 'Seleccione la especialidad' : 'Todas las especialidades' }}</option>
+              <option *ngFor="let e of especialidades" [ngValue]="e.id" [disabled]="e.activo === false && e.id !== editando?.especializacionId">
+                {{ e.nombre }}{{ e.activo === false ? ' (inactiva)' : '' }}
+              </option>
+            </select>
+            <div class="form-text" *ngIf="form.tipo === 'CONSULTA'">Es el valor que se cobra automáticamente al atender con esa especialidad.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="sValor">Valor antes de IVA *</label>
+            <input id="sValor" type="number" class="form-control" min="0" step="100" [(ngModel)]="form.valor" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="sIva">IVA (%) *</label>
+            <input id="sIva" type="number" class="form-control" min="0" max="100" step="0.01" [(ngModel)]="form.ivaPorcentaje" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Total con IVA</label>
+            <div class="form-control bg-light">{{ vistaValor.total | currency: 'COP' : '$' : '1.0-2' }}</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="sDescripcion">Descripción</label>
+            <input id="sDescripcion" class="form-control" maxlength="500" [(ngModel)]="form.descripcion" />
+          </div>
+          <div class="col-12" *ngIf="editando">
+            <label class="form-label" for="sObs">Motivo del cambio {{ cambiaTarifa ? '*' : '' }}</label>
+            <input id="sObs" class="form-control" maxlength="255" placeholder="Queda en el historial de la tarifa" [(ngModel)]="form.observacion" />
+          </div>
+        </div>
+        <div class="alert alert-warning py-2 mt-3 mb-0 small" *ngIf="intento && errores.length">
+          <div *ngFor="let e of errores">{{ e }}</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" [disabled]="guardando">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="guardando" (click)="guardar()">
+          <span *ngIf="guardando" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal historial de la tarifa -->
+<div class="modal fade" id="modalHistorialTarifa" tabindex="-1" aria-labelledby="tituloHistorialTarifa" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tituloHistorialTarifa">Historial de la tarifa — {{ servicioHistorial?.nombre }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th class="text-end">Valor</th><th class="text-end">IVA</th><th>Motivo</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of historial">
+              <td class="text-nowrap">{{ h.fecha | date: 'yyyy-MM-dd HH:mm' }}</td>
+              <td>{{ h.usuario }}</td>
+              <td>{{ h.accion }}</td>
+              <td class="text-end text-nowrap">
+                <span *ngIf="h.valorAnterior !== null && h.valorAnterior !== h.valorNuevo" class="text-muted text-decoration-line-through me-1">
+                  {{ h.valorAnterior | currency: 'COP' : '$' : '1.0-2' }}</span>{{ h.valorNuevo | currency: 'COP' : '$' : '1.0-2' }}
+              </td>
+              <td class="text-end text-nowrap">
+                <span *ngIf="h.ivaAnterior !== null && h.ivaAnterior !== h.ivaNuevo" class="text-muted text-decoration-line-through me-1">{{ h.ivaAnterior }} %</span>{{ h.ivaNuevo }} %
+              </td>
+              <td class="small">{{ h.observacion || '—' }}</td>
+            </tr>
+            <tr *ngIf="!historial.length"><td colspan="6" class="text-center text-muted">Sin cambios registrados.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

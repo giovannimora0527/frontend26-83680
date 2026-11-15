@@ -1,7 +1,9 @@
 package com.uniminuto.clinica.repository;
 
 import com.uniminuto.clinica.entity.Cliente;
+import com.uniminuto.clinica.entity.EstadoDespacho;
 import com.uniminuto.clinica.entity.EstadoFormula;
+import com.uniminuto.clinica.entity.FormulaDetalle;
 import com.uniminuto.clinica.entity.FormulaMedica;
 import com.uniminuto.clinica.entity.HistoriaClinica;
 import com.uniminuto.clinica.entity.Mascota;
@@ -10,6 +12,8 @@ import com.uniminuto.clinica.entity.Medico;
 import com.uniminuto.clinica.models.FormulaFiltroRq;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -17,7 +21,8 @@ import java.util.List;
 
 /**
  * Construye la consulta dinámica del listado de fórmulas: cada filtro solo se
- * aplica si el usuario lo envió.
+ * aplica si el usuario lo envió. Los filtros por medicamento usan una
+ * subconsulta para no repetir fórmulas con varias líneas.
  */
 public final class FormulaSpecification {
 
@@ -30,11 +35,13 @@ public final class FormulaSpecification {
     /**
      * Arma la especificación con los filtros recibidos.
      *
-     * @param filtro filtros del listado.
-     * @param estado estado ya convertido (null = todos).
+     * @param filtro         filtros del listado.
+     * @param estado         estado de la fórmula ya convertido (null = todos).
+     * @param estadoDespacho estado del despacho ya convertido (null = todos).
      * @return especificación para el repositorio.
      */
-    public static Specification<FormulaMedica> conFiltros(FormulaFiltroRq filtro, EstadoFormula estado) {
+    public static Specification<FormulaMedica> conFiltros(FormulaFiltroRq filtro, EstadoFormula estado,
+                                                          EstadoDespacho estadoDespacho) {
         return (root, query, cb) -> {
             List<Predicate> filtros = new ArrayList<>();
 
@@ -42,29 +49,50 @@ public final class FormulaSpecification {
             Join<HistoriaClinica, Mascota> mascota = historia.join("mascota");
             Join<Mascota, Cliente> cliente = mascota.join("cliente");
             Join<FormulaMedica, Medico> medico = root.join("medico");
-            Join<FormulaMedica, Medicamento> medicamento = root.join("medicamento");
 
             String texto = filtro.getTexto();
             if (texto != null && !texto.isBlank()) {
-                String patron = "%" + texto.trim().toLowerCase() + "%";
-                filtros.add(cb.or(
+                String limpio = texto.trim().toLowerCase();
+                String patron = "%" + limpio + "%";
+                Subquery<Long> porMedicamento = query.subquery(Long.class);
+                Root<FormulaDetalle> linea = porMedicamento.from(FormulaDetalle.class);
+                Join<FormulaDetalle, Medicamento> producto = linea.join("medicamento");
+                porMedicamento.select(linea.get("detalleId")).where(
+                        cb.equal(linea.get("formula"), root),
+                        cb.like(cb.lower(producto.<String>get("nombre")), patron));
+
+                List<Predicate> opciones = new ArrayList<>(List.of(
                         cb.like(cb.lower(mascota.<String>get("nombreMascota")), patron),
-                        cb.like(cb.lower(cb.concat(
-                                cb.concat(cliente.<String>get("nombres"), " "),
+                        cb.like(cb.lower(cb.concat(cb.concat(cliente.<String>get("nombres"), " "),
                                 cliente.<String>get("apellidos"))), patron),
-                        cb.like(cb.lower(cb.concat(
-                                cb.concat(medico.<String>get("nombres"), " "),
+                        cb.like(cb.lower(cb.concat(cb.concat(medico.<String>get("nombres"), " "),
                                 medico.<String>get("apellidos"))), patron),
-                        cb.like(cb.lower(medicamento.<String>get("nombre")), patron)));
+                        cb.exists(porMedicamento)));
+                if (limpio.matches("\\d{1,18}")) {
+                    opciones.add(cb.equal(root.get("formulaId"), Long.valueOf(limpio)));
+                }
+                filtros.add(cb.or(opciones.toArray(new Predicate[0])));
             }
             if (estado != null) {
                 filtros.add(cb.equal(root.get("estado"), estado));
+            }
+            if (estadoDespacho != null) {
+                filtros.add(cb.equal(root.get("estadoDespacho"), estadoDespacho));
+            }
+            if (filtro.isPendientesDespacho()) {
+                filtros.add(cb.equal(root.get("estado"), EstadoFormula.CONFIRMADA));
+                filtros.add(root.get("estadoDespacho").in(EstadoDespacho.POR_ENTREGAR));
             }
             if (filtro.getMedicoId() != null) {
                 filtros.add(cb.equal(medico.get("id"), filtro.getMedicoId()));
             }
             if (filtro.getMedicamentoId() != null) {
-                filtros.add(cb.equal(medicamento.get("id"), filtro.getMedicamentoId()));
+                Subquery<Long> conMedicamento = query.subquery(Long.class);
+                Root<FormulaDetalle> linea = conMedicamento.from(FormulaDetalle.class);
+                conMedicamento.select(linea.get("detalleId")).where(
+                        cb.equal(linea.get("formula"), root),
+                        cb.equal(linea.get("medicamento").get("id"), filtro.getMedicamentoId()));
+                filtros.add(cb.exists(conMedicamento));
             }
             if (filtro.getMascotaId() != null) {
                 filtros.add(cb.equal(mascota.get("mascotaId"), filtro.getMascotaId()));

@@ -38,6 +38,22 @@ export interface Cita {
   fecha: string;
   /** Hora de la cita (HH:mm:ss). */
   hora: string;
+  /** Hora de finalización (HH:mm:ss). */
+  horaFin: string;
+  /** Inicio completo (yyyy-MM-ddTHH:mm:ss), para el calendario. */
+  inicio: string;
+  /** Fin completo (yyyy-MM-ddTHH:mm:ss), para el calendario. */
+  fin: string;
+  /** Teléfono del propietario. */
+  clienteTelefono?: string | null;
+  /** Raza y especie de la mascota. */
+  mascotaRaza?: string | null;
+  /** Edad de la mascota en años. */
+  mascotaEdad?: number | null;
+  /** Especialidad del veterinario. */
+  especialidad?: string | null;
+  /** Motivo de la cancelación. */
+  motivoCancelacion?: string | null;
   /** Identificador del cliente dueño de la mascota. */
   clienteId: number;
   /** Nombre completo del cliente. */
@@ -72,6 +88,8 @@ export interface CitaRq {
   fecha: string;
   /** Hora de la cita (HH:mm). */
   hora: string;
+  /** Hora de finalización (opcional). */
+  horaFin?: string | null;
   /** Motivo de la consulta. */
   motivo: string;
   /** Estado de la cita. */
@@ -99,3 +117,63 @@ export interface FiltroCitas {
   /** Fecha final del rango (yyyy-MM-dd). */
   hasta: string;
 }
+
+/** Estado de la cita con su nombre visible y color (catálogo del backend). */
+export interface EstadoCitaInfo {
+  /** Código del estado. */
+  codigo: EstadoCita;
+  /** Nombre visible. */
+  nombre: string;
+  /** Descripción. */
+  descripcion: string | null;
+  /** Color en el calendario. */
+  color: string;
+  /** Si es un estado final. */
+  esFinal: boolean;
+  /** Orden de presentación. */
+  orden: number;
+}
+
+/** Cambio registrado sobre una cita. */
+export interface CitaHistorial {
+  /** Fecha y hora del cambio. */
+  fecha: string;
+  /** Usuario que hizo el cambio. */
+  usuario: string;
+  /** CREADA, EDITADA, REPROGRAMADA, ESTADO o REACTIVADA. */
+  accion: string;
+  /** Estado anterior. */
+  estadoAnterior: string | null;
+  /** Estado nuevo. */
+  estadoNuevo: string | null;
+  /** Inicio anterior. */
+  inicioAnterior: string | null;
+  /** Inicio nuevo. */
+  inicioNuevo: string | null;
+  /** Observación o motivo. */
+  observacion: string | null;
+}
+
+/** Franja semanal de atención de un veterinario. */
+export interface HorarioMedico {
+  /** Identificador (al consultar). */
+  horarioId?: number;
+  /** 1 = lunes ... 7 = domingo. */
+  diaSemana: number;
+  /** Hora de inicio (HH:mm o HH:mm:ss). */
+  horaInicio: string;
+  /** Hora de fin. */
+  horaFin: string;
+}
+
+/** Nombres de los días de la semana (índice 1 = lunes). */
+export const DIAS_SEMANA = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+/** Nombre visible de cada estado (respaldo si el catálogo no ha cargado). */
+export const NOMBRE_ESTADO_CITA: Record<EstadoCita, string> = {
+  PENDIENTE: 'Pendiente',
+  PROGRAMADA: 'Programada',
+  CONFIRMADA: 'Confirmada',
+  ATENDIDA: 'Finalizada',
+  CANCELADA: 'Cancelada'
+};

@@ -1,9 +1,10 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   AbstractControl,
+  FormArray,
   FormBuilder,
   FormGroup,
   FormsModule,
@@ -19,21 +20,29 @@ import { Modal } from 'bootstrap';
 import { FormulaService } from './service/formula.service';
 import { HistoriaService } from '../historia/service/historia.service';
 import { CatalogoService } from 'src/app/services/catalogo.service';
+import { AuthService } from 'src/app/services/auth.service';
 import { PaginadorComponent } from 'src/app/shared/paginador/paginador.component';
 import { ClienteOpcion, MascotaOpcion, MedicamentoOpcion, MedicoOpcion } from 'src/app/models/catalogo';
 import { HistoriaClinica } from 'src/app/models/historia';
 import {
+  ESTADOS_DESPACHO,
   ESTADOS_FORMULA,
   EstadoFormula,
   FiltroFormulas,
   Formula,
+  FormulaDetalleRq,
   FormulaRq,
   LIMITES_FORMULA,
-  UNIDADES_DOSIS
+  UNIDADES_CONTABLES,
+  UNIDADES_DOSIS,
+  VIAS_ADMINISTRACION,
+  claseEstadoDespacho,
+  textoEstadoDespacho
 } from 'src/app/models/formula';
 import { OrdenTabla } from 'src/app/utils/orden-tabla';
 import { hoyIso } from 'src/app/utils/fechas';
-import { avisar, confirmar, mostrarError, notificarExito } from 'src/app/utils/mensajes';
+import { descargarArchivo } from 'src/app/utils/archivos';
+import { avisar, confirmar, mostrarError, notificarExito, pedirMotivo } from 'src/app/utils/mensajes';
 
 /** Cliente, mascota e historia que llegan por la URL para abrir el formulario ya diligenciado. */
 interface Preseleccion {
@@ -47,15 +56,14 @@ interface Preseleccion {
 const MAXIMO_HISTORIAS_COMBO = 100;
 
 /**
- * Pantalla de fórmulas médicas: listado resumido, paginado, con filtros y
- * orden (resueltos en el backend), registro, edición de los datos del
- * tratamiento, detalle completo e inactivación.
+ * Pantalla de fórmulas médicas con varios medicamentos.
  *
- * Reglas que se reflejan en la interfaz (y que el backend vuelve a validar):
- * la historia debe ser de la mascota elegida y la mascota del cliente; la
- * fecha de emisión no puede ser anterior a la consulta; dosis, frecuencia y
- * duración deben ser valores válidos; una fórmula no se borra, se inactiva,
- * y una fórmula inactiva ya no se edita.
+ * El veterinario de la sesión formula: elige la consulta, agrega uno o más
+ * medicamentos (dosis, frecuencia, duración, vía, cantidad e indicaciones) y
+ * guarda la fórmula como borrador o la confirma para enviarla a despacho.
+ * Solo el autor modifica o confirma sus borradores; una fórmula sin entregas
+ * se puede anular con motivo. Al formular se muestra la disponibilidad del
+ * inventario como advertencia: el descuento lo hace despacho al entregar.
  */
 @Component({
   selector: 'app-formula',
@@ -63,12 +71,28 @@ const MAXIMO_HISTORIAS_COMBO = 100;
   templateUrl: './formula.component.html'
 })
 export class FormulaComponent implements OnInit, OnDestroy {
-  /** Estados para el filtro. */
+  /** Estados de la fórmula para el filtro. */
   readonly estados: EstadoFormula[] = ESTADOS_FORMULA;
-  /** Unidades para el combo de la dosis. */
+  /** Estados del despacho para el filtro. */
+  readonly estadosDespacho = ESTADOS_DESPACHO;
+  /** Unidades de la dosis. */
   readonly unidades: string[] = UNIDADES_DOSIS;
-  /** Límites de dosis, frecuencia y duración. */
+  /** Vías de administración. */
+  readonly vias = VIAS_ADMINISTRACION;
+  /** Límites de los valores numéricos. */
   readonly limites = LIMITES_FORMULA;
+  /** Texto y clase de los estados de despacho, para la plantilla. */
+  readonly textoDespacho = textoEstadoDespacho;
+  readonly claseDespacho = claseEstadoDespacho;
+
+  /** Sesión actual. */
+  private readonly auth = inject(AuthService);
+  /** Solo el veterinario crea o modifica fórmulas; los demás perfiles las consultan. */
+  readonly puedeRegistrar = this.auth.tieneRol('VETERINARIO');
+  /** Médico enlazado al usuario de la sesión (null si no es veterinario). */
+  readonly medicoSesionId = this.auth.perfil?.medicoId ?? null;
+  /** Nombre del médico de la sesión. */
+  readonly medicoSesionNombre = this.auth.perfil?.medicoNombre ?? '';
 
   // ----- Listado -----
 
@@ -86,18 +110,20 @@ export class FormulaComponent implements OnInit, OnDestroy {
   totalRegistros = 0;
   /** Total de páginas. */
   totalPaginas = 0;
-  /** Orden del listado: por defecto las más recientes primero (fecha de creación descendente). */
+  /** Orden del listado: las más recientes primero. */
   readonly orden = new OrdenTabla('creacion', 'desc');
 
   // ----- Filtros -----
 
   /** Texto de búsqueda libre. */
   terminoBusqueda = '';
-  /** Estado seleccionado (vacío = todos). */
+  /** Estado de la fórmula (vacío = todos). */
   filtroEstado = '';
-  /** Veterinario seleccionado. */
+  /** Estado del despacho (vacío = todos). */
+  filtroDespacho = '';
+  /** Veterinario. */
   filtroMedico: number | null = null;
-  /** Medicamento seleccionado. */
+  /** Medicamento. */
   filtroMedicamento: number | null = null;
   /** Fecha de emisión inicial. */
   filtroDesde = '';
@@ -106,15 +132,15 @@ export class FormulaComponent implements OnInit, OnDestroy {
 
   // ----- Catálogos -----
 
-  /** Clientes disponibles. */
+  /** Clientes. */
   clientes: ClienteOpcion[] = [];
-  /** Veterinarios disponibles. */
+  /** Veterinarios (filtro). */
   medicos: MedicoOpcion[] = [];
-  /** Medicamentos disponibles. */
+  /** Medicamentos activos con su disponibilidad. */
   medicamentos: MedicamentoOpcion[] = [];
   /** Mascotas del cliente elegido. */
   mascotas: MascotaOpcion[] = [];
-  /** Historias clínicas de la mascota elegida. */
+  /** Consultas abiertas de la mascota elegida. */
   historias: HistoriaClinica[] = [];
   /** Indica que se están cargando las mascotas. */
   cargandoMascotas = false;
@@ -125,12 +151,14 @@ export class FormulaComponent implements OnInit, OnDestroy {
 
   /** Formulario reactivo de la fórmula. */
   form!: FormGroup;
-  /** Modo del formulario: C (crear) o E (editar). */
+  /** Modo del formulario: C (crear) o E (editar borrador). */
   modoFormulario: 'C' | 'E' = 'C';
   /** Fórmula que se está editando (null al crear). */
   formulaEditando: Formula | null = null;
   /** Indica que se está enviando el formulario. */
   guardando = false;
+  /** Indica que se está cargando una fórmula para editarla. */
+  cargandoEdicion: number | null = null;
 
   // ----- Detalle -----
 
@@ -138,6 +166,8 @@ export class FormulaComponent implements OnInit, OnDestroy {
   formulaDetalle: Formula | null = null;
   /** Indica que se está consultando el detalle. */
   cargandoDetalle = false;
+  /** Fórmula cuyo PDF se está descargando. */
+  descargando: number | null = null;
 
   /** Instancia del modal del formulario. */
   private modalFormulario: Modal | null = null;
@@ -145,7 +175,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
   private modalDetalle: Modal | null = null;
   /** Emite el texto de búsqueda para esperar a que el usuario deje de escribir. */
   private readonly busqueda$ = new Subject<string>();
-  /** Suscripciones permanentes que se cierran al destruir el componente. */
+  /** Suscripciones permanentes. */
   private readonly suscripciones = new Subscription();
   /** Consulta en curso del listado. */
   private suscripcionLista: Subscription | null = null;
@@ -156,21 +186,27 @@ export class FormulaComponent implements OnInit, OnDestroy {
   /** Selección que llegó por la URL y falta aplicar. */
   private preseleccion: Preseleccion | null = null;
 
-  /**
-   * Valida que la fecha de emisión no sea anterior a la fecha de la consulta asociada.
-   */
+  /** Valida que la fecha de emisión no sea anterior a la consulta. */
   private readonly validarFechaEmision = (grupo: AbstractControl): ValidationErrors | null => {
     const fechaEmision = grupo.get('fechaEmision')?.value as string;
     const minima = this.fechaMinimaEmision;
     return fechaEmision && minima && fechaEmision < minima ? { emisionAnterior: true } : null;
   };
 
+  /** Valida que un medicamento no se repita en la fórmula. */
+  private readonly validarSinRepetidos = (lineas: AbstractControl): ValidationErrors | null => {
+    const ids = (lineas as FormArray).controls
+      .map((c) => c.get('medicamentoId')?.value as number | null)
+      .filter((id): id is number => id !== null);
+    return new Set(ids).size !== ids.length ? { repetidos: true } : null;
+  };
+
   /**
    * @param formulaService servicio de fórmulas.
-   * @param historiaService servicio de historias, para el combo de consultas de la mascota.
-   * @param catalogoService servicio de clientes, mascotas, veterinarios y medicamentos.
+   * @param historiaService servicio de historias, para el combo de consultas.
+   * @param catalogoService clientes, mascotas, veterinarios y medicamentos.
    * @param formBuilder constructor de formularios reactivos.
-   * @param route ruta activa, para leer la historia que llega desde el módulo de historias.
+   * @param route ruta activa, para la historia que llega desde el módulo de historias.
    * @param router enrutador, para limpiar los parámetros de la URL.
    */
   constructor(
@@ -182,7 +218,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
     private readonly router: Router
   ) { }
 
-  /** Inicializa formulario, catálogos, búsqueda con espera, primer listado y la historia recibida por URL. */
+  /** Inicializa formulario, catálogos, búsqueda, primer listado y la historia recibida por URL. */
   ngOnInit(): void {
     this.inicializarFormulario();
     this.cargarCatalogos();
@@ -199,7 +235,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
     this.abrirDesdeUrl();
   }
 
-  /** Cierra suscripciones y modales al salir de la pantalla. */
+  /** Cierra suscripciones y modales al salir. */
   ngOnDestroy(): void {
     this.suscripciones.unsubscribe();
     this.suscripcionLista?.unsubscribe();
@@ -214,26 +250,26 @@ export class FormulaComponent implements OnInit, OnDestroy {
     return this.form.controls;
   }
 
+  /** Medicamentos del formulario. */
+  get lineas(): FormArray<FormGroup> {
+    return this.form.get('detalles') as FormArray<FormGroup>;
+  }
+
   /** Indica si hay algún filtro activo. */
   get hayFiltros(): boolean {
     return !!(
-      this.terminoBusqueda.trim() ||
-      this.filtroEstado ||
-      this.filtroMedico !== null ||
-      this.filtroMedicamento !== null ||
-      this.filtroDesde ||
-      this.filtroHasta
+      this.terminoBusqueda.trim() || this.filtroEstado || this.filtroDespacho ||
+      this.filtroMedico !== null || this.filtroMedicamento !== null || this.filtroDesde || this.filtroHasta
     );
   }
 
   /** Historia elegida en el formulario. */
   get historiaSeleccionada(): HistoriaClinica | null {
-    // El validador del grupo se ejecuta mientras se construye el formulario, antes de que exista.
     const historiaId = this.form?.get('historiaId')?.value as number | null | undefined;
     return this.historias.find((h) => h.historiaId === historiaId) ?? null;
   }
 
-  /** Fecha mínima de emisión: la de la consulta asociada (vacío si aún no hay consulta). */
+  /** Fecha mínima de emisión: la de la consulta. */
   get fechaMinimaEmision(): string {
     if (this.modoFormulario === 'E') {
       return this.formulaEditando?.historiaFecha ?? '';
@@ -243,7 +279,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
 
   // ===================== Listado =====================
 
-  /** Consulta al backend la página actual con el orden y los filtros vigentes. */
+  /** Consulta la página actual con el orden y los filtros vigentes. */
   listar(): void {
     this.suscripcionLista?.unsubscribe();
     this.cargandoLista = true;
@@ -256,6 +292,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
       direccion: this.orden.direccion,
       texto: this.terminoBusqueda,
       estado: this.filtroEstado,
+      estadoDespacho: this.filtroDespacho,
       medicoId: this.filtroMedico,
       medicamentoId: this.filtroMedicamento,
       desde: this.filtroDesde,
@@ -282,11 +319,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Recibe lo que escribe el usuario en el buscador y lo envía con espera.
-   *
-   * @param texto texto actual del buscador.
-   */
+  /** Recibe lo que escribe el usuario en el buscador. */
   alEscribirBusqueda(texto: string): void {
     this.busqueda$.next(texto ?? '');
   }
@@ -301,10 +334,11 @@ export class FormulaComponent implements OnInit, OnDestroy {
     this.listar();
   }
 
-  /** Quita los filtros y deja el orden inicial (más recientes primero). */
+  /** Quita los filtros y deja el orden inicial. */
   limpiarFiltros(): void {
     this.terminoBusqueda = '';
     this.filtroEstado = '';
+    this.filtroDespacho = '';
     this.filtroMedico = null;
     this.filtroMedicamento = null;
     this.filtroDesde = '';
@@ -314,75 +348,144 @@ export class FormulaComponent implements OnInit, OnDestroy {
     this.listar();
   }
 
-  /**
-   * Ordena el listado por una columna.
-   *
-   * @param columna emision, mascota, cliente, medicamento, medico o estado.
-   */
+  /** Ordena el listado por una columna. */
   ordenar(columna: string): void {
     this.orden.alternar(columna);
     this.paginaActual = 0;
     this.listar();
   }
 
-  /**
-   * Cambia de página.
-   *
-   * @param pagina número de página (empieza en 0).
-   */
+  /** Cambia de página. */
   irAPagina(pagina: number): void {
     this.paginaActual = pagina;
     this.listar();
   }
 
-  /**
-   * Cambia la cantidad de registros por página y vuelve a la primera.
-   *
-   * @param tamano nueva cantidad.
-   */
+  /** Cambia la cantidad de registros por página. */
   cambiarTamanoPagina(tamano: number): void {
     this.registrosPorPagina = tamano;
     this.paginaActual = 0;
     this.listar();
   }
 
+  /** Indica si la fórmula es un borrador del veterinario de la sesión. */
+  esBorradorPropio(formula: Formula): boolean {
+    return this.puedeRegistrar && formula.estado === 'BORRADOR' && formula.medicoId === this.medicoSesionId;
+  }
+
   // ===================== Formulario =====================
 
   /** Crea el formulario reactivo con sus validaciones y los combos dependientes. */
   private inicializarFormulario(): void {
-    const entero = Validators.pattern(/^\d+$/);
     this.form = this.formBuilder.group(
       {
         clienteId: [null, Validators.required],
         mascotaId: [{ value: null, disabled: true }, Validators.required],
         historiaId: [{ value: null, disabled: true }, Validators.required],
-        medicoId: [null, Validators.required],
         fechaEmision: ['', Validators.required],
-        medicamentoId: [null, Validators.required],
-        dosis: [null, [Validators.required, Validators.min(0.01), Validators.max(LIMITES_FORMULA.dosisMaxima)]],
-        unidadDosis: ['', Validators.required],
-        frecuenciaHoras: [null, [Validators.required, entero,
-          Validators.min(LIMITES_FORMULA.frecuenciaMinima), Validators.max(LIMITES_FORMULA.frecuenciaMaxima)]],
-        duracionDias: [null, [Validators.required, entero,
-          Validators.min(LIMITES_FORMULA.duracionMinima), Validators.max(LIMITES_FORMULA.duracionMaxima)]],
-        indicaciones: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(1000)]]
+        observaciones: ['', Validators.maxLength(1000)],
+        detalles: this.formBuilder.array<FormGroup>([], {
+          validators: [Validators.required, Validators.maxLength(LIMITES_FORMULA.maximoLineas), this.validarSinRepetidos]
+        })
       },
       { validators: this.validarFechaEmision }
     );
 
-    // Combos dependientes: cliente → mascotas del cliente → historias de la mascota.
-    this.suscripciones.add(
-      this.f['clienteId'].valueChanges.subscribe((id: number | null) => this.alCambiarCliente(id))
-    );
-    this.suscripciones.add(
-      this.f['mascotaId'].valueChanges.subscribe((id: number | null) => this.alCambiarMascota(id))
-    );
-    this.suscripciones.add(
-      this.f['historiaId'].valueChanges.subscribe((id: number | null) => this.alCambiarHistoria(id))
-    );
+    this.suscripciones.add(this.f['clienteId'].valueChanges.subscribe((id: number | null) => this.alCambiarCliente(id)));
+    this.suscripciones.add(this.f['mascotaId'].valueChanges.subscribe((id: number | null) => this.alCambiarMascota(id)));
+    this.suscripciones.add(this.f['historiaId'].valueChanges.subscribe((id: number | null) => this.alCambiarHistoria(id)));
   }
 
-  /** Carga clientes, veterinarios y medicamentos para los combos y filtros. */
+  /**
+   * Crea el grupo de controles de un medicamento.
+   *
+   * @param valores datos iniciales (al editar).
+   */
+  private crearLinea(valores?: Partial<FormulaDetalleRq>): FormGroup {
+    const entero = Validators.pattern(/^\d+$/);
+    return this.formBuilder.group({
+      medicamentoId: [valores?.medicamentoId ?? null, Validators.required],
+      dosis: [valores?.dosis ?? null, [Validators.required, Validators.min(0.01), Validators.max(LIMITES_FORMULA.dosisMaxima)]],
+      unidadDosis: [valores?.unidadDosis ?? '', Validators.required],
+      frecuenciaHoras: [valores?.frecuenciaHoras ?? null, [Validators.required, entero,
+        Validators.min(LIMITES_FORMULA.frecuenciaMinima), Validators.max(LIMITES_FORMULA.frecuenciaMaxima)]],
+      duracionDias: [valores?.duracionDias ?? null, [Validators.required, entero,
+        Validators.min(LIMITES_FORMULA.duracionMinima), Validators.max(LIMITES_FORMULA.duracionMaxima)]],
+      viaAdministracion: [valores?.viaAdministracion ?? 'ORAL', Validators.required],
+      cantidadPrescrita: [valores?.cantidadPrescrita ?? null, [Validators.required, entero,
+        Validators.min(1), Validators.max(LIMITES_FORMULA.cantidadMaxima)]],
+      indicaciones: [valores?.indicaciones ?? '', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(1000)]]
+    });
+  }
+
+  /** Agrega un medicamento vacío a la fórmula. */
+  agregarLinea(): void {
+    if (this.lineas.length >= LIMITES_FORMULA.maximoLineas) {
+      avisar('Límite alcanzado', `Una fórmula admite máximo ${LIMITES_FORMULA.maximoLineas} medicamentos.`, 'warning');
+      return;
+    }
+    this.lineas.push(this.crearLinea());
+  }
+
+  /** Quita un medicamento de la fórmula. */
+  quitarLinea(indice: number): void {
+    this.lineas.removeAt(indice);
+  }
+
+  /** Medicamento elegido en una línea. */
+  medicamentoDe(indice: number): MedicamentoOpcion | null {
+    const id = this.lineas.at(indice)?.get('medicamentoId')?.value as number | null;
+    return this.medicamentos.find((m) => m.id === id) ?? null;
+  }
+
+  /** Indica si el medicamento ya fue elegido en otra línea. */
+  medicamentoUsado(medicamentoId: number, indice: number): boolean {
+    return this.lineas.controls.some((c, i) => i !== indice && c.get('medicamentoId')?.value === medicamentoId);
+  }
+
+  /**
+   * Cantidad sugerida para unidades contables (tableta, cápsula, aplicación):
+   * dosis × tomas por día × días. Null si no se puede calcular.
+   */
+  cantidadSugerida(indice: number): number | null {
+    const v = this.lineas.at(indice)?.getRawValue();
+    if (!v || !UNIDADES_CONTABLES.includes(v.unidadDosis)) {
+      return null;
+    }
+    const dosis = Number(v.dosis);
+    const frecuencia = Number(v.frecuenciaHoras);
+    const dias = Number(v.duracionDias);
+    if (!(dosis > 0) || !(frecuencia >= 1) || !(dias >= 1)) {
+      return null;
+    }
+    const total = Math.ceil(dosis * Math.ceil(24 / frecuencia) * dias);
+    return total <= LIMITES_FORMULA.cantidadMaxima ? total : null;
+  }
+
+  /** Pone la cantidad sugerida en la línea. */
+  usarSugerida(indice: number): void {
+    const sugerida = this.cantidadSugerida(indice);
+    if (sugerida !== null) {
+      const control = this.lineas.at(indice).get('cantidadPrescrita')!;
+      control.setValue(sugerida);
+      control.markAsTouched();
+    }
+  }
+
+  /** Indica si la cantidad pedida supera las existencias vigentes (solo advertencia). */
+  superaDisponible(indice: number): boolean {
+    const med = this.medicamentoDe(indice);
+    const cantidad = Number(this.lineas.at(indice)?.get('cantidadPrescrita')?.value);
+    return !!med && med.cantidadDisponible !== undefined && cantidad > med.cantidadDisponible;
+  }
+
+  /** Indica si un control de una línea es inválido y ya se tocó. */
+  invalidoLinea(indice: number, campo: string): boolean {
+    const control = this.lineas.at(indice)?.get(campo);
+    return !!control && control.invalid && (control.touched || control.dirty);
+  }
+
+  /** Carga clientes, veterinarios y medicamentos. */
   private cargarCatalogos(): void {
     this.catalogoService.listarClientes().subscribe({
       next: (data) => (this.clientes = data),
@@ -398,11 +501,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Al cambiar el cliente limpia mascota e historia, y consulta solo las mascotas del cliente.
-   *
-   * @param clienteId cliente elegido.
-   */
+  /** Al cambiar el cliente consulta sus mascotas. */
   private alCambiarCliente(clienteId: number | null): void {
     this.suscripcionMascotas?.unsubscribe();
     this.limpiarControl('mascotaId');
@@ -432,12 +531,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Al cambiar la mascota limpia la historia y consulta solo las historias de esa mascota,
-   * así una fórmula no puede quedar asociada a la consulta de otra mascota.
-   *
-   * @param mascotaId mascota elegida.
-   */
+  /** Al cambiar la mascota consulta sus consultas abiertas. */
   private alCambiarMascota(mascotaId: number | null): void {
     this.suscripcionHistorias?.unsubscribe();
     this.limpiarControl('historiaId');
@@ -455,13 +549,13 @@ export class FormulaComponent implements OnInit, OnDestroy {
       mascotaId
     }).subscribe({
       next: (pagina) => {
-        this.historias = pagina.content;
+        this.historias = pagina.content.filter((h) => h.estado !== 'CERRADA');
         this.cargandoHistorias = false;
-        if (pagina.content.length > 0) {
+        if (this.historias.length > 0) {
           this.f['historiaId'].enable({ emitEvent: false });
         }
         const historiaId = this.preseleccion?.historiaId;
-        if (historiaId && pagina.content.some((h) => h.historiaId === historiaId)) {
+        if (historiaId && this.historias.some((h) => h.historiaId === historiaId)) {
           this.f['historiaId'].setValue(historiaId);
         }
         this.preseleccion = null;
@@ -474,16 +568,10 @@ export class FormulaComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Al elegir la historia propone su veterinario y, si la fecha de emisión
-   * quedó antes de la consulta, la ajusta a la fecha de la consulta.
-   *
-   * @param historiaId historia elegida.
-   */
+  /** Al elegir la consulta ajusta la fecha de emisión si quedó antes de ella. */
   private alCambiarHistoria(historiaId: number | null): void {
     const historia = this.historias.find((h) => h.historiaId === historiaId);
     if (historia) {
-      this.f['medicoId'].setValue(historia.medicoId);
       const emision = this.f['fechaEmision'].value as string;
       if (!emision || emision < historia.fecha) {
         this.f['fechaEmision'].setValue(historia.fecha);
@@ -492,51 +580,46 @@ export class FormulaComponent implements OnInit, OnDestroy {
     this.form.updateValueAndValidity();
   }
 
-  /**
-   * Borra y deshabilita un combo dependiente sin disparar sus eventos.
-   *
-   * @param nombre nombre del control.
-   */
+  /** Borra y deshabilita un combo dependiente sin disparar sus eventos. */
   private limpiarControl(nombre: string): void {
     this.f[nombre].reset(null, { emitEvent: false });
     this.f[nombre].disable({ emitEvent: false });
   }
 
-  /** Deja el formulario en su estado inicial de "fórmula nueva". */
+  /** Deja el formulario como "fórmula nueva" con un medicamento vacío. */
   private reiniciarFormulario(): void {
     this.modoFormulario = 'C';
     this.formulaEditando = null;
+    this.lineas.clear({ emitEvent: false });
     this.form.reset(
-      {
-        clienteId: null, mascotaId: null, historiaId: null, medicoId: null,
-        fechaEmision: hoyIso(), medicamentoId: null, dosis: null, unidadDosis: '',
-        frecuenciaHoras: null, duracionDias: null, indicaciones: ''
-      },
+      { clienteId: null, mascotaId: null, historiaId: null, fechaEmision: hoyIso(), observaciones: '' },
       { emitEvent: false }
     );
+    this.lineas.push(this.crearLinea(), { emitEvent: false });
     this.f['clienteId'].enable({ emitEvent: false });
-    this.f['medicoId'].enable({ emitEvent: false });
     this.limpiarControl('mascotaId');
     this.limpiarControl('historiaId');
     this.mascotas = [];
     this.historias = [];
   }
 
-  /** Abre el formulario vacío para registrar una fórmula. */
+  /** Abre el formulario para una fórmula nueva. */
   abrirNueva(): void {
+    if (!this.medicoSesionId) {
+      avisar('Usuario sin médico asociado',
+        'Su usuario no está enlazado a un médico veterinario. Solicite al administrador que lo asocie.', 'warning');
+      return;
+    }
     this.preseleccion = null;
     this.reiniciarFormulario();
     this.abrirModal('modalFormula', 'formulario');
   }
 
-  /**
-   * Si la pantalla se abrió desde una historia (?clienteId=&mascotaId=&historiaId=),
-   * abre el formulario con esos datos ya seleccionados y limpia la URL.
-   */
+  /** Si la pantalla se abrió desde una historia, abre el formulario con esos datos. */
   private abrirDesdeUrl(): void {
     const params = this.route.snapshot.queryParamMap;
     const clienteId = Number(params.get('clienteId'));
-    if (!clienteId) {
+    if (!clienteId || !this.puedeRegistrar) {
       return;
     }
     this.reiniciarFormulario();
@@ -550,68 +633,95 @@ export class FormulaComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Abre el formulario para editar una fórmula. Solo se editan los datos del
-   * tratamiento; paciente, consulta y veterinario quedan fijos porque la
-   * fórmula ya fue emitida para ellos. Una fórmula inactiva no se edita.
-   *
-   * @param formula fórmula a editar.
+   * Abre un borrador propio para editarlo. Se consulta el detalle completo
+   * para tener todos los medicamentos.
    */
   abrirEdicion(formula: Formula): void {
-    if (formula.estado === 'INACTIVA') {
-      avisar('Esta fórmula está inactiva', 'Una fórmula inactiva se conserva solo como registro y no se puede modificar.');
+    if (!this.esBorradorPropio(formula)) {
+      avisar('No se puede modificar', 'Solo el veterinario que la registró puede modificar una fórmula en borrador.');
       return;
     }
-    this.modoFormulario = 'E';
-    this.formulaEditando = formula;
-    this.mascotas = [];
-    this.historias = [];
-    this.form.reset(
-      {
-        clienteId: formula.clienteId,
-        mascotaId: formula.mascotaId,
-        historiaId: formula.historiaId,
-        medicoId: formula.medicoId,
-        fechaEmision: formula.fechaEmision,
-        medicamentoId: formula.medicamentoId,
-        dosis: formula.dosis,
-        unidadDosis: formula.unidadDosis,
-        frecuenciaHoras: formula.frecuenciaHoras,
-        duracionDias: formula.duracionDias,
-        indicaciones: formula.indicaciones
+    this.cargandoEdicion = formula.formulaId;
+    this.formulaService.consultar(formula.formulaId).subscribe({
+      next: (data) => {
+        this.cargandoEdicion = null;
+        this.modoFormulario = 'E';
+        this.formulaEditando = data;
+        this.mascotas = [];
+        this.historias = [];
+        // Primero se reinicia el encabezado: reset() también limpiaría las líneas ya cargadas.
+        this.lineas.clear({ emitEvent: false });
+        this.form.reset(
+          {
+            clienteId: data.clienteId, mascotaId: data.mascotaId, historiaId: data.historiaId,
+            fechaEmision: data.fechaEmision, observaciones: data.observaciones ?? ''
+          },
+          { emitEvent: false }
+        );
+        (data.detalles ?? []).forEach((d) => this.lineas.push(this.crearLinea(d), { emitEvent: false }));
+        ['clienteId', 'mascotaId', 'historiaId'].forEach((c) => this.f[c].disable({ emitEvent: false }));
+        this.form.updateValueAndValidity();
+        this.abrirModal('modalFormula', 'formulario');
       },
-      { emitEvent: false }
-    );
-    ['clienteId', 'mascotaId', 'historiaId', 'medicoId'].forEach((campo) =>
-      this.f[campo].disable({ emitEvent: false })
-    );
-    this.form.updateValueAndValidity();
-    this.abrirModal('modalFormula', 'formulario');
+      error: (error: HttpErrorResponse) => {
+        this.cargandoEdicion = null;
+        mostrarError(error, 'No se pudo consultar la fórmula');
+      }
+    });
   }
 
-  /** Envía el formulario: crea la fórmula o actualiza la que se está editando. */
-  guardar(): void {
+  /**
+   * Guarda la fórmula.
+   *
+   * @param confirmarFormula true para confirmarla y enviarla a despacho.
+   */
+  async guardar(confirmarFormula: boolean): Promise<void> {
     if (this.guardando) {
       return;
     }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      if (this.lineas.length === 0) {
+        avisar('Fórmula sin medicamentos', 'Agregue al menos un medicamento.', 'warning');
+      } else if (this.lineas.errors?.['repetidos']) {
+        avisar('Medicamento repetido', 'Un medicamento no puede repetirse en la misma fórmula.', 'warning');
+      }
       return;
+    }
+    if (confirmarFormula) {
+      const sinExistencias = this.lineas.controls
+        .map((_, i) => i)
+        .filter((i) => this.superaDisponible(i))
+        .map((i) => this.medicamentoDe(i)?.nombre);
+      const aviso = sinExistencias.length
+        ? ` Atención: no hay existencias suficientes de ${sinExistencias.join(', ')}; despacho podrá entregar parcialmente.`
+        : '';
+      const ok = await confirmar('¿Confirmar la fórmula?',
+        'Una vez confirmada pasa a despacho y ya no se podrá modificar.' + aviso, 'Sí, confirmar');
+      if (!ok) {
+        return;
+      }
     }
 
     const valores = this.form.getRawValue();
     const formulaRq: FormulaRq = {
       fechaEmision: valores.fechaEmision,
-      medicamentoId: Number(valores.medicamentoId),
-      dosis: Number(valores.dosis),
-      unidadDosis: valores.unidadDosis,
-      frecuenciaHoras: Number(valores.frecuenciaHoras),
-      duracionDias: Number(valores.duracionDias),
-      indicaciones: String(valores.indicaciones).trim()
+      observaciones: String(valores.observaciones ?? '').trim(),
+      confirmar: confirmarFormula,
+      detalles: (valores.detalles as FormulaDetalleRq[]).map((d) => ({
+        medicamentoId: Number(d.medicamentoId),
+        dosis: Number(d.dosis),
+        unidadDosis: d.unidadDosis,
+        frecuenciaHoras: Number(d.frecuenciaHoras),
+        duracionDias: Number(d.duracionDias),
+        cantidadPrescrita: Number(d.cantidadPrescrita),
+        viaAdministracion: d.viaAdministracion,
+        indicaciones: String(d.indicaciones).trim()
+      }))
     };
     if (this.modoFormulario === 'C') {
       formulaRq.mascotaId = Number(valores.mascotaId);
       formulaRq.historiaId = Number(valores.historiaId);
-      formulaRq.medicoId = Number(valores.medicoId);
     }
 
     this.guardando = true;
@@ -638,12 +748,7 @@ export class FormulaComponent implements OnInit, OnDestroy {
     this.modalFormulario?.hide();
   }
 
-  /**
-   * Indica si un campo debe mostrarse como inválido.
-   *
-   * @param campo nombre del control.
-   * @returns true si es inválido y el usuario ya interactuó con él.
-   */
+  /** Indica si un campo del encabezado es inválido y ya se tocó. */
   invalido(campo: string): boolean {
     const control = this.f[campo];
     return control.invalid && (control.touched || control.dirty);
@@ -655,13 +760,57 @@ export class FormulaComponent implements OnInit, OnDestroy {
       || !!this.historiaSeleccionada);
   }
 
-  // ===================== Detalle e inactivación =====================
+  // ===================== Acciones =====================
 
-  /**
-   * Abre el modal con el detalle completo de la fórmula, consultado al backend.
-   *
-   * @param formula fila seleccionada.
-   */
+  /** Confirma un borrador desde el listado. */
+  async confirmarBorrador(formula: Formula): Promise<void> {
+    const ok = await confirmar('¿Confirmar la fórmula?',
+      'Una vez confirmada pasa a despacho y ya no se podrá modificar.', 'Sí, confirmar');
+    if (!ok) {
+      return;
+    }
+    this.formulaService.confirmar(formula.formulaId).subscribe({
+      next: (respuesta) => {
+        notificarExito(respuesta.message);
+        this.listar();
+      },
+      error: (error: HttpErrorResponse) => mostrarError(error, 'No se pudo confirmar la fórmula')
+    });
+  }
+
+  /** Anula una fórmula pidiendo el motivo. */
+  async anular(formula: Formula): Promise<void> {
+    const motivo = await pedirMotivo(`¿Anular la fórmula N.° ${formula.formulaId}?`,
+      'La fórmula se conserva como registro, pero ya no se podrá despachar.', 'Sí, anular');
+    if (motivo === null) {
+      return;
+    }
+    this.formulaService.anular(formula.formulaId, motivo).subscribe({
+      next: (respuesta) => {
+        notificarExito(respuesta.message);
+        this.modalDetalle?.hide();
+        this.listar();
+      },
+      error: (error: HttpErrorResponse) => mostrarError(error, 'No se pudo anular la fórmula')
+    });
+  }
+
+  /** Descarga la fórmula en PDF. */
+  descargarPdf(formula: Formula): void {
+    this.descargando = formula.formulaId;
+    this.formulaService.descargarPdf(formula.formulaId).subscribe({
+      next: (archivo) => {
+        this.descargando = null;
+        descargarArchivo(archivo, `formula-${formula.formulaId}.pdf`);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.descargando = null;
+        mostrarError(error, 'No se pudo generar el PDF');
+      }
+    });
+  }
+
+  /** Abre el detalle completo de la fórmula. */
   verDetalle(formula: Formula): void {
     this.formulaDetalle = null;
     this.cargandoDetalle = true;
@@ -679,48 +828,34 @@ export class FormulaComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Inactiva una fórmula tras confirmar con el usuario. No se elimina porque
-   * hace parte de la información clínica de la mascota.
-   *
-   * @param formula fórmula activa.
-   */
-  async inactivar(formula: Formula): Promise<void> {
-    const confirmado = await confirmar(
-      '¿Inactivar la fórmula?',
-      'La fórmula se conservará en el historial de la mascota, pero ya no se podrá modificar.',
-      'Sí, inactivar'
-    );
-    if (!confirmado) {
-      return;
-    }
-    this.formulaService.inactivar(formula.formulaId).subscribe({
-      next: (respuesta) => {
-        notificarExito(respuesta.message);
-        this.listar();
-      },
-      error: (error: HttpErrorResponse) => mostrarError(error, 'No se pudo inactivar la fórmula')
-    });
-  }
-
   // ===================== Utilidades =====================
 
-  /**
-   * Clase de Bootstrap para la etiqueta de cada estado.
-   *
-   * @param estado estado de la fórmula.
-   * @returns clases CSS de la etiqueta.
-   */
+  /** Clase de Bootstrap para el estado de la fórmula. */
   claseEstado(estado: EstadoFormula): string {
-    return estado === 'INACTIVA' ? 'bg-secondary' : 'bg-success';
+    switch (estado) {
+      case 'CONFIRMADA':
+        return 'bg-success';
+      case 'ANULADA':
+        return 'bg-secondary';
+      default:
+        return 'bg-warning text-dark';
+    }
   }
 
-  /**
-   * Abre uno de los modales de la pantalla.
-   *
-   * @param id identificador del elemento del modal.
-   * @param tipo modal del formulario o del detalle.
-   */
+  /** Texto legible de un estado del historial (de la fórmula o del despacho). */
+  textoEstado(estado: string | null): string {
+    if (!estado) {
+      return '—';
+    }
+    return ESTADOS_FORMULA.includes(estado as EstadoFormula) ? estado : textoEstadoDespacho(estado);
+  }
+
+  /** Texto legible de una vía de administración. */
+  textoVia(via: string): string {
+    return VIAS_ADMINISTRACION.find((v) => v.valor === via)?.texto ?? via;
+  }
+
+  /** Abre uno de los modales. */
   private abrirModal(id: string, tipo: 'formulario' | 'detalle'): void {
     const elemento = document.getElementById(id);
     if (!elemento) {

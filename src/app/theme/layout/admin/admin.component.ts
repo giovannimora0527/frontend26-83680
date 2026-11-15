@@ -8,6 +8,7 @@ import { NavBarComponent } from './nav-bar/nav-bar.component';
 import { NavigationComponent } from './navigation/navigation.component';
 import { ConfigurationComponent } from 'src/app/theme/layout/admin/configuration/configuration.component';
 import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs/breadcrumbs.component';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-admin',
@@ -17,6 +18,9 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs/breadc
 })
 export class AdminComponent {
   private readonly router = inject(Router);
+
+  /** Indica si el usuario puede administrar usuarios (acceso directo de la portada). */
+  readonly esAdministrador = inject(AuthService).tieneRol('ADMIN');
 
   // public props
   navCollapsed: any;

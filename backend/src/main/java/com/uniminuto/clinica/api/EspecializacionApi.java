@@ -4,7 +4,6 @@ import com.uniminuto.clinica.entity.Especializacion;
 import com.uniminuto.clinica.models.EspecializacionRq;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +17,6 @@ import java.util.List;
  * Servicios REST de especializaciones médicas: GET para consultar, POST para
  * crear y PUT para editar. No se eliminan porque los veterinarios las referencian.
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/especializacion")
 public interface EspecializacionApi {
 
@@ -57,4 +55,23 @@ public interface EspecializacionApi {
      */
     @PutMapping(value = "/{id}", produces = {"application/json"}, consumes = {"application/json"})
     ResponseEntity<MiRespuestaRS> actualizarEspecializacion(@PathVariable Long id, @RequestBody EspecializacionRq rq);
+
+    /**
+     * Activa una especialidad.
+     *
+     * @param id identificador.
+     * @return mensaje de éxito.
+     */
+    @PutMapping(value = "/{id}/activar", produces = {"application/json"})
+    ResponseEntity<MiRespuestaRS> activarEspecializacion(@PathVariable Long id);
+
+    /**
+     * Inactiva una especialidad.
+     *
+     * @param id identificador.
+     * @return mensaje de éxito.
+     */
+    @PutMapping(value = "/{id}/inactivar", produces = {"application/json"})
+    ResponseEntity<MiRespuestaRS> inactivarEspecializacion(@PathVariable Long id);
 }
+

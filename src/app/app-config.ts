@@ -1,9 +1,14 @@
-import { HTTP_INTERCEPTORS, provideHttpClient } from "@angular/common/http";
-import { ApplicationConfig } from "@angular/core";
+import { provideHttpClient, withInterceptors } from "@angular/common/http";
+import { registerLocaleData } from "@angular/common";
+import localeEsCo from "@angular/common/locales/es-CO";
+import { ApplicationConfig, DEFAULT_CURRENCY_CODE, LOCALE_ID } from "@angular/core";
 import { provideAnimations } from "@angular/platform-browser/animations";
 import { provideRouter, withEnabledBlockingInitialNavigation, withHashLocation, withInMemoryScrolling, withRouterConfig, withViewTransitions } from "@angular/router";
 import { routes } from './app-routing.module';
-import { HeadersInterceptor } from "./interceptors/headers.interceptor";
+import { sesionInterceptor } from "./interceptors/sesion.interceptor";
+
+// Formatos de Colombia para números, moneda y fechas ($ 65.000,50).
+registerLocaleData(localeEsCo, 'es-CO');
 
 export const appConfig: ApplicationConfig = {
     providers: [
@@ -19,12 +24,9 @@ export const appConfig: ApplicationConfig = {
         withViewTransitions(),
         withHashLocation()
       ),
-      provideHttpClient(),     
+      provideHttpClient(withInterceptors([sesionInterceptor])),
       provideAnimations(),
-      {
-        provide: HTTP_INTERCEPTORS,
-        useClass: HeadersInterceptor,
-        multi: true, // Permite múltiples interceptores
-      }
+      { provide: LOCALE_ID, useValue: 'es-CO' },
+      { provide: DEFAULT_CURRENCY_CODE, useValue: 'COP' }
     ]
   };

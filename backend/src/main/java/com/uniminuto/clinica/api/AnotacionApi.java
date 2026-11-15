@@ -5,7 +5,6 @@ import com.uniminuto.clinica.models.AnotacionRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.PaginaRs;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 /**
  * Servicios REST de anotaciones de historias clínicas.
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/anotacion")
 public interface AnotacionApi {
 

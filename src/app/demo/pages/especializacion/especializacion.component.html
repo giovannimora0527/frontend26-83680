@@ -36,24 +36,25 @@
                 <th class="sortable" tabindex="0" [attr.aria-sort]="tabla.orden.aria('medicos')"
                     (click)="tabla.ordenar('medicos')" (keydown.enter)="tabla.ordenar('medicos')">
                   Veterinarios <i class="fas" [ngClass]="tabla.orden.icono('medicos')"></i></th>
+                <th>Estado</th>
                 <th class="text-end">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="cargando">
-                <td colspan="5" class="text-center py-4">
+                <td colspan="6" class="text-center py-4">
                   <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                   Cargando especializaciones...
                 </td>
               </tr>
               <tr *ngIf="!cargando && error">
-                <td colspan="5" class="text-center py-4 text-danger">
+                <td colspan="6" class="text-center py-4 text-danger">
                   No se pudieron cargar las especializaciones.
                   <button type="button" class="btn btn-sm btn-outline-danger ms-2" (click)="listar()">Reintentar</button>
                 </td>
               </tr>
               <tr *ngIf="!cargando && !error && tabla.visibles.length === 0">
-                <td colspan="5" class="text-center py-4 text-muted">
+                <td colspan="6" class="text-center py-4 text-muted">
                   {{ tabla.hayBusqueda ? 'No se encontraron especializaciones con la búsqueda.' : 'No hay especializaciones registradas.' }}
                 </td>
               </tr>
@@ -63,12 +64,17 @@
                   <td>{{ e.nombre }}</td>
                   <td class="celda-recortada" [title]="e.descripcion || ''">{{ e.descripcion || '—' }}</td>
                   <td>{{ contarMedicos(e.id) }}</td>
+                  <td><span class="badge" [ngClass]="e.activo === false ? 'bg-secondary' : 'bg-success'">{{ e.activo === false ? 'Inactiva' : 'Activa' }}</span></td>
                   <td class="text-end text-nowrap">
                     <button type="button" class="btn btn-sm btn-outline-info me-1" title="Ver" (click)="verDetalle(e)">
                       <i class="fas fa-eye"></i>
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" title="Editar" (click)="abrirEdicion(e)">
+                    <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Editar" (click)="abrirEdicion(e)">
                       <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm" [ngClass]="e.activo === false ? 'btn-outline-success' : 'btn-outline-danger'"
+                            [title]="e.activo === false ? 'Activar' : 'Inactivar'" (click)="cambiarActivo(e)">
+                      <i class="fas" [ngClass]="e.activo === false ? 'fa-toggle-off' : 'fa-toggle-on'"></i>
                     </button>
                   </td>
                 </tr>

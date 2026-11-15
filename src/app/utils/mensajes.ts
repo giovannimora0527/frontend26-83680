@@ -86,3 +86,35 @@ export async function confirmar(titulo: string, texto: string, botonConfirmar = 
   });
   return resultado.isConfirmed;
 }
+
+/**
+ * Pide un motivo u observación antes de una acción (anular, cancelar, revertir...).
+ *
+ * @param titulo pregunta para el usuario.
+ * @param texto consecuencia de la acción.
+ * @param botonConfirmar texto del botón que confirma.
+ * @param obligatorio si el motivo es obligatorio.
+ * @param maximo cantidad máxima de caracteres.
+ * @returns el texto escrito (vacío si es opcional y no se escribió), o null si el usuario canceló.
+ */
+export async function pedirMotivo(
+  titulo: string,
+  texto: string,
+  botonConfirmar = 'Confirmar',
+  obligatorio = true,
+  maximo = 255
+): Promise<string | null> {
+  const resultado = await Swal.fire({
+    icon: 'question',
+    title: titulo,
+    text: texto,
+    input: 'textarea',
+    inputPlaceholder: obligatorio ? 'Escriba el motivo' : 'Observación (opcional)',
+    inputAttributes: { maxlength: String(maximo), 'aria-label': 'Motivo' },
+    showCancelButton: true,
+    confirmButtonText: botonConfirmar,
+    cancelButtonText: 'Volver',
+    inputValidator: (valor) => (obligatorio && !String(valor ?? '').trim() ? 'Debe indicar el motivo.' : null)
+  });
+  return resultado.isConfirmed ? String(resultado.value ?? '').trim() : null;
+}

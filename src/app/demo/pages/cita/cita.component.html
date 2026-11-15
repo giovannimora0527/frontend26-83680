@@ -3,9 +3,14 @@
     <div class="card">
       <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Citas</h5>
-        <button type="button" class="btn btn-primary" (click)="abrirNueva()">
-          <i class="fas fa-plus me-1"></i> Nueva cita
-        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-success" (click)="abrirExcel()">
+            <i class="fas fa-file-excel me-1"></i> Reporte Excel
+          </button>
+          <button type="button" class="btn btn-primary" (click)="abrirNueva()">
+            <i class="fas fa-plus me-1"></i> Nueva cita
+          </button>
+        </div>
       </div>
 
       <div class="card-body">
@@ -102,12 +107,12 @@
               <ng-container *ngIf="!cargandoLista && !errorLista">
                 <tr *ngFor="let c of citas">
                   <td>{{ c.fecha }}</td>
-                  <td>{{ horaCorta(c.hora) }}</td>
+                  <td class="text-nowrap">{{ horaCorta(c.hora) }}–{{ horaCorta(c.horaFin) }}</td>
                   <td>{{ c.clienteNombre }}</td>
                   <td>{{ c.mascotaNombre }}</td>
                   <td>{{ c.medicoNombre }}</td>
                   <td class="celda-recortada" [title]="c.motivo">{{ c.motivo }}</td>
-                  <td><span class="badge" [ngClass]="claseEstado(c.estado)">{{ c.estado }}</span></td>
+                  <td><span class="badge" [ngClass]="claseEstado(c.estado)">{{ nombreEstado(c.estado) }}</span></td>
                   <td class="text-end text-nowrap">
                     <button type="button" class="btn btn-sm btn-outline-info me-1" title="Ver" (click)="verDetalle(c)">
                       <i class="fas fa-eye"></i>
@@ -122,7 +127,7 @@
                       <i class="fas fa-undo"></i>
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-success" title="Crear historia clínica"
-                            *ngIf="c.estado === 'ATENDIDA'" (click)="crearHistoria(c)">
+                            *ngIf="puedeCrearHistoria && c.estado === 'ATENDIDA'" (click)="crearHistoria(c)">
                       <i class="fas fa-notes-medical"></i>
                     </button>
                   </td>
@@ -201,7 +206,9 @@
               <select id="medicoId" class="form-select" formControlName="medicoId"
                       [class.is-invalid]="invalido('medicoId')">
                 <option [ngValue]="null">Seleccione un veterinario</option>
-                <option *ngFor="let m of medicos" [ngValue]="m.id">{{ m.nombres }} {{ m.apellidos }}</option>
+                <option *ngFor="let m of medicos" [ngValue]="m.id" [disabled]="m.activo === false">
+                  {{ m.nombres }} {{ m.apellidos }}{{ m.activo === false ? ' (inactivo)' : '' }}
+                </option>
               </select>
               <div class="invalid-feedback">Seleccione un veterinario.</div>
             </div>
@@ -223,11 +230,16 @@
             </div>
 
             <!-- Hora -->
-            <div class="col-md-6">
-              <label class="form-label" for="hora">Hora *</label>
-              <input id="hora" type="time" class="form-control" formControlName="hora"
+            <div class="col-6 col-md-3">
+              <label class="form-label" for="hora">Inicio *</label>
+              <input id="hora" type="time" class="form-control" formControlName="hora" step="300"
                      [class.is-invalid]="invalido('hora') || fechaPasada" />
               <div class="invalid-feedback">Seleccione la hora de la cita.</div>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label" for="horaFin">Fin</label>
+              <input id="horaFin" type="time" class="form-control" formControlName="horaFin" step="300" />
+              <div class="form-text">Vacío: duración habitual del veterinario.</div>
             </div>
 
             <div class="col-12" *ngIf="fechaPasada">
@@ -277,13 +289,16 @@
         </div>
         <dl class="row mb-0" *ngIf="citaDetalle">
           <dt class="col-sm-4">Fecha</dt><dd class="col-sm-8">{{ citaDetalle.fecha }}</dd>
-          <dt class="col-sm-4">Hora</dt><dd class="col-sm-8">{{ horaCorta(citaDetalle.hora) }}</dd>
+          <dt class="col-sm-4">Hora</dt><dd class="col-sm-8">{{ horaCorta(citaDetalle.hora) }} a {{ horaCorta(citaDetalle.horaFin) }}</dd>
           <dt class="col-sm-4">Cliente</dt><dd class="col-sm-8">{{ citaDetalle.clienteNombre }}</dd>
           <dt class="col-sm-4">Mascota</dt><dd class="col-sm-8">{{ citaDetalle.mascotaNombre }}</dd>
           <dt class="col-sm-4">Veterinario</dt><dd class="col-sm-8">{{ citaDetalle.medicoNombre }}</dd>
           <dt class="col-sm-4">Motivo</dt><dd class="col-sm-8 texto-largo">{{ citaDetalle.motivo }}</dd>
           <dt class="col-sm-4">Estado</dt>
-          <dd class="col-sm-8"><span class="badge" [ngClass]="claseEstado(citaDetalle.estado)">{{ citaDetalle.estado }}</span></dd>
+          <dd class="col-sm-8"><span class="badge" [ngClass]="claseEstado(citaDetalle.estado)">{{ nombreEstado(citaDetalle.estado) }}</span></dd>
+          <ng-container *ngIf="citaDetalle.motivoCancelacion">
+            <dt class="col-sm-4">Motivo de cancelación</dt><dd class="col-sm-8 text-danger">{{ citaDetalle.motivoCancelacion }}</dd>
+          </ng-container>
           <dt class="col-sm-4">Registrada</dt><dd class="col-sm-8">{{ citaDetalle.fechaCreacion | date: 'yyyy-MM-dd HH:mm' }}</dd>
           <dt class="col-sm-4">Última modificación</dt>
           <dd class="col-sm-8">{{ citaDetalle.fechaModificacion ? (citaDetalle.fechaModificacion | date: 'yyyy-MM-dd HH:mm') : '—' }}</dd>
@@ -291,6 +306,51 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: reporte en Excel -->
+<div class="modal fade" id="modalExcelCitas" tabindex="-1" aria-labelledby="tituloExcelCitas" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tituloExcelCitas">Reporte de citas en Excel</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label" for="xDesde">Desde *</label>
+            <input id="xDesde" type="date" class="form-control" [(ngModel)]="excelDesde" />
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="xHasta">Hasta *</label>
+            <input id="xHasta" type="date" class="form-control" [(ngModel)]="excelHasta" />
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="xMedico">Veterinario</label>
+            <select id="xMedico" class="form-select" [(ngModel)]="excelMedico">
+              <option [ngValue]="null">Todos</option>
+              <option *ngFor="let m of medicos" [ngValue]="m.id">{{ m.nombres }} {{ m.apellidos }}</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="xEstado">Estado</label>
+            <select id="xEstado" class="form-select" [(ngModel)]="excelEstado">
+              <option value="">Todos</option>
+              <option *ngFor="let e of estados" [value]="e">{{ nombreEstado(e) }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" [disabled]="descargandoExcel" (click)="descargarExcel()">
+          <span *ngIf="descargandoExcel" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+          <i *ngIf="!descargandoExcel" class="fas fa-file-excel me-1"></i> Descargar
+        </button>
       </div>
     </div>
   </div>

@@ -13,6 +13,19 @@ export function hoyIso(): string {
 }
 
 /**
+ * Fecha de mañana en formato yyyy-MM-dd.
+ *
+ * @returns fecha siguiente a la actual.
+ */
+export function mananaIso(): string {
+  const manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  const mes = String(manana.getMonth() + 1).padStart(2, '0');
+  const dia = String(manana.getDate()).padStart(2, '0');
+  return `${manana.getFullYear()}-${mes}-${dia}`;
+}
+
+/**
  * Recorta una hora a formato HH:mm.
  *
  * @param hora hora en formato HH:mm o HH:mm:ss.

@@ -24,7 +24,7 @@ export class FormulaService {
   /**
    * Consulta una página de fórmulas con orden y filtros.
    *
-   * @param filtro página, orden y filtros elegidos por el usuario.
+   * @param filtro página, orden y filtros.
    * @returns página de fórmulas.
    */
   listar(filtro: FiltroFormulas): Observable<Pagina<Formula>> {
@@ -32,17 +32,17 @@ export class FormulaService {
   }
 
   /**
-   * Consulta el detalle completo de una fórmula.
+   * Consulta el detalle de una fórmula con medicamentos, historial y entregas.
    *
-   * @param formulaId identificador de la fórmula.
-   * @returns la fórmula encontrada.
+   * @param formulaId número de la fórmula.
+   * @returns la fórmula.
    */
   consultar(formulaId: number): Observable<Formula> {
     return this.backendService.get<Formula>(environment.apiUrlAuth, this.api, String(formulaId));
   }
 
   /**
-   * Registra una fórmula nueva.
+   * Registra una fórmula como borrador o confirmada.
    *
    * @param formulaRq datos de la fórmula.
    * @returns mensaje de éxito.
@@ -52,9 +52,9 @@ export class FormulaService {
   }
 
   /**
-   * Modifica los datos editables de una fórmula activa (PUT).
+   * Modifica una fórmula en borrador.
    *
-   * @param formulaId identificador de la fórmula.
+   * @param formulaId número de la fórmula.
    * @param formulaRq nuevos datos.
    * @returns mensaje de éxito.
    */
@@ -63,13 +63,33 @@ export class FormulaService {
   }
 
   /**
-   * Inactiva una fórmula en lugar de eliminarla, porque hace parte de la
-   * información clínica de la mascota.
+   * Confirma una fórmula en borrador y la envía a despacho.
    *
-   * @param formulaId identificador de la fórmula.
+   * @param formulaId número de la fórmula.
    * @returns mensaje de éxito.
    */
-  inactivar(formulaId: number): Observable<RespuestaApi> {
-    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${formulaId}/inactivar`, {});
+  confirmar(formulaId: number): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${formulaId}/confirmar`, {});
+  }
+
+  /**
+   * Anula una fórmula sin entregas.
+   *
+   * @param formulaId número de la fórmula.
+   * @param motivo motivo de la anulación.
+   * @returns mensaje de éxito.
+   */
+  anular(formulaId: number, motivo: string): Observable<RespuestaApi> {
+    return this.backendService.put<RespuestaApi>(environment.apiUrlAuth, this.api, `${formulaId}/anular`, { motivo });
+  }
+
+  /**
+   * Descarga la fórmula en PDF.
+   *
+   * @param formulaId número de la fórmula.
+   * @returns contenido del PDF.
+   */
+  descargarPdf(formulaId: number): Observable<Blob> {
+    return this.backendService.getArchivo(environment.apiUrlAuth, this.api, `${formulaId}/pdf`);
   }
 }

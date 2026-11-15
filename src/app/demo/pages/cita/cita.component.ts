@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -18,6 +18,7 @@ import { Modal } from 'bootstrap';
 
 import { CitaService } from './service/cita.service';
 import { CatalogoService } from 'src/app/services/catalogo.service';
+import { AuthService } from 'src/app/services/auth.service';
 import { PaginadorComponent } from 'src/app/shared/paginador/paginador.component';
 import { ClienteOpcion, MascotaOpcion, MedicoOpcion } from 'src/app/models/catalogo';
 import {
@@ -26,11 +27,13 @@ import {
   ESTADOS_CITA,
   EstadoCita,
   FiltroCitas,
+  NOMBRE_ESTADO_CITA,
   TRANSICIONES_CITA
 } from 'src/app/models/cita';
 import { OrdenTabla } from 'src/app/utils/orden-tabla';
 import { horaCorta, hoyIso } from 'src/app/utils/fechas';
 import { avisar, confirmar, mostrarError, notificarExito } from 'src/app/utils/mensajes';
+import { descargarArchivo } from 'src/app/utils/archivos';
 
 /**
  * Pantalla de gestión de citas médicas: listado paginado con filtros y orden
@@ -49,6 +52,8 @@ export class CitaComponent implements OnInit, OnDestroy {
   readonly estados: EstadoCita[] = ESTADOS_CITA;
   /** Recorta la hora a HH:mm en la plantilla. */
   readonly horaCorta = horaCorta;
+  /** Solo el veterinario genera la historia clínica de una cita atendida. */
+  readonly puedeCrearHistoria = inject(AuthService).tieneRol('VETERINARIO');
 
   // ----- Listado -----
 
@@ -119,6 +124,19 @@ export class CitaComponent implements OnInit, OnDestroy {
   private modalFormulario: Modal | null = null;
   /** Instancia del modal de detalle. */
   private modalDetalle: Modal | null = null;
+  /** Modal del reporte en Excel. */
+  private modalExcel: Modal | null = null;
+
+  /** Fecha inicial del reporte en Excel. */
+  excelDesde = '';
+  /** Fecha final del reporte en Excel. */
+  excelHasta = '';
+  /** Veterinario del reporte (null = todos). */
+  excelMedico: number | null = null;
+  /** Estado del reporte (vacío = todos). */
+  excelEstado = '';
+  /** Indica que se está generando el Excel. */
+  descargandoExcel = false;
   /** Emite el texto de búsqueda para esperar a que el usuario deje de escribir. */
   private readonly busqueda$ = new Subject<string>();
   /** Suscripciones permanentes que se cierran al destruir el componente. */
@@ -322,6 +340,7 @@ export class CitaComponent implements OnInit, OnDestroy {
         medicoId: [null, Validators.required],
         fecha: ['', Validators.required],
         hora: ['', Validators.required],
+        horaFin: [''],
         motivo: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(500)]],
         estado: ['PENDIENTE', Validators.required]
       },
@@ -421,6 +440,7 @@ export class CitaComponent implements OnInit, OnDestroy {
         medicoId: cita.medicoId,
         fecha: cita.fecha,
         hora: horaCorta(cita.hora),
+        horaFin: horaCorta(cita.horaFin),
         motivo: cita.motivo,
         estado: cita.estado
       },
@@ -442,6 +462,7 @@ export class CitaComponent implements OnInit, OnDestroy {
         medicoId: null,
         fecha: '',
         hora: '',
+        horaFin: '',
         motivo: '',
         estado: 'PENDIENTE'
       },
@@ -471,6 +492,7 @@ export class CitaComponent implements OnInit, OnDestroy {
       medicoId: Number(valores.medicoId),
       fecha: valores.fecha,
       hora: valores.hora,
+      horaFin: valores.horaFin || null,
       motivo: String(valores.motivo).trim(),
       estado: valores.estado
     };
@@ -632,4 +654,46 @@ export class CitaComponent implements OnInit, OnDestroy {
       this.modalDetalle.show();
     }
   }
+
+  /** Nombre visible de un estado (ATENDIDA se muestra como Finalizada). */
+  nombreEstado(estado: EstadoCita): string {
+    return NOMBRE_ESTADO_CITA[estado] ?? estado;
+  }
+
+  /** Abre el formulario del reporte en Excel con el mes actual. */
+  abrirExcel(): void {
+    const hoy = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    this.excelDesde = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-01`;
+    const ultimo = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    this.excelHasta = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(ultimo)}`;
+    this.excelMedico = this.filtroMedico;
+    this.excelEstado = '';
+    const elemento = document.getElementById('modalExcelCitas');
+    if (elemento) {
+      this.modalExcel ??= new Modal(elemento);
+      this.modalExcel.show();
+    }
+  }
+
+  /** Descarga el reporte de citas en Excel. */
+  descargarExcel(): void {
+    if (!this.excelDesde || !this.excelHasta || this.excelDesde > this.excelHasta) {
+      avisar('Rango de fechas inválido', 'Indique una fecha inicial y una final válidas.', 'warning');
+      return;
+    }
+    this.descargandoExcel = true;
+    this.citaService.descargarExcel(this.excelDesde, this.excelHasta, this.excelMedico, this.excelEstado).subscribe({
+      next: (archivo) => {
+        this.descargandoExcel = false;
+        this.modalExcel?.hide();
+        descargarArchivo(archivo, `citas-${this.excelDesde}-a-${this.excelHasta}.xlsx`);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.descargandoExcel = false;
+        mostrarError(e, 'No se pudo generar el reporte');
+      }
+    });
+  }
 }
+

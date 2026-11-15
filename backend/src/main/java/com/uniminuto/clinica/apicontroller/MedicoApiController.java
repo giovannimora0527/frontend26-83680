@@ -2,6 +2,8 @@ package com.uniminuto.clinica.apicontroller;
 
 import com.uniminuto.clinica.api.MedicoApi;
 import com.uniminuto.clinica.entity.Medico;
+import com.uniminuto.clinica.models.HorarioRq;
+import com.uniminuto.clinica.models.HorarioRs;
 import com.uniminuto.clinica.models.MedicoRq;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.service.MedicoService;
@@ -55,4 +57,37 @@ public class MedicoApiController implements MedicoApi {
     public ResponseEntity<MiRespuestaRS> actualizarMedico(Long id, MedicoRq rq) {
         return ResponseEntity.ok(medicoService.actualizarMedico(id, rq));
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<MiRespuestaRS> activarMedico(Long id) {
+        return ResponseEntity.ok(medicoService.activarMedico(id));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<MiRespuestaRS> inactivarMedico(Long id) {
+        return ResponseEntity.ok(medicoService.inactivarMedico(id));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<List<HorarioRs>> listarHorarios(Long id) {
+        return ResponseEntity.ok(medicoService.listarHorarios(id));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<MiRespuestaRS> guardarHorarios(Long id, List<HorarioRq> franjas) {
+        return ResponseEntity.ok(medicoService.guardarHorarios(id, franjas));
+    }
 }
+

@@ -3,7 +3,7 @@
     <div class="card">
       <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Historias clínicas</h5>
-        <button type="button" class="btn btn-primary" (click)="abrirNueva()">
+        <button type="button" class="btn btn-primary" *ngIf="puedeRegistrar" (click)="abrirNueva()">
           <i class="fas fa-plus me-1"></i> Nueva historia
         </button>
       </div>
@@ -264,7 +264,7 @@
           <!-- Histórico de anotaciones -->
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
             <h6 class="mb-0">Histórico de anotaciones</h6>
-            <button type="button" class="btn btn-sm btn-primary" *ngIf="historiaAbierta && !mostrarFormAnotacion"
+            <button type="button" class="btn btn-sm btn-primary" *ngIf="puedeRegistrar && historiaAbierta && !mostrarFormAnotacion"
                     (click)="abrirFormAnotacion()">
               <i class="fas fa-plus me-1"></i> Agregar anotación
             </button>
@@ -404,10 +404,10 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-danger me-auto" *ngIf="historiaAbierta" (click)="cerrarHistoria()">
+        <button type="button" class="btn btn-outline-danger me-auto" *ngIf="puedeRegistrar && historiaAbierta" (click)="cerrarHistoria()">
           <i class="fas fa-lock me-1"></i> Cerrar historia
         </button>
-        <button type="button" class="btn btn-outline-primary" *ngIf="historiaAbierta" (click)="nuevaFormula()">
+        <button type="button" class="btn btn-outline-primary" *ngIf="puedeRegistrar && historiaAbierta" (click)="nuevaFormula()">
           <i class="fas fa-prescription me-1"></i> Nueva fórmula
         </button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>

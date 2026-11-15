@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Acceso a datos de las citas médicas. Hereda {@link JpaSpecificationExecutor}
@@ -76,4 +77,66 @@ public interface CitaRepository extends JpaRepository<Cita, Long>,
      */
     boolean existsByMascota_Cliente_ClienteIdAndEstadoInAndFechaHoraAfter(
             Long clienteId, Collection<EstadoCita> estados, LocalDateTime desde);
+    /**
+     * Cuenta las citas activas del veterinario que se cruzan con el rango
+     * [inicio, fin). Dos citas se cruzan si una empieza antes de que la otra termine.
+     *
+     * @param medicoId       veterinario.
+     * @param estadoExcluido estado que no ocupa horario (cancelada).
+     * @param inicio         inicio del rango.
+     * @param fin            fin del rango.
+     * @param citaIdExcluido cita a ignorar (la que se edita).
+     * @return número de citas que se cruzan.
+     */
+    @Query("select count(c) from Cita c where c.medico.id = :medicoId and c.estado <> :estadoExcluido "
+            + "and c.fechaHora < :fin and c.fechaHoraFin > :inicio and c.citaId <> :citaIdExcluido")
+    long contarCrucesDelMedico(@Param("medicoId") Long medicoId,
+                               @Param("estadoExcluido") EstadoCita estadoExcluido,
+                               @Param("inicio") LocalDateTime inicio,
+                               @Param("fin") LocalDateTime fin,
+                               @Param("citaIdExcluido") Long citaIdExcluido);
+
+    /**
+     * Cuenta las citas activas de la mascota que se cruzan con el rango [inicio, fin).
+     *
+     * @param mascotaId      mascota.
+     * @param estadoExcluido estado que no ocupa horario (cancelada).
+     * @param inicio         inicio del rango.
+     * @param fin            fin del rango.
+     * @param citaIdExcluido cita a ignorar (la que se edita).
+     * @return número de citas que se cruzan.
+     */
+    @Query("select count(c) from Cita c where c.mascota.mascotaId = :mascotaId and c.estado <> :estadoExcluido "
+            + "and c.fechaHora < :fin and c.fechaHoraFin > :inicio and c.citaId <> :citaIdExcluido")
+    long contarCrucesDeLaMascota(@Param("mascotaId") Integer mascotaId,
+                                 @Param("estadoExcluido") EstadoCita estadoExcluido,
+                                 @Param("inicio") LocalDateTime inicio,
+                                 @Param("fin") LocalDateTime fin,
+                                 @Param("citaIdExcluido") Long citaIdExcluido);
+
+    /**
+     * Citas que se cruzan con un rango (calendario), opcionalmente de un veterinario.
+     *
+     * @param medicoId veterinario (null = todos).
+     * @param desde    inicio del rango.
+     * @param hasta    fin del rango.
+     * @return citas ordenadas por inicio.
+     */
+    @Query("select c from Cita c join fetch c.mascota m join fetch m.cliente join fetch c.medico "
+            + "where (:medicoId is null or c.medico.id = :medicoId) "
+            + "and c.fechaHora < :hasta and c.fechaHoraFin > :desde order by c.fechaHora, c.citaId")
+    List<Cita> buscarEnRango(@Param("medicoId") Long medicoId,
+                             @Param("desde") LocalDateTime desde,
+                             @Param("hasta") LocalDateTime hasta);
+
+    /**
+     * Cuenta las citas futuras de un veterinario en ciertos estados.
+     *
+     * @param medicoId veterinario.
+     * @param estados  estados a contar.
+     * @param desde    momento a partir del cual se cuentan.
+     * @return número de citas.
+     */
+    long countByMedico_IdAndEstadoInAndFechaHoraAfter(Long medicoId, Collection<EstadoCita> estados,
+                                                      LocalDateTime desde);
 }

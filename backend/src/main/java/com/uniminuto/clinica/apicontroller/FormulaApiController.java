@@ -5,10 +5,14 @@ import com.uniminuto.clinica.models.FormulaFiltroRq;
 import com.uniminuto.clinica.models.FormulaRq;
 import com.uniminuto.clinica.models.FormulaRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
+import com.uniminuto.clinica.models.MotivoRq;
 import com.uniminuto.clinica.models.PaginaRs;
 import com.uniminuto.clinica.service.FormulaService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,7 +36,7 @@ public class FormulaApiController implements FormulaApi {
     @Override
     public ResponseEntity<PaginaRs<FormulaRs>> listarFormulas(
             int page, int size, String orden, String direccion, String texto, String estado,
-            Long medicoId, Long medicamentoId, Integer mascotaId, Long historiaId,
+            String estadoDespacho, Long medicoId, Long medicamentoId, Integer mascotaId, Long historiaId,
             LocalDate desde, LocalDate hasta) {
         FormulaFiltroRq filtro = new FormulaFiltroRq();
         filtro.setPage(page);
@@ -41,6 +45,7 @@ public class FormulaApiController implements FormulaApi {
         filtro.setDireccion(direccion);
         filtro.setTexto(texto);
         filtro.setEstado(estado);
+        filtro.setEstadoDespacho(estadoDespacho);
         filtro.setMedicoId(medicoId);
         filtro.setMedicamentoId(medicamentoId);
         filtro.setMascotaId(mascotaId);
@@ -78,7 +83,27 @@ public class FormulaApiController implements FormulaApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<MiRespuestaRS> inactivarFormula(Long formulaId) {
-        return ResponseEntity.ok(formulaService.inactivarFormula(formulaId));
+    public ResponseEntity<MiRespuestaRS> confirmarFormula(Long formulaId) {
+        return ResponseEntity.ok(formulaService.confirmarFormula(formulaId));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<MiRespuestaRS> anularFormula(Long formulaId, MotivoRq rq) {
+        return ResponseEntity.ok(formulaService.anularFormula(formulaId, rq));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<byte[]> descargarPdf(Long formulaId) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("formula-" + formulaId + ".pdf").build().toString())
+                .body(formulaService.generarPdf(formulaId));
     }
 }

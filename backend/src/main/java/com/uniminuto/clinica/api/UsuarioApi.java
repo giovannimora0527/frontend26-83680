@@ -4,7 +4,6 @@ import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.UsuarioRq;
 import com.uniminuto.clinica.models.UsuarioRs;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +18,6 @@ import java.util.List;
  * y PUT para editar, activar o inactivar. Las respuestas nunca incluyen la
  * contraseña ni su hash.
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/usuario")
 public interface UsuarioApi {
 

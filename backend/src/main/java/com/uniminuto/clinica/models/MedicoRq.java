@@ -42,4 +42,14 @@ public class MedicoRq {
      * Especialización del veterinario.
      */
     private Long especializacionId;
+
+    /**
+     * Usuario de acceso con rol VETERINARIO (opcional).
+     */
+    private Integer usuarioId;
+
+    /**
+     * Duración por defecto de sus citas en minutos (10 a 240, opcional: 30).
+     */
+    private Integer duracionCitaMin;
 }

@@ -23,7 +23,7 @@
                   <p>
                     Organiza la atención, el seguimiento y el cuidado de nuestras mascotas desde un solo lugar.
                   </p>
-                  <a class="clinic-home__action" routerLink="/inicio/usuarios">
+                  <a class="clinic-home__action" routerLink="/inicio/usuarios" *ngIf="esAdministrador">
                     <i class="feather icon-users" aria-hidden="true"></i>
                     Gestionar usuarios
                   </a>

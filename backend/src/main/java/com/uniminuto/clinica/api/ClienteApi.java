@@ -4,7 +4,6 @@ import com.uniminuto.clinica.entity.Cliente;
 import com.uniminuto.clinica.models.ClienteRq;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,7 +19,6 @@ import java.util.List;
  * editar, activar o inactivar (un cliente no se elimina para no dejar
  * mascotas, citas ni historias huérfanas).
  */
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/cliente")
 public interface ClienteApi {
 
