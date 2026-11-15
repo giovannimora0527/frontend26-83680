@@ -1,0 +1,160 @@
+<div class="row">
+  <!-- Catálogo -->
+  <div class="col-12 col-xl-3">
+    <div class="card">
+      <div class="card-header"><h5 class="mb-0">Reportes</h5></div>
+      <div class="list-group list-group-flush">
+        <ng-container *ngFor="let cat of categorias">
+          <div class="list-group-item bg-light small fw-semibold text-uppercase">{{ cat.nombre }}</div>
+          <button type="button" class="list-group-item list-group-item-action" *ngFor="let r of cat.reportes"
+                  [class.active]="seleccionado?.codigo === r.codigo" [title]="r.descripcion" (click)="elegir(r)">
+            {{ r.nombre }}
+          </button>
+        </ng-container>
+        <div class="list-group-item text-muted" *ngIf="!catalogo.length">Su perfil no tiene reportes disponibles.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros y resultado -->
+  <div class="col-12 col-xl-9">
+    <div class="card" *ngIf="seleccionado as s">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <h5 class="mb-0">{{ s.nombre }}</h5>
+          <small class="text-muted">{{ s.descripcion }}</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="!!descargando" (click)="descargar('pdf')">
+            <span *ngIf="descargando === 'pdf'" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            <i *ngIf="descargando !== 'pdf'" class="fas fa-file-pdf me-1"></i> PDF
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-success" [disabled]="!!descargando" (click)="descargar('excel')">
+            <span *ngIf="descargando === 'excel'" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            <i *ngIf="descargando !== 'excel'" class="fas fa-file-excel me-1"></i> Excel
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 align-items-end mb-3">
+          <ng-container *ngIf="admite('fechas')">
+            <div class="col-6 col-md-3">
+              <label class="form-label" for="rDesde">Desde</label>
+              <input id="rDesde" type="date" class="form-control" [(ngModel)]="filtro.desde" />
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label" for="rHasta">Hasta</label>
+              <input id="rHasta" type="date" class="form-control" [(ngModel)]="filtro.hasta" />
+            </div>
+          </ng-container>
+          <div class="col-6 col-md-2" *ngIf="admite('agrupacion')">
+            <label class="form-label" for="rAgrupacion">Agrupar por</label>
+            <select id="rAgrupacion" class="form-select" [(ngModel)]="filtro.agrupacion">
+              <option value="DIA">Día</option>
+              <option value="MES">Mes</option>
+              <option value="ANIO">Año</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="admite('medico')">
+            <label class="form-label" for="rMedico">Veterinario</label>
+            <select id="rMedico" class="form-select" [(ngModel)]="filtro.medicoId">
+              <option [ngValue]="null">Todos</option>
+              <option *ngFor="let m of medicos" [ngValue]="m.id">{{ m.nombres }} {{ m.apellidos }}</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="admite('especialidad')">
+            <label class="form-label" for="rEspecialidad">Especialidad</label>
+            <select id="rEspecialidad" class="form-select" [(ngModel)]="filtro.especializacionId">
+              <option [ngValue]="null">Todas</option>
+              <option *ngFor="let e of especialidades" [ngValue]="e.id">{{ e.nombre }}</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4" *ngIf="admite('medicamento')">
+            <label class="form-label" for="rMedicamento">Producto</label>
+            <select id="rMedicamento" class="form-select" [(ngModel)]="filtro.medicamentoId">
+              <option [ngValue]="null">Todos</option>
+              <option *ngFor="let m of medicamentos" [ngValue]="m.id">{{ m.codigo ? m.codigo + ' · ' : '' }}{{ m.nombre }}</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="admite('estadoFactura')">
+            <label class="form-label" for="rEstadoFactura">Estado</label>
+            <select id="rEstadoFactura" class="form-select" [(ngModel)]="filtro.estado">
+              <option value="">Todos</option>
+              <option value="PENDIENTE_PAGO">Pendiente de pago</option>
+              <option value="PAGO_PARCIAL">Pago parcial</option>
+              <option value="PAGADA">Pagada</option>
+              <option value="ANULADA">Anulada</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="admite('estadoCita')">
+            <label class="form-label" for="rEstadoCita">Estado</label>
+            <select id="rEstadoCita" class="form-select" [(ngModel)]="filtro.estado">
+              <option value="">Todos</option>
+              <option value="PENDIENTES">Pendientes (sin atender)</option>
+              <option value="CONFIRMADA">Confirmadas</option>
+              <option value="ATENDIDA">Atendidas</option>
+              <option value="CANCELADA">Canceladas</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2" *ngIf="admite('dias')">
+            <label class="form-label" for="rDias">Próximos días</label>
+            <input id="rDias" type="number" class="form-control" min="1" max="365" [(ngModel)]="filtro.dias" />
+          </div>
+          <div class="col-6 col-md-2">
+            <button type="button" class="btn btn-primary w-100" [disabled]="cargando" (click)="consultar()">
+              <i class="fas fa-magnifying-glass me-1"></i> Consultar
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="cargando" class="text-center py-4">
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> Generando reporte...
+        </div>
+
+        <ng-container *ngIf="!cargando && resultado as r">
+          <div class="small text-muted mb-2">
+            {{ r.filtrosAplicados }} · Generado {{ r.generado | date: 'yyyy-MM-dd HH:mm' }} por {{ r.usuario }} · {{ r.filas.length }} registros
+          </div>
+          <div class="d-flex flex-wrap gap-2 mb-3" *ngIf="(r.resumen | keyvalue).length">
+            <div class="border rounded px-3 py-2" *ngFor="let x of r.resumen | keyvalue: null">
+              <div class="small text-muted">{{ x.key }}</div>
+              <div class="fw-semibold">{{ esMoneda(x.key) ? ($any(x.value) | currency: 'COP' : '$' : '1.0-2') : x.value }}</div>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped table-hover align-middle">
+              <thead class="table-light">
+                <tr><th *ngFor="let c of r.columnas" [class.text-end]="numerica(c)">{{ c.titulo }}</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="!r.filas.length"><td [attr.colspan]="r.columnas.length" class="text-center text-muted py-4">Sin datos para los filtros seleccionados.</td></tr>
+                <tr *ngFor="let f of r.filas">
+                  <td *ngFor="let c of r.columnas" [class.text-end]="numerica(c)" [class.text-nowrap]="c.tipo !== 'TEXTO'">
+                    <ng-container [ngSwitch]="c.tipo">
+                      <span *ngSwitchCase="'MONEDA'">{{ $any(f[c.clave]) | currency: 'COP' : '$' : '1.0-2' }}</span>
+                      <span *ngSwitchCase="'ENTERO'">{{ $any(f[c.clave]) | number: '1.0-0' }}</span>
+                      <span *ngSwitchCase="'PORCENTAJE'">{{ $any(f[c.clave]) | number: '1.0-2' }} %</span>
+                      <span *ngSwitchCase="'FECHA'">{{ $any(f[c.clave]) | date: 'yyyy-MM-dd' }}</span>
+                      <span *ngSwitchCase="'FECHA_HORA'">{{ $any(f[c.clave]) | date: 'yyyy-MM-dd HH:mm' }}</span>
+                      <span *ngSwitchDefault>{{ f[c.clave] ?? '' }}</span>
+                    </ng-container>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot *ngIf="r.filas.length && (r.totales | keyvalue).length">
+                <tr class="fw-semibold table-light">
+                  <td *ngFor="let c of r.columnas; let i = index" [class.text-end]="numerica(c)">
+                    <ng-container *ngIf="i === 0">Totales</ng-container>
+                    <ng-container *ngIf="i > 0 && r.totales[c.clave] !== undefined">
+                      {{ c.tipo === 'MONEDA' ? ($any(r.totales[c.clave]) | currency: 'COP' : '$' : '1.0-2') : ($any(r.totales[c.clave]) | number: '1.0-0') }}
+                    </ng-container>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

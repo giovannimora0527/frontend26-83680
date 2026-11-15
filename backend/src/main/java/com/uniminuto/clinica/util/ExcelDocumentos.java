@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -146,6 +147,112 @@ public class ExcelDocumentos {
         hoja.createRow(2).createCell(0).setCellValue("Veterinario: " + medico);
         hoja.createRow(3).createCell(0).setCellValue("Generado: " + LocalDateTime.now().format(FECHA_HORA));
         return 5;
+    }
+
+    /**
+     * Reporte genérico: encabezado, tabla con formato por tipo de columna (números,
+     * moneda y fechas como valores reales de Excel), fila de totales y resumen.
+     *
+     * @param r reporte generado.
+     * @return contenido del archivo .xlsx.
+     */
+    public byte[] reporte(com.uniminuto.clinica.models.ReporteRs r) {
+        try (XSSFWorkbook libro = new XSSFWorkbook(); ByteArrayOutputStream salida = new ByteArrayOutputStream()) {
+            CellStyle titulo = this.estiloTitulo(libro);
+            CellStyle cabecera = this.estiloCabecera(libro);
+            CellStyle texto = this.estiloCelda(libro);
+            var formato = libro.createDataFormat();
+            CellStyle moneda = this.estiloCelda(libro);
+            moneda.setDataFormat(formato.getFormat("\"$\" #,##0.00"));
+            CellStyle entero = this.estiloCelda(libro);
+            entero.setDataFormat(formato.getFormat("#,##0"));
+            CellStyle porcentaje = this.estiloCelda(libro);
+            porcentaje.setDataFormat(formato.getFormat("0.00\" %\""));
+            CellStyle fecha = this.estiloCelda(libro);
+            fecha.setDataFormat(formato.getFormat("yyyy-mm-dd"));
+            CellStyle fechaHora = this.estiloCelda(libro);
+            fechaHora.setDataFormat(formato.getFormat("yyyy-mm-dd hh:mm"));
+            CellStyle totalMoneda = this.estiloCabecera(libro);
+            totalMoneda.setDataFormat(formato.getFormat("\"$\" #,##0.00"));
+
+            Sheet hoja = libro.createSheet(r.getTitulo().length() > 30 ? r.getTitulo().substring(0, 30) : r.getTitulo());
+            Row r0 = hoja.createRow(0);
+            this.celda(r0, 0, empresa + " — " + r.getTitulo(), titulo);
+            hoja.createRow(1).createCell(0).setCellValue(r.getCategoria()
+                    + (r.getFiltrosAplicados() == null || r.getFiltrosAplicados().isBlank() ? "" : " · " + r.getFiltrosAplicados()));
+            hoja.createRow(2).createCell(0).setCellValue("Generado: " + r.getGenerado().format(FECHA_HORA) + " por " + r.getUsuario());
+            int fila = 4;
+            var cols = r.getColumnas();
+            Row cab = hoja.createRow(fila++);
+            for (int i = 0; i < cols.size(); i++) {
+                this.celda(cab, i, cols.get(i).getTitulo(), cabecera);
+            }
+            for (var datos : r.getFilas()) {
+                Row row = hoja.createRow(fila++);
+                for (int i = 0; i < cols.size(); i++) {
+                    var c = cols.get(i);
+                    Object v = datos.get(c.getClave());
+                    Cell cell = row.createCell(i);
+                    switch (c.getTipo()) {
+                        case "MONEDA", "ENTERO", "PORCENTAJE" -> {
+                            if (v instanceof Number n) {
+                                cell.setCellValue(n.doubleValue());
+                            }
+                            cell.setCellStyle("MONEDA".equals(c.getTipo()) ? moneda : "ENTERO".equals(c.getTipo()) ? entero : porcentaje);
+                        }
+                        case "FECHA" -> {
+                            if (v instanceof LocalDate d) {
+                                cell.setCellValue(d);
+                            }
+                            cell.setCellStyle(fecha);
+                        }
+                        case "FECHA_HORA" -> {
+                            if (v instanceof LocalDateTime d) {
+                                cell.setCellValue(d);
+                            }
+                            cell.setCellStyle(fechaHora);
+                        }
+                        default -> {
+                            cell.setCellValue(v == null ? "" : v.toString());
+                            cell.setCellStyle(texto);
+                        }
+                    }
+                }
+            }
+            if (!r.getTotales().isEmpty()) {
+                Row tot = hoja.createRow(fila++);
+                for (int i = 0; i < cols.size(); i++) {
+                    Object v = r.getTotales().get(cols.get(i).getClave());
+                    Cell cell = tot.createCell(i);
+                    if (i == 0) {
+                        cell.setCellValue("Totales");
+                    } else if (v instanceof Number n) {
+                        cell.setCellValue(n.doubleValue());
+                    }
+                    cell.setCellStyle("MONEDA".equals(cols.get(i).getTipo()) ? totalMoneda : cabecera);
+                }
+            }
+            fila++;
+            for (var e : r.getResumen().entrySet()) {
+                Row res = hoja.createRow(fila++);
+                res.createCell(0).setCellValue(e.getKey());
+                Cell v = res.createCell(1);
+                if (e.getValue() instanceof Number n) {
+                    v.setCellValue(n.doubleValue());
+                    v.setCellStyle(e.getValue() instanceof BigDecimal ? moneda : entero);
+                } else {
+                    v.setCellValue(String.valueOf(e.getValue()));
+                }
+            }
+            for (int i = 0; i < cols.size(); i++) {
+                hoja.autoSizeColumn(i);
+            }
+            hoja.createFreezePane(0, 5);
+            libro.write(salida);
+            return salida.toByteArray();
+        } catch (IOException ex) {
+            throw new BadRequestException("No se pudo generar el archivo Excel");
+        }
     }
 
     private void celda(Row fila, int columna, String valor, CellStyle estilo) {

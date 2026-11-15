@@ -62,7 +62,7 @@ CREATE TABLE `atencion_servicio` (
   `cantidad` int NOT NULL DEFAULT '1',
   `valor_unitario` decimal(12,2) NOT NULL COMMENT 'Tarifa vigente al registrar el servicio',
   `iva_porcentaje` decimal(5,2) NOT NULL,
-  `observacion` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `observacion` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `fecha_creacion` datetime NOT NULL,
   PRIMARY KEY (`atencion_servicio_id`),
   UNIQUE KEY `uk_atencion_servicio` (`historia_id`,`servicio_id`),
@@ -333,24 +333,24 @@ DROP TABLE IF EXISTS `factura`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `factura` (
   `factura_id` bigint NOT NULL AUTO_INCREMENT,
-  `numero` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `numero` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `historia_id` bigint NOT NULL,
   `cliente_id` bigint NOT NULL,
   `mascota_id` int NOT NULL,
   `medico_id` bigint NOT NULL,
-  `especialidad` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `especialidad` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `fecha` datetime NOT NULL,
   `subtotal` decimal(14,2) NOT NULL,
   `descuento` decimal(14,2) NOT NULL DEFAULT '0.00',
-  `motivo_descuento` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `motivo_descuento` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `iva` decimal(14,2) NOT NULL,
   `total` decimal(14,2) NOT NULL,
   `pagado` decimal(14,2) NOT NULL DEFAULT '0.00',
-  `estado` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `estado` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `usuario_id` int NOT NULL,
   `usuario_anulacion_id` int DEFAULT NULL,
   `fecha_anulacion` datetime DEFAULT NULL,
-  `motivo_anulacion` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `motivo_anulacion` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`factura_id`),
   UNIQUE KEY `uk_factura_numero` (`numero`),
   KEY `idx_factura_cliente` (`cliente_id`,`fecha`),
@@ -390,10 +390,10 @@ DROP TABLE IF EXISTS `factura_detalle`;
 CREATE TABLE `factura_detalle` (
   `detalle_id` bigint NOT NULL AUTO_INCREMENT,
   `factura_id` bigint NOT NULL,
-  `tipo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tipo` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `servicio_id` bigint DEFAULT NULL,
   `medicamento_id` bigint DEFAULT NULL,
-  `descripcion` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descripcion` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `cantidad` int NOT NULL,
   `valor_unitario` decimal(12,2) NOT NULL,
   `iva_porcentaje` decimal(5,2) NOT NULL,
@@ -546,10 +546,10 @@ CREATE TABLE `historia_clinica` (
   `cita_id` bigint DEFAULT NULL,
   `fecha_hora` datetime NOT NULL,
   `motivo` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `sintomas` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `diagnostico` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sintomas` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `diagnostico` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `observaciones` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `recomendaciones` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `recomendaciones` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `estado` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ABIERTA',
   `fecha_finalizacion` datetime DEFAULT NULL,
   `fecha_creacion` datetime NOT NULL,
@@ -778,7 +778,7 @@ CREATE TABLE `menu` (
   PRIMARY KEY (`menu_id`),
   UNIQUE KEY `uk_menu_code` (`code`),
   UNIQUE KEY `uk_menu_url` (`url`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -787,7 +787,7 @@ CREATE TABLE `menu` (
 
 LOCK TABLES `menu` WRITE;
 /*!40000 ALTER TABLE `menu` DISABLE KEYS */;
-INSERT INTO `menu` VALUES (1,'cita','Gestión de citas','/inicio/citas','fa-solid fa-calendar',1,'2026-01-01 00:00:00',NULL),(2,'clientes','Gestión de clientes','/inicio/clientes','fa-solid fa-user-check',1,'2026-01-01 00:00:00',NULL),(3,'especializaciones','Gestión de Especializaciones','/inicio/especializaciones','fa-solid fa-user-graduate',1,'2026-01-01 00:00:00',NULL),(4,'formulas','Gestión de Formulas','/inicio/formulas','fa-solid fa-clipboard-list',1,'2026-01-01 00:00:00',NULL),(5,'historias','Gestión de Historias','/inicio/historias','fa-solid fa-book-medical',1,'2026-01-01 00:00:00',NULL),(6,'mascotas','Gestión de Mascotas','/inicio/mascotas','fa-solid fa-paw',1,'2026-01-01 00:00:00',NULL),(7,'medicamentos','Gestión de Medicamentos','/inicio/medicamentos','fa-solid fa-capsules',1,'2026-01-01 00:00:00',NULL),(8,'medicos','Gestión de Medicos','/inicio/medicos','fa-solid fa-user-doctor',1,'2026-01-01 00:00:00',NULL),(9,'usuarios','Gestión de Usuarios','/inicio/usuarios','fa-solid fa-users',1,'2026-01-01 00:00:00',NULL),(10,'razas','Gestión de Razas','/inicio/razas','fa-solid fa-dog',1,'2026-11-09 17:38:22','2026-11-09 17:44:44'),(11,'perfiles','Perfiles y Menús','/inicio/perfiles','fa-solid fa-user-shield',1,'2026-11-09 17:38:22',NULL),(12,'despacho','Despacho de Medicamentos','/inicio/despacho','fa-solid fa-truck-medical',1,'2026-11-11 17:40:20',NULL),(13,'calendario','Mi calendario','/inicio/calendario','fa-solid fa-calendar-days',1,'2026-11-11 19:23:25',NULL),(14,'tarifas','Tarifas y Servicios','/inicio/tarifas','fa-solid fa-tags',1,'2026-11-15 09:45:28',NULL),(15,'atencion','Atención Médica','/inicio/atencion','fa-solid fa-stethoscope',1,'2026-11-15 09:45:28',NULL),(16,'facturacion','Facturación','/inicio/facturacion','fa-solid fa-file-invoice-dollar',1,'2026-11-15 09:45:28',NULL);
+INSERT INTO `menu` VALUES (1,'cita','Gestión de citas','/inicio/citas','fa-solid fa-calendar',1,'2026-01-01 00:00:00',NULL),(2,'clientes','Gestión de clientes','/inicio/clientes','fa-solid fa-user-check',1,'2026-01-01 00:00:00',NULL),(3,'especializaciones','Gestión de Especializaciones','/inicio/especializaciones','fa-solid fa-user-graduate',1,'2026-01-01 00:00:00',NULL),(4,'formulas','Gestión de Formulas','/inicio/formulas','fa-solid fa-clipboard-list',1,'2026-01-01 00:00:00',NULL),(5,'historias','Gestión de Historias','/inicio/historias','fa-solid fa-book-medical',1,'2026-01-01 00:00:00',NULL),(6,'mascotas','Gestión de Mascotas','/inicio/mascotas','fa-solid fa-paw',1,'2026-01-01 00:00:00',NULL),(7,'medicamentos','Gestión de Medicamentos','/inicio/medicamentos','fa-solid fa-capsules',1,'2026-01-01 00:00:00',NULL),(8,'medicos','Gestión de Medicos','/inicio/medicos','fa-solid fa-user-doctor',1,'2026-01-01 00:00:00',NULL),(9,'usuarios','Gestión de Usuarios','/inicio/usuarios','fa-solid fa-users',1,'2026-01-01 00:00:00',NULL),(10,'razas','Gestión de Razas','/inicio/razas','fa-solid fa-dog',1,'2026-11-09 17:38:22','2026-11-09 17:44:44'),(11,'perfiles','Perfiles y Menús','/inicio/perfiles','fa-solid fa-user-shield',1,'2026-11-09 17:38:22',NULL),(12,'despacho','Despacho de Medicamentos','/inicio/despacho','fa-solid fa-truck-medical',1,'2026-11-11 17:40:20',NULL),(13,'calendario','Mi calendario','/inicio/calendario','fa-solid fa-calendar-days',1,'2026-11-11 19:23:25',NULL),(14,'tarifas','Tarifas y Servicios','/inicio/tarifas','fa-solid fa-tags',1,'2026-11-15 09:45:28',NULL),(15,'atencion','Atención Médica','/inicio/atencion','fa-solid fa-stethoscope',1,'2026-11-15 09:45:28',NULL),(16,'facturacion','Facturación','/inicio/facturacion','fa-solid fa-file-invoice-dollar',1,'2026-11-15 09:45:28',NULL),(17,'reportes','Reportes','/inicio/reportes','fa-solid fa-chart-column',1,'2026-11-15 10:13:36',NULL);
 /*!40000 ALTER TABLE `menu` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -848,8 +848,8 @@ CREATE TABLE `pago` (
   `factura_id` bigint NOT NULL,
   `fecha` datetime NOT NULL,
   `valor` decimal(14,2) NOT NULL,
-  `medio` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `referencia` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `medio` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `referencia` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `usuario_id` int NOT NULL,
   PRIMARY KEY (`pago_id`),
   KEY `idx_pago_factura` (`factura_id`,`fecha`),
@@ -916,7 +916,7 @@ CREATE TABLE `perfil_menu` (
   KEY `fk_perfil_menu_menu` (`menu_id`),
   CONSTRAINT `fk_perfil_menu_menu` FOREIGN KEY (`menu_id`) REFERENCES `menu` (`menu_id`),
   CONSTRAINT `fk_perfil_menu_perfil` FOREIGN KEY (`perfil_id`) REFERENCES `perfil` (`perfil_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -925,7 +925,7 @@ CREATE TABLE `perfil_menu` (
 
 LOCK TABLES `perfil_menu` WRITE;
 /*!40000 ALTER TABLE `perfil_menu` DISABLE KEYS */;
-INSERT INTO `perfil_menu` VALUES (1,1,1),(2,1,2),(3,1,3),(4,1,4),(5,1,5),(6,1,6),(7,1,7),(8,1,8),(9,1,9),(10,1,10),(11,1,11),(24,1,14),(26,1,16),(20,2,1),(13,2,2),(21,2,6),(27,2,16),(16,3,4),(17,3,5),(18,3,7),(23,3,13),(25,3,15),(19,4,7),(22,4,12);
+INSERT INTO `perfil_menu` VALUES (1,1,1),(2,1,2),(3,1,3),(4,1,4),(5,1,5),(6,1,6),(7,1,7),(8,1,8),(9,1,9),(10,1,10),(11,1,11),(24,1,14),(26,1,16),(31,1,17),(20,2,1),(13,2,2),(21,2,6),(27,2,16),(32,2,17),(16,3,4),(17,3,5),(18,3,7),(23,3,13),(25,3,15),(19,4,7),(22,4,12);
 /*!40000 ALTER TABLE `perfil_menu` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -966,10 +966,10 @@ DROP TABLE IF EXISTS `servicio`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `servicio` (
   `servicio_id` bigint NOT NULL AUTO_INCREMENT,
-  `codigo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `nombre` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `descripcion` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tipo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `codigo` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nombre` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descripcion` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tipo` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `especializacion_id` bigint DEFAULT NULL COMMENT 'NULL = aplica a cualquier especialidad',
   `valor` decimal(12,2) NOT NULL,
   `iva_porcentaje` decimal(5,2) NOT NULL DEFAULT '0.00',
@@ -1008,12 +1008,12 @@ CREATE TABLE `servicio_tarifa_log` (
   `servicio_id` bigint NOT NULL,
   `fecha` datetime NOT NULL,
   `usuario_id` int DEFAULT NULL,
-  `accion` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `accion` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `valor_anterior` decimal(12,2) DEFAULT NULL,
   `valor_nuevo` decimal(12,2) DEFAULT NULL,
   `iva_anterior` decimal(5,2) DEFAULT NULL,
   `iva_nuevo` decimal(5,2) DEFAULT NULL,
-  `observacion` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `observacion` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`log_id`),
   KEY `idx_tarifa_log` (`servicio_id`,`fecha`),
   KEY `fk_tarifa_log_usuario` (`usuario_id`),
@@ -1080,4 +1080,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-15  9:45:37
+-- Dump completed on 2026-11-15 10:18:45

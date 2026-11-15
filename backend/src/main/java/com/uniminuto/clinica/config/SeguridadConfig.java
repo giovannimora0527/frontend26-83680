@@ -135,6 +135,10 @@ public class SeguridadConfig {
                 .requestMatchers(HttpMethod.PUT, "/factura/*/anular").hasRole(ADMIN)
                 .requestMatchers("/factura/**").hasAnyRole(ADMIN, RECEPCIONISTA)
 
+                // Reportes: el servicio filtra cada reporte por perfil (financieros e inventario solo
+                // administrador; gestión médica también recepción).
+                .requestMatchers(HttpMethod.GET, "/reporte/**").hasAnyRole(ADMIN, RECEPCIONISTA)
+
                 // Inventario.
                 .requestMatchers(HttpMethod.GET, "/medicamento/**").hasAnyRole(ADMIN, VETERINARIO, DESPACHO)
                 .requestMatchers("/medicamento/**").hasRole(ADMIN)

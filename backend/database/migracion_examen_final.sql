@@ -593,3 +593,13 @@ SELECT perfil_id, 14 FROM perfil WHERE codigo = 'ADMIN'
 UNION ALL SELECT perfil_id, 15 FROM perfil WHERE codigo = 'VETERINARIO'
 UNION ALL SELECT perfil_id, 16 FROM perfil WHERE codigo IN ('ADMIN', 'RECEPCIONISTA');
 
+
+-- =====================================================================
+-- 7. Reportes administrativos y contables (requerimiento 4)
+--    Menú para administración (todos los reportes) y recepción (gestión médica).
+-- =====================================================================
+INSERT INTO menu (menu_id, code, title, url, icon, activo, fecha_creacion) VALUES
+    (17, 'reportes', 'Reportes', '/inicio/reportes', 'fa-solid fa-chart-column', 1, NOW());
+
+INSERT INTO perfil_menu (perfil_id, menu_id)
+SELECT perfil_id, 17 FROM perfil WHERE codigo IN ('ADMIN', 'RECEPCIONISTA');

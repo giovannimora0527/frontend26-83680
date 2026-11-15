@@ -404,6 +404,103 @@ public class PdfDocumentos {
     }
 
     /**
+     * Reporte en PDF horizontal: encabezado de la clínica, título, filtros, fecha de
+     * generación, tabla con las columnas del reporte, fila de totales y resumen.
+     *
+     * @param r reporte generado.
+     * @return contenido del PDF.
+     */
+    public byte[] reporte(com.uniminuto.clinica.models.ReporteRs r) {
+        ByteArrayOutputStream salida = new ByteArrayOutputStream();
+        Document doc = new Document(PageSize.LETTER.rotate(), 28, 28, 28, 28);
+        PdfWriter.getInstance(doc, salida);
+        doc.open();
+        this.encabezado(doc, r.getTitulo().toUpperCase());
+        Paragraph info = new Paragraph(r.getCategoria() + (r.getFiltrosAplicados() == null || r.getFiltrosAplicados().isBlank()
+                ? "" : " · " + r.getFiltrosAplicados()) + " · Generado por " + r.getUsuario() + " el "
+                + fechaHora(r.getGenerado()), NORMAL);
+        info.setAlignment(Element.ALIGN_CENTER);
+        info.setSpacingAfter(8);
+        doc.add(info);
+
+        List<com.uniminuto.clinica.models.ReporteRs.Columna> cols = r.getColumnas();
+        PdfPTable tabla = new PdfPTable(cols.size());
+        tabla.setWidthPercentage(100);
+        tabla.setHeaderRows(1);
+        for (var c : cols) {
+            tabla.addCell(this.cabecera(c.getTitulo()));
+        }
+        if (r.getFilas().isEmpty()) {
+            PdfPCell vacio = new PdfPCell(new Phrase("Sin datos para los filtros seleccionados", NORMAL));
+            vacio.setColspan(cols.size());
+            vacio.setPadding(6);
+            vacio.setHorizontalAlignment(Element.ALIGN_CENTER);
+            tabla.addCell(vacio);
+        }
+        for (var fila : r.getFilas()) {
+            for (var c : cols) {
+                String texto = formatoReporte(fila.get(c.getClave()), c.getTipo());
+                tabla.addCell(esNumerico(c.getTipo()) ? this.celdaNumero(texto) : this.celda(texto));
+            }
+        }
+        if (!r.getTotales().isEmpty()) {
+            for (int i = 0; i < cols.size(); i++) {
+                var c = cols.get(i);
+                Object v = r.getTotales().get(c.getClave());
+                String texto = i == 0 ? "Totales" : v == null ? "" : formatoReporte(v, c.getTipo());
+                PdfPCell celda = new PdfPCell(new Phrase(texto, NEGRITA));
+                celda.setPadding(4);
+                celda.setBackgroundColor(new Color(235, 245, 252));
+                if (i > 0) {
+                    celda.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                }
+                tabla.addCell(celda);
+            }
+        }
+        doc.add(tabla);
+
+        if (!r.getResumen().isEmpty()) {
+            Paragraph res = new Paragraph();
+            res.setSpacingBefore(10);
+            r.getResumen().forEach((k, v) -> {
+                res.add(new Chunk(k + ": ", NEGRITA));
+                res.add(new Chunk((v instanceof BigDecimal b ? moneda(b) : String.valueOf(v)) + "     ", NORMAL));
+            });
+            doc.add(res);
+        }
+        Paragraph registros = new Paragraph(r.getFilas().size() + " registros", PEQUENA);
+        registros.setSpacingBefore(6);
+        doc.add(registros);
+        doc.close();
+        return salida.toByteArray();
+    }
+
+    /**
+     * Texto de un valor de reporte según el tipo de columna.
+     *
+     * @param v    valor.
+     * @param tipo tipo de la columna.
+     * @return texto.
+     */
+    public static String formatoReporte(Object v, String tipo) {
+        if (v == null) {
+            return "";
+        }
+        return switch (tipo) {
+            case "MONEDA" -> moneda(v instanceof BigDecimal b ? b : new BigDecimal(v.toString()));
+            case "PORCENTAJE" -> numero(v instanceof BigDecimal b ? b : new BigDecimal(v.toString())) + " %";
+            case "FECHA" -> v instanceof LocalDate d ? d.format(FECHA) : v.toString();
+            case "FECHA_HORA" -> v instanceof LocalDateTime d ? d.format(FECHA_HORA) : v.toString();
+            case "ENTERO" -> v instanceof Number n ? String.valueOf(n.longValue()) : v.toString();
+            default -> v.toString();
+        };
+    }
+
+    private static boolean esNumerico(String tipo) {
+        return "MONEDA".equals(tipo) || "ENTERO".equals(tipo) || "PORCENTAJE".equals(tipo);
+    }
+
+    /**
      * Celda alineada a la derecha para valores numéricos.
      */
     private PdfPCell celdaNumero(String texto) {

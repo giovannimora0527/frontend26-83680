@@ -9,6 +9,7 @@ import { CalendarioComponent } from './demo/pages/calendario/calendario.componen
 import { TarifasComponent } from './demo/pages/tarifas/tarifas.component';
 import { AtencionComponent } from './demo/pages/atencion/atencion.component';
 import { FacturacionComponent } from './demo/pages/facturacion/facturacion.component';
+import { ReportesComponent } from './demo/pages/reportes/reportes.component';
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 import { AdminComponent } from './theme/layout/admin/admin.component';
@@ -49,6 +50,7 @@ export const routes: Routes = [
       { path: 'tarifas', component: TarifasComponent, data: { title: 'Tarifas y servicios' }},
       { path: 'atencion', component: AtencionComponent, data: { title: 'Atención médica' }},
       { path: 'facturacion', component: FacturacionComponent, data: { title: 'Facturación' }},
+      { path: 'reportes', component: ReportesComponent, data: { title: 'Reportes' }},
       { path: 'medicamentos', component: InventarioComponent, data: { title: 'Inventario' }},
       { path: 'perfiles', component: PerfilComponent, data: { title: 'Perfiles y Menús' }},
       { path: 'clientes', component: ClienteComponent, data: { title: 'Clientes' }},
