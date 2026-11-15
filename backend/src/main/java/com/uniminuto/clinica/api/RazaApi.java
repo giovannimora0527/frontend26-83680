@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.entity.Raza;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.RazaRq;
@@ -17,6 +18,7 @@ import java.util.List;
  * Servicios REST de razas: GET para consultar, POST para crear y PUT para
  * editar. Las razas no se eliminan porque las mascotas las referencian.
  */
+@Tag(name = "06. Razas", description = "Catálogo de razas y especies")
 @RequestMapping("/raza")
 public interface RazaApi {
 

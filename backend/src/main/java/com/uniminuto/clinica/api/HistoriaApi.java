@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.CitaDisponibleRs;
 import com.uniminuto.clinica.models.HistoriaRq;
 import com.uniminuto.clinica.models.HistoriaRs;
@@ -22,6 +23,7 @@ import java.util.List;
  * Servicios REST de historias clínicas: GET para consultar, POST para crear
  * y PUT para cerrarlas.
  */
+@Tag(name = "12. Historias clínicas", description = "Historias clínicas")
 @RequestMapping("/historia")
 public interface HistoriaApi {
 

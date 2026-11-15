@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.AgendaAtencionRs;
 import com.uniminuto.clinica.models.AtencionRq;
 import com.uniminuto.clinica.models.AtencionRs;
@@ -22,6 +23,7 @@ import java.util.List;
 /**
  * Servicios REST de la atención médica (perfil VETERINARIO).
  */
+@Tag(name = "14. Atención médica", description = "Atención de la cita, servicios prestados, finalización y prefactura")
 @RequestMapping("/atencion")
 public interface AtencionApi {
 

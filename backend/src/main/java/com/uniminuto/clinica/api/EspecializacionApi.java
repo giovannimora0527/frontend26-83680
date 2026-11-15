@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.entity.Especializacion;
 import com.uniminuto.clinica.models.EspecializacionRq;
 import com.uniminuto.clinica.models.MiRespuestaRS;
@@ -17,6 +18,7 @@ import java.util.List;
  * Servicios REST de especializaciones médicas: GET para consultar, POST para
  * crear y PUT para editar. No se eliminan porque los veterinarios las referencian.
  */
+@Tag(name = "07. Especialidades", description = "Especialidades veterinarias (activas e inactivas)")
 @RequestMapping("/especializacion")
 public interface EspecializacionApi {
 

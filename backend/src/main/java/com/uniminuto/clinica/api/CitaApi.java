@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.entity.EstadoCitaCatalogo;
 import com.uniminuto.clinica.models.CitaHistorialRs;
 import com.uniminuto.clinica.models.CitaRq;
@@ -25,6 +26,7 @@ import java.util.List;
  * Servicios REST para la gestión de citas médicas.
  * GET para consultar, POST para crear y PUT para modificar.
  */
+@Tag(name = "09. Citas", description = "Citas, calendario, cambios de estado, historial y reporte en Excel")
 @RequestMapping("/cita")
 public interface CitaApi {
 

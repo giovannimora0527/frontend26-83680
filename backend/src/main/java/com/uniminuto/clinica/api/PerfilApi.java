@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.MenuRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.PerfilMenusRq;
@@ -16,6 +17,7 @@ import java.util.List;
 /**
  * Servicios REST para administrar perfiles y menús.
  */
+@Tag(name = "02. Perfiles y menús", description = "Perfiles de usuario y menús habilitados por perfil")
 @RequestMapping("/perfil")
 public interface PerfilApi {
 

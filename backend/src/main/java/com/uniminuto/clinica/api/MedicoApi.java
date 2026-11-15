@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.entity.Medico;
 import com.uniminuto.clinica.models.HorarioRq;
 import com.uniminuto.clinica.models.HorarioRs;
@@ -19,6 +20,7 @@ import java.util.List;
  * Servicios REST de veterinarios: GET para consultar, POST para crear y PUT
  * para editar. No se eliminan porque sus citas, historias y fórmulas los referencian.
  */
+@Tag(name = "08. Veterinarios", description = "Veterinarios, estado y horarios de disponibilidad")
 @RequestMapping("/medico")
 public interface MedicoApi {
 

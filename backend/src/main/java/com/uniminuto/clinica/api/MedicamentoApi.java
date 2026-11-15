@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.AjusteInventarioRq;
 import com.uniminuto.clinica.models.LoteRq;
 import com.uniminuto.clinica.models.MedicamentoRq;
@@ -23,6 +24,7 @@ import java.util.List;
  * se eliminan (se inactivan) y las existencias solo cambian mediante
  * movimientos registrados.
  */
+@Tag(name = "10. Inventario", description = "Medicamentos y productos, lotes, ajustes y movimientos")
 @RequestMapping("/medicamento")
 public interface MedicamentoApi {
 

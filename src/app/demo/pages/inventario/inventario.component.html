@@ -43,9 +43,14 @@
     <div class="card">
       <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Inventario</h5>
-        <button type="button" class="btn btn-primary" *ngIf="puedeAdministrar" (click)="abrirNuevo()">
-          <i class="fas fa-plus me-1"></i> Nuevo producto
-        </button>
+        <div class="d-flex gap-2" *ngIf="puedeAdministrar">
+          <button type="button" class="btn btn-outline-primary" (click)="cargaMasiva.abrir()">
+            <i class="fas fa-file-import me-1"></i> Carga masiva
+          </button>
+          <button type="button" class="btn btn-primary" (click)="abrirNuevo()">
+            <i class="fas fa-plus me-1"></i> Nuevo producto
+          </button>
+        </div>
       </div>
 
       <div class="card-body">
@@ -507,3 +512,5 @@
     </div>
   </div>
 </div>
+
+<app-carga-masiva #cargaMasiva (importado)="listar()"></app-carga-masiva>

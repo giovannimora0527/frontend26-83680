@@ -27,4 +27,12 @@ public interface MedicamentoRepository extends JpaRepository<Medicamento, Long> 
      * @return true si existe.
      */
     boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
+
+    /**
+     * Busca un producto por su código.
+     *
+     * @param codigo código.
+     * @return el producto, si existe.
+     */
+    java.util.Optional<com.uniminuto.clinica.entity.Medicamento> findFirstByCodigoIgnoreCase(String codigo);
 }

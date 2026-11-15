@@ -100,8 +100,9 @@ export class BackendService {
     data: any
   ): Observable<T> {
     const tokenRecuperado = localStorage.getItem('token') || ''; // Evita `null`
+    // Solo el token: el navegador pone el Content-Type multipart con su separador
+    // (una cabecera adicional haría que el backend rechazara la petición por CORS).
     const headers = new HttpHeaders({
-      mimeType: 'multipart/form-data',
       Authorization: tokenRecuperado ? `Bearer ${tokenRecuperado}` : '',
     });
     return this.http.post<T>(`${urlApi}/${endpoint}/${service}`, data, {

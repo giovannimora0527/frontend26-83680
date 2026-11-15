@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.UsuarioRq;
 import com.uniminuto.clinica.models.UsuarioRs;
@@ -18,6 +19,7 @@ import java.util.List;
  * y PUT para editar, activar o inactivar. Las respuestas nunca incluyen la
  * contraseña ni su hash.
  */
+@Tag(name = "03. Usuarios", description = "Usuarios del sistema")
 @RequestMapping("/usuario")
 public interface UsuarioApi {
 

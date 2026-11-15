@@ -88,6 +88,10 @@ public class SeguridadConfig {
     private void definirPermisos(
             AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry permisos) {
         permisos
+                // Documentación de la API (Swagger UI y especificación OpenAPI).
+                .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**")
+                .permitAll()
+
                 // Autenticación.
                 .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                 .requestMatchers("/auth/**").authenticated()
@@ -139,7 +143,8 @@ public class SeguridadConfig {
                 // administrador; gestión médica también recepción).
                 .requestMatchers(HttpMethod.GET, "/reporte/**").hasAnyRole(ADMIN, RECEPCIONISTA)
 
-                // Inventario.
+                // Inventario (la carga masiva y su log son solo del administrador).
+                .requestMatchers("/medicamento/carga/**").hasRole(ADMIN)
                 .requestMatchers(HttpMethod.GET, "/medicamento/**").hasAnyRole(ADMIN, VETERINARIO, DESPACHO)
                 .requestMatchers("/medicamento/**").hasRole(ADMIN)
 

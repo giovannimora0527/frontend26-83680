@@ -15,6 +15,7 @@ import { Subscription } from 'rxjs';
 import { InventarioService } from './service/inventario.service';
 import { AuthService } from 'src/app/services/auth.service';
 import { PaginadorComponent } from 'src/app/shared/paginador/paginador.component';
+import { CargaMasivaComponent } from './carga-masiva/carga-masiva.component';
 import { AjusteRq, Lote, LoteRq, Movimiento, Producto, ProductoRq, TIPOS_PRODUCTO } from 'src/app/models/inventario';
 import { TablaLocal } from 'src/app/utils/tabla-local';
 import { ModalBootstrap } from 'src/app/utils/modal';
@@ -39,7 +40,7 @@ const CANTIDAD_MAXIMA = 1000000;
  */
 @Component({
   selector: 'app-inventario',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PaginadorComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PaginadorComponent, CargaMasivaComponent],
   templateUrl: './inventario.component.html'
 })
 export class InventarioComponent implements OnInit, OnDestroy {

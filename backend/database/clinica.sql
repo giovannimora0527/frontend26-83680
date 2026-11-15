@@ -83,6 +83,89 @@ LOCK TABLES `atencion_servicio` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `carga_inventario`
+--
+
+DROP TABLE IF EXISTS `carga_inventario`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `carga_inventario` (
+  `carga_id` bigint NOT NULL AUTO_INCREMENT,
+  `archivo` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `formato` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `usuario_id` int NOT NULL,
+  `fecha` datetime NOT NULL,
+  `estado` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `total_filas` int NOT NULL,
+  `filas_validas` int NOT NULL,
+  `filas_error` int NOT NULL,
+  `filas_importadas` int NOT NULL DEFAULT '0',
+  `fecha_confirmacion` datetime DEFAULT NULL,
+  PRIMARY KEY (`carga_id`),
+  KEY `idx_carga_fecha` (`fecha`),
+  KEY `fk_carga_usuario` (`usuario_id`),
+  CONSTRAINT `fk_carga_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`),
+  CONSTRAINT `ck_carga_estado` CHECK ((`estado` in (_utf8mb4'VALIDADA',_utf8mb4'CONFIRMADA',_utf8mb4'DESCARTADA'))),
+  CONSTRAINT `ck_carga_formato` CHECK ((`formato` in (_utf8mb4'XLSX',_utf8mb4'CSV')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `carga_inventario`
+--
+
+LOCK TABLES `carga_inventario` WRITE;
+/*!40000 ALTER TABLE `carga_inventario` DISABLE KEYS */;
+/*!40000 ALTER TABLE `carga_inventario` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `carga_inventario_detalle`
+--
+
+DROP TABLE IF EXISTS `carga_inventario_detalle`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `carga_inventario_detalle` (
+  `detalle_id` bigint NOT NULL AUTO_INCREMENT,
+  `carga_id` bigint NOT NULL,
+  `fila` int NOT NULL,
+  `codigo` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `nombre` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tipo` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `presentacion` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `descripcion` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `registro_invima` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `precio_venta` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `iva` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stock_minimo` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `numero_lote` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fecha_compra` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fecha_vencimiento` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cantidad` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `precio_compra` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `estado` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `mensaje` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `medicamento_id` bigint DEFAULT NULL,
+  PRIMARY KEY (`detalle_id`),
+  KEY `idx_carga_detalle` (`carga_id`,`fila`),
+  KEY `fk_carga_detalle_medicamento` (`medicamento_id`),
+  CONSTRAINT `fk_carga_detalle_carga` FOREIGN KEY (`carga_id`) REFERENCES `carga_inventario` (`carga_id`),
+  CONSTRAINT `fk_carga_detalle_medicamento` FOREIGN KEY (`medicamento_id`) REFERENCES `medicamento` (`id`),
+  CONSTRAINT `ck_carga_detalle_estado` CHECK ((`estado` in (_utf8mb4'VALIDA',_utf8mb4'ERROR',_utf8mb4'IMPORTADA',_utf8mb4'FALLIDA')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `carga_inventario_detalle`
+--
+
+LOCK TABLES `carga_inventario_detalle` WRITE;
+/*!40000 ALTER TABLE `carga_inventario_detalle` DISABLE KEYS */;
+/*!40000 ALTER TABLE `carga_inventario_detalle` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `cita`
 --
 
@@ -1080,4 +1163,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-15 10:18:45
+-- Dump completed on 2026-11-15 11:11:09

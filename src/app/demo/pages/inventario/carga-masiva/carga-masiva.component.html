@@ -1,0 +1,118 @@
+<div class="modal fade" id="modalCargaMasiva" tabindex="-1" aria-labelledby="tituloCargaMasiva" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tituloCargaMasiva">Carga masiva de inventario</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item">
+            <button type="button" class="nav-link" [class.active]="pestana === 'nueva'" (click)="pestana = 'nueva'">
+              <i class="fas fa-file-arrow-up me-1"></i> Carga
+            </button>
+          </li>
+          <li class="nav-item">
+            <button type="button" class="nav-link" [class.active]="pestana === 'historial'" (click)="verHistorial()">
+              <i class="fas fa-clock-rotate-left me-1"></i> Log de cargas
+            </button>
+          </li>
+        </ul>
+
+        <ng-container *ngIf="pestana === 'nueva'">
+          <div class="row g-2 align-items-end mb-3" *ngIf="!carga || carga.estado !== 'CONFIRMADA'">
+            <div class="col-md-6">
+              <label class="form-label" for="archivoCarga">Archivo .xlsx o .csv (máximo 5 MB)</label>
+              <input id="archivoCarga" type="file" class="form-control" accept=".xlsx,.csv" (change)="elegirArchivo($event)" />
+            </div>
+            <div class="col-md-3">
+              <button type="button" class="btn btn-primary w-100" [disabled]="!archivo || procesando" (click)="validar()">
+                <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                <i *ngIf="!procesando" class="fas fa-list-check me-1"></i> Validar archivo
+              </button>
+            </div>
+            <div class="col-md-3">
+              <button type="button" class="btn btn-outline-secondary w-100" (click)="descargarPlantilla()">
+                <i class="fas fa-download me-1"></i> Plantilla
+              </button>
+            </div>
+            <div class="col-12 small text-muted">
+              Primero se valida el archivo y se muestra la vista previa; nada se guarda en el inventario hasta confirmar.
+              Solo se importan las filas válidas.
+            </div>
+          </div>
+
+          <ng-container *ngIf="carga as c">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <div class="border rounded px-3 py-2"><div class="small text-muted">Archivo</div><div class="fw-semibold">{{ c.archivo }}</div></div>
+              <div class="border rounded px-3 py-2"><div class="small text-muted">Filas</div><div class="fw-semibold">{{ c.totalFilas }}</div></div>
+              <div class="border rounded px-3 py-2 border-success"><div class="small text-muted">Válidas</div><div class="fw-semibold text-success">{{ c.filasValidas }}</div></div>
+              <div class="border rounded px-3 py-2 border-danger"><div class="small text-muted">Con error</div><div class="fw-semibold text-danger">{{ c.filasError }}</div></div>
+              <div class="border rounded px-3 py-2 border-primary" *ngIf="c.estado === 'CONFIRMADA'">
+                <div class="small text-muted">Importadas</div><div class="fw-semibold text-primary">{{ c.filasImportadas }}</div></div>
+              <div class="border rounded px-3 py-2"><div class="small text-muted">Estado</div><div class="fw-semibold">{{ c.estado }}</div></div>
+            </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+              <div class="form-check">
+                <input id="soloErrores" type="checkbox" class="form-check-input" [(ngModel)]="soloErrores" />
+                <label class="form-check-label" for="soloErrores">Mostrar solo las filas con error</label>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger" *ngIf="c.filasError" (click)="descargarErrores(c.cargaId)">
+                <i class="fas fa-file-excel me-1"></i> Informe de errores
+              </button>
+            </div>
+            <div class="table-responsive" style="max-height: 50vh">
+              <table class="table table-sm table-hover align-middle">
+                <thead class="table-light sticky-top">
+                  <tr><th>Fila</th><th>Código</th><th>Nombre</th><th>Tipo</th><th class="text-end">Precio</th><th>Lote</th>
+                    <th class="text-end">Cant.</th><th>Vence</th><th>Estado</th><th>Detalle</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let f of filas" [class.table-danger]="f.estado === 'ERROR' || f.estado === 'FALLIDA'">
+                    <td>{{ f.fila }}</td><td>{{ f.codigo }}</td><td>{{ f.nombre }}</td><td>{{ f.tipo }}</td>
+                    <td class="text-end">{{ f.precioVenta }}</td><td>{{ f.numeroLote }}</td><td class="text-end">{{ f.cantidad }}</td>
+                    <td class="text-nowrap">{{ f.fechaVencimiento }}</td>
+                    <td><span class="badge" [ngClass]="estadoFila(f.estado).clase">{{ estadoFila(f.estado).texto }}</span></td>
+                    <td class="small">{{ f.mensaje }}</td>
+                  </tr>
+                  <tr *ngIf="!filas.length"><td colspan="10" class="text-center text-muted">Sin filas para mostrar.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+        </ng-container>
+
+        <ng-container *ngIf="pestana === 'historial'">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr><th>N.°</th><th>Fecha</th><th>Usuario</th><th>Archivo</th><th class="text-end">Filas</th><th class="text-end">Válidas</th>
+                <th class="text-end">Errores</th><th class="text-end">Importadas</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let h of historial">
+                <td>{{ h.cargaId }}</td>
+                <td class="text-nowrap">{{ h.fecha | date: 'yyyy-MM-dd HH:mm' }}</td>
+                <td>{{ h.usuario }}</td>
+                <td>{{ h.archivo }}</td>
+                <td class="text-end">{{ h.totalFilas }}</td>
+                <td class="text-end">{{ h.filasValidas }}</td>
+                <td class="text-end">{{ h.filasError }}</td>
+                <td class="text-end">{{ h.filasImportadas }}</td>
+                <td>{{ h.estado }}</td>
+                <td class="text-end"><button type="button" class="btn btn-sm btn-outline-info" title="Ver detalle" (click)="abrirCarga(h.cargaId)"><i class="fas fa-eye"></i></button></td>
+              </tr>
+              <tr *ngIf="!historial.length"><td colspan="10" class="text-center text-muted">No hay cargas registradas.</td></tr>
+            </tbody>
+          </table>
+        </ng-container>
+      </div>
+      <div class="modal-footer" *ngIf="pestana === 'nueva' && carga?.estado === 'VALIDADA'">
+        <button type="button" class="btn btn-outline-secondary" [disabled]="procesando" (click)="descartar()">Descartar</button>
+        <button type="button" class="btn btn-success" [disabled]="procesando || !carga?.filasValidas" (click)="confirmar()">
+          <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+          Importar {{ carga?.filasValidas }} registros válidos
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

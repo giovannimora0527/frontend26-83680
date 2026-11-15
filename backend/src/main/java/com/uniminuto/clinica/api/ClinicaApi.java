@@ -1,11 +1,13 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.uniminuto.clinica.exception.BadRequestException;
 
+@Tag(name = "20. Clínica", description = "Servicios generales")
 @RequestMapping("/clinica")
 public interface ClinicaApi {
 

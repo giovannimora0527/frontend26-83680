@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.entity.Cliente;
 import com.uniminuto.clinica.models.ClienteRq;
 import com.uniminuto.clinica.models.MiRespuestaRS;
@@ -19,6 +20,7 @@ import java.util.List;
  * editar, activar o inactivar (un cliente no se elimina para no dejar
  * mascotas, citas ni historias huérfanas).
  */
+@Tag(name = "04. Clientes", description = "Propietarios de las mascotas")
 @RequestMapping("/cliente")
 public interface ClienteApi {
 

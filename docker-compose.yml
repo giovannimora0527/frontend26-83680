@@ -1,0 +1,61 @@
+# Clínica Veterinaria Uniminuto: base de datos, backend y frontend.
+#
+#   docker compose up --build
+#
+# Frontend: http://localhost:4200
+# API:      http://localhost:8080/clinica/v1   (Swagger: /clinica/v1/swagger-ui.html)
+# MySQL:    localhost:3307 (base clinica)
+#
+# Las contraseñas tienen valores por defecto solo para desarrollo y pruebas;
+# se pueden cambiar con un archivo .env (ver docs/DOCUMENTACION_TECNICA.md).
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: clinica-db
+    environment:
+      MYSQL_DATABASE: clinica
+      MYSQL_USER: ${DB_USUARIO:-clinica}
+      MYSQL_PASSWORD: ${DB_CLAVE:-clinica123}
+      MYSQL_ROOT_PASSWORD: ${DB_CLAVE_ROOT:-clinica_root}
+      TZ: America/Bogota
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      # Al crearse por primera vez, la base se inicializa con el esquema y los datos del proyecto.
+      - ./backend/database/clinica.sql:/docker-entrypoint-initdb.d/01-clinica.sql:ro
+      - datos_mysql:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_CLAVE_ROOT:-clinica_root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build: ./backend
+    container_name: clinica-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Perfil dev: crea los usuarios de prueba por rol si no existen (docs/CREDENCIALES_PRUEBA.md).
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/clinica?serverTimezone=America/Bogota&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USUARIO:-clinica}
+      SPRING_DATASOURCE_PASSWORD: ${DB_CLAVE:-clinica123}
+      CLINICA_CORS_ORIGENES: http://localhost:4200
+      TZ: America/Bogota
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: .
+    container_name: clinica-frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
+volumes:
+  datos_mysql:

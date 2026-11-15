@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.FacturaRq;
 import com.uniminuto.clinica.models.FacturaRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
@@ -22,6 +23,7 @@ import java.util.List;
 /**
  * Servicios REST de facturación y pagos (administración y recepción).
  */
+@Tag(name = "18. Facturación", description = "Facturas, pagos, anulación y PDF")
 @RequestMapping("/factura")
 public interface FacturaApi {
 

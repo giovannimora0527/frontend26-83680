@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.ReporteDefRs;
 import com.uniminuto.clinica.models.ReporteRs;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,6 +17,7 @@ import java.util.List;
  * Servicios REST de reportes: catálogo según el perfil, vista previa y descarga en PDF o Excel.
  * Los financieros y de inventario son del administrador; los de gestión médica, también de recepción.
  */
+@Tag(name = "19. Reportes", description = "Reportes financieros, de inventario y de gestión médica en PDF y Excel")
 @RequestMapping("/reporte")
 public interface ReporteApi {
 

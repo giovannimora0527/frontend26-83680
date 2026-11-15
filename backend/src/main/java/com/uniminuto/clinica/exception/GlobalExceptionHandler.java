@@ -161,6 +161,30 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Archivo que supera el tamaño permitido (HTTP 400).
+     *
+     * @param ex excepción de tamaño.
+     * @return respuesta de error con estado 400.
+     */
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleArchivoGrande(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        return construir(HttpStatus.BAD_REQUEST, "BAD REQUEST", "El archivo supera el tamaño máximo de 5 MB.");
+    }
+
+    /**
+     * Falta una parte del formulario multipart, por ejemplo el archivo (HTTP 400).
+     *
+     * @param ex excepción de parte faltante.
+     * @return respuesta de error con estado 400.
+     */
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleParteFaltante(
+            org.springframework.web.multipart.support.MissingServletRequestPartException ex) {
+        return construir(HttpStatus.BAD_REQUEST, "BAD REQUEST", "Debe adjuntar el archivo ('" + ex.getRequestPartName() + "').");
+    }
+
+    /**
      * Ruta inexistente (HTTP 404). Sin este manejador el error genérico la
      * convertiría en un 500.
      *

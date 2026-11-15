@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.entity.Mascota;
 import com.uniminuto.clinica.models.MascotaRq;
 import com.uniminuto.clinica.models.MiRespuestaRS;
@@ -18,6 +19,7 @@ import java.util.List;
  * Servicios REST de mascotas: GET para consultar, POST para crear y PUT para
  * editar. No se eliminan porque sus citas, historias y fórmulas las referencian.
  */
+@Tag(name = "05. Mascotas", description = "Pacientes")
 @RequestMapping("/mascota")
 public interface MascotaApi {
 

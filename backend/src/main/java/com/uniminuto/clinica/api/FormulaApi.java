@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.FormulaRq;
 import com.uniminuto.clinica.models.FormulaRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 /**
  * Servicios REST de fórmulas médicas. Una fórmula no se elimina: se anula con motivo.
  */
+@Tag(name = "15. Fórmulas médicas", description = "Fórmulas con varios medicamentos, confirmación, anulación y PDF")
 @RequestMapping("/formula")
 public interface FormulaApi {
 

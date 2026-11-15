@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.AnotacionRq;
 import com.uniminuto.clinica.models.AnotacionRs;
 import com.uniminuto.clinica.models.MiRespuestaRS;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 /**
  * Servicios REST de anotaciones de historias clínicas.
  */
+@Tag(name = "13. Anotaciones", description = "Anotaciones de las historias clínicas")
 @RequestMapping("/anotacion")
 public interface AnotacionApi {
 

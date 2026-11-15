@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.DespachoRq;
 import com.uniminuto.clinica.models.DespachoRs;
 import com.uniminuto.clinica.models.FormulaRs;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 /**
  * Servicios REST del despacho de medicamentos (perfil DESPACHO_MEDICO).
  */
+@Tag(name = "16. Despacho", description = "Despacho y dispensación de medicamentos (perfil DESPACHO_MEDICO)")
 @RequestMapping("/despacho")
 public interface DespachoApi {
 

@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.LoginRq;
 import com.uniminuto.clinica.models.LoginRs;
 import com.uniminuto.clinica.models.PerfilRs;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 /**
  * Servicios REST de autenticación.
  */
+@Tag(name = "01. Autenticación", description = "Inicio de sesión con JWT y perfil del usuario")
 @RequestMapping("/auth")
 public interface AuthApi {
 

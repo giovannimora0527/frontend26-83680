@@ -603,3 +603,56 @@ INSERT INTO menu (menu_id, code, title, url, icon, activo, fecha_creacion) VALUE
 
 INSERT INTO perfil_menu (perfil_id, menu_id)
 SELECT perfil_id, 17 FROM perfil WHERE codigo IN ('ADMIN', 'RECEPCIONISTA');
+
+-- =====================================================================
+-- 8. Carga masiva de inventario (requerimiento 1.4)
+--    Cada archivo queda registrado con su usuario, fecha, totales y el
+--    resultado de cada fila (log de cargue). La importación se hace fila
+--    por fila en transacciones independientes.
+-- =====================================================================
+CREATE TABLE carga_inventario (
+    carga_id            BIGINT       NOT NULL AUTO_INCREMENT,
+    archivo             VARCHAR(200) NOT NULL,
+    formato             VARCHAR(10)  NOT NULL,
+    usuario_id          INT          NOT NULL,
+    fecha               DATETIME     NOT NULL,
+    estado              VARCHAR(20)  NOT NULL,
+    total_filas         INT          NOT NULL,
+    filas_validas       INT          NOT NULL,
+    filas_error         INT          NOT NULL,
+    filas_importadas    INT          NOT NULL DEFAULT 0,
+    fecha_confirmacion  DATETIME     NULL,
+    PRIMARY KEY (carga_id),
+    INDEX idx_carga_fecha (fecha),
+    CONSTRAINT fk_carga_usuario FOREIGN KEY (usuario_id) REFERENCES usuario (id),
+    CONSTRAINT ck_carga_formato CHECK (formato IN ('XLSX', 'CSV')),
+    CONSTRAINT ck_carga_estado CHECK (estado IN ('VALIDADA', 'CONFIRMADA', 'DESCARTADA'))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE carga_inventario_detalle (
+    detalle_id         BIGINT        NOT NULL AUTO_INCREMENT,
+    carga_id           BIGINT        NOT NULL,
+    fila               INT           NOT NULL,
+    codigo             VARCHAR(50)   NULL,
+    nombre             VARCHAR(150)  NULL,
+    tipo               VARCHAR(30)   NULL,
+    presentacion       VARCHAR(150)  NULL,
+    descripcion        VARCHAR(500)  NULL,
+    registro_invima    VARCHAR(50)   NULL,
+    precio_venta       VARCHAR(30)   NULL,
+    iva                VARCHAR(30)   NULL,
+    stock_minimo       VARCHAR(30)   NULL,
+    numero_lote        VARCHAR(50)   NULL,
+    fecha_compra       VARCHAR(30)   NULL,
+    fecha_vencimiento  VARCHAR(30)   NULL,
+    cantidad           VARCHAR(30)   NULL,
+    precio_compra      VARCHAR(30)   NULL,
+    estado             VARCHAR(20)   NOT NULL,
+    mensaje            VARCHAR(1000) NULL,
+    medicamento_id     BIGINT        NULL,
+    PRIMARY KEY (detalle_id),
+    INDEX idx_carga_detalle (carga_id, fila),
+    CONSTRAINT fk_carga_detalle_carga FOREIGN KEY (carga_id) REFERENCES carga_inventario (carga_id),
+    CONSTRAINT fk_carga_detalle_medicamento FOREIGN KEY (medicamento_id) REFERENCES medicamento (id),
+    CONSTRAINT ck_carga_detalle_estado CHECK (estado IN ('VALIDA', 'ERROR', 'IMPORTADA', 'FALLIDA'))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

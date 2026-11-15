@@ -1,5 +1,6 @@
 package com.uniminuto.clinica.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.uniminuto.clinica.models.MiRespuestaRS;
 import com.uniminuto.clinica.models.ServicioRq;
 import com.uniminuto.clinica.models.ServicioRs;
@@ -18,6 +19,7 @@ import java.util.List;
 /**
  * Servicios REST de servicios y tarifas (consultas, procedimientos, laboratorio).
  */
+@Tag(name = "17. Tarifas", description = "Servicios, tarifas, IVA y log de cambios")
 @RequestMapping("/servicio")
 public interface ServicioApi {
 
