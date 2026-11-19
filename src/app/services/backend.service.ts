@@ -121,4 +121,22 @@ export class BackendService {
       headers: headers,
     });
   }
+
+  // Servicio generico para descargar archivos binarios (ej. reportes Excel/PDF).
+  getBlob(
+    urlApi: string,
+    endpoint: string,
+    service: string,
+    routerParams?: HttpParams
+  ): Observable<Blob> {
+    const tokenRecuperado = localStorage.getItem('token') || '';
+    const headers = new HttpHeaders({
+      Authorization: tokenRecuperado ? `Bearer ${tokenRecuperado}` : '',
+    });
+    return this.http.get(`${urlApi}/${endpoint}/${service}`, {
+      params: routerParams,
+      headers: headers,
+      responseType: 'blob',
+    });
+  }
 }

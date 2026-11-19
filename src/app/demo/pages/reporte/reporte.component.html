@@ -1,0 +1,809 @@
+<div class="container-fluid">
+  <!-- 1. Cabecera y Barra Global de Filtros de Reportes Administrativos y Contables -->
+  <div class="card border-0 shadow-sm mb-3 reporte-header-card">
+    <div class="card-body py-3">
+      <div class="row g-3 align-items-center justify-content-between mb-2">
+        <div class="col-lg-5">
+          <h5 class="mb-0 fw-bold text-dark">
+            <i class="fa fa-chart-pie text-primary me-2"></i>Centro de Reportes Administrativos y Contables
+          </h5>
+          <small class="text-muted">
+            Análisis financiero (4.1), valoración y Kardex de inventario (4.2) e indicadores de gestión médica (4.3)
+          </small>
+        </div>
+
+        <!-- Selector de Módulo de Reporte -->
+        <div class="col-lg-7 text-lg-end">
+          <div class="btn-group" role="group" aria-label="Tipo de reporte">
+            <button type="button" class="btn btn-sm"
+              [ngClass]="moduloActivo === 'FINANCIERO' ? 'btn-primary fw-semibold' : 'btn-outline-primary'"
+              (click)="cambiarModulo('FINANCIERO')">
+              <i class="fa fa-coins me-1"></i>4.1 Reportes Financieros
+            </button>
+            <button type="button" class="btn btn-sm"
+              [ngClass]="moduloActivo === 'INVENTARIO' ? 'btn-primary fw-semibold' : 'btn-outline-primary'"
+              (click)="cambiarModulo('INVENTARIO')">
+              <i class="fa fa-boxes-stacked me-1"></i>4.2 Reportes de Inventario
+            </button>
+            <button type="button" class="btn btn-sm"
+              [ngClass]="moduloActivo === 'MEDICO' ? 'btn-primary fw-semibold' : 'btn-outline-primary'"
+              (click)="cambiarModulo('MEDICO')">
+              <i class="fa fa-user-doctor me-1"></i>4.3 Gestión Médica
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros por Rango de Fechas, Veterinario, Especialidad y Medicamento -->
+      <div class="row g-2 pt-2 border-top align-items-end">
+        <div class="col-md-2">
+          <label class="form-label small mb-1 text-muted fw-semibold">Fecha inicial</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaInicial" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1 text-muted fw-semibold">Fecha final</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaFinal" />
+        </div>
+
+        <div class="col-md-3" *ngIf="moduloActivo !== 'INVENTARIO'">
+          <label class="form-label small mb-1 text-muted fw-semibold">Filtrar por Veterinario</label>
+          <select class="form-select form-select-sm" [(ngModel)]="filtroMedicoId">
+            <option [ngValue]="null">Todos los veterinarios</option>
+            <option *ngFor="let med of listMedicos" [ngValue]="med.id">
+              Dr(a). {{ nombreCompleto(med) }} ({{ med.especializacion?.nombre }})
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-2" *ngIf="moduloActivo !== 'INVENTARIO'">
+          <label class="form-label small mb-1 text-muted fw-semibold">Especialidad</label>
+          <select class="form-select form-select-sm" [(ngModel)]="filtroEspecializacionId">
+            <option [ngValue]="null">Todas</option>
+            <option *ngFor="let esp of listEspecializaciones" [ngValue]="esp.id">
+              {{ esp.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-3" *ngIf="moduloActivo === 'INVENTARIO'">
+          <label class="form-label small mb-1 text-muted fw-semibold">Medicamento (Filtro Kardex)</label>
+          <select class="form-select form-select-sm" [(ngModel)]="filtroMedicamentoId">
+            <option [ngValue]="null">Todos los medicamentos</option>
+            <option *ngFor="let m of listMedicamentos" [ngValue]="m.id">
+              {{ m.nombre }} ({{ m.codigo }})
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-2" *ngIf="moduloActivo === 'INVENTARIO'">
+          <label class="form-label small mb-1 text-muted fw-semibold">Umbral próx. vencer (días)</label>
+          <input type="number" class="form-control form-control-sm" [(ngModel)]="diasProximoVencer" min="1" max="365" />
+        </div>
+
+        <div class="col-md-3 d-flex gap-1 justify-content-end">
+          <button type="button" class="btn btn-sm btn-primary" (click)="consultarTodosLosReportes()">
+            <i class="fa fa-search me-1"></i>Generar
+          </button>
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="aplicarRangoRapido('MES')" title="Este mes">
+              Mes
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="aplicarRangoRapido('ANIO')" title="Este año">
+              Año
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltros()" title="Limpiar todos los filtros">
+              <i class="fa fa-eraser"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PESTAÑA 4.1: REPORTES FINANCIEROS                                     -->
+  <!-- ===================================================================== -->
+  <div *ngIf="moduloActivo === 'FINANCIERO'">
+    <div *ngIf="cargandoFinanciero" class="text-center py-5 text-muted">
+      <i class="fa fa-spinner fa-spin fa-2x mb-2"></i>
+      <div>Generando reporte financiero...</div>
+    </div>
+
+    <div *ngIf="!cargandoFinanciero && reporteFinanciero as fin">
+      <!-- Encabezado de metadatos del reporte -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 small text-muted px-1">
+        <span>
+          <strong>4.1 Reporte Financiero y Contable</strong> | Período: <strong>{{ fin.rangoFechas }}</strong>
+        </span>
+        <span>Fecha de generación: {{ fin.fechaGeneracion | date:'yyyy-MM-dd HH:mm' }}</span>
+      </div>
+
+      <!-- KPIs Financieros Principales -->
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-primary">
+            <div class="card-body p-2">
+              <div class="small text-muted">Ingresos del Período (Facturado)</div>
+              <div class="fs-5 fw-bold text-primary">${{ fin.ingresosTotalesFacturados | number:'1.0-2' }}</div>
+              <small class="text-muted">Recaudado: ${{ fin.ingresosRecaudados | number:'1.0-2' }}</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-info">
+            <div class="card-body p-2">
+              <div class="small text-muted">Ingresos por Consultas Médicas</div>
+              <div class="fs-5 fw-bold text-info">${{ fin.ingresosConsultasServicios | number:'1.0-2' }}</div>
+              <small class="text-muted">Servicios clínicos facturados</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-success">
+            <div class="card-body p-2">
+              <div class="small text-muted">Ingresos Venta Medicamentos</div>
+              <div class="fs-5 fw-bold text-success">${{ fin.ingresosVentaMedicamentos | number:'1.0-2' }}</div>
+              <small class="text-muted">Medicamentos dispensados</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-warning">
+            <div class="card-body p-2">
+              <div class="small text-muted">Impuestos Recaudados</div>
+              <div class="fs-5 fw-bold text-dark">${{ fin.impuestosRecaudados | number:'1.0-2' }}</div>
+              <small class="text-muted">Generados: ${{ fin.impuestosGenerados | number:'1.0-2' }}</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-secondary">
+            <div class="card-body p-2">
+              <div class="small text-muted">Descuentos Aplicados</div>
+              <div class="fs-5 fw-bold text-secondary">${{ fin.descuentosAplicados | number:'1.0-2' }}</div>
+              <small class="text-muted">Total descontado en facturas</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-danger">
+            <div class="card-body p-2">
+              <div class="small text-muted">Saldo Pendiente por Cobrar</div>
+              <div class="fs-5 fw-bold text-danger">${{ fin.saldoPendienteTotal | number:'1.0-2' }}</div>
+              <small class="text-muted">Cartera activa del período</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen de Estado de Facturas -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2">
+          <strong class="small text-uppercase text-muted">
+            <i class="fa fa-file-invoice-dollar me-1"></i>Estado de Facturas del Período
+          </strong>
+        </div>
+        <div class="card-body py-2">
+          <div class="row text-center g-2">
+            <div class="col-6 col-md-2 border-end">
+              <div class="small text-muted">Total Facturas Generadas</div>
+              <div class="fs-5 fw-bold text-dark">{{ fin.totalFacturasGeneradas }}</div>
+            </div>
+            <div class="col-6 col-md-3 border-end">
+              <div class="small text-muted">Facturas Pagadas</div>
+              <div class="fs-5 fw-bold text-success">
+                {{ fin.facturasPagadas }} <small class="fs-6 fw-normal">(${{ fin.montoFacturasPagadas | number:'1.0-2' }})</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 border-end">
+              <div class="small text-muted">Pagos Parciales</div>
+              <div class="fs-5 fw-bold text-warning">
+                {{ fin.pagosParciales }} <small class="fs-6 fw-normal">(Abonado: ${{ fin.montoPagosParciales | number:'1.0-2' }})</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-2 border-end">
+              <div class="small text-muted">Facturas Pendientes</div>
+              <div class="fs-5 fw-bold text-primary">
+                {{ fin.facturasPendientes }} <small class="fs-6 fw-normal">(${{ fin.montoFacturasPendientes | number:'1.0-2' }})</small>
+              </div>
+            </div>
+            <div class="col-12 col-md-2">
+              <div class="small text-muted">Facturas Anuladas</div>
+              <div class="fs-5 fw-bold text-danger">
+                {{ fin.facturasAnuladas }} <small class="fs-6 fw-normal">(${{ fin.montoFacturasAnuladas | number:'1.0-2' }})</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tablas de Ingresos por Especialidad e Ingresos por Veterinario -->
+      <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-2">
+              <strong class="small text-uppercase text-muted">
+                <i class="fa fa-stethoscope text-primary me-1"></i>Ingresos por Especialidad
+              </strong>
+            </div>
+            <div class="card-body p-2">
+              <div class="table-responsive">
+                <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Especialidad</th>
+                      <th class="text-center">Facturas</th>
+                      <th class="text-end">Consultas</th>
+                      <th class="text-end">Medicamentos</th>
+                      <th class="text-end">Total Facturado</th>
+                      <th class="text-end">Recaudado</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="fin.ingresosPorEspecialidad.length === 0">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-3">Sin registros financieros en el período.</td>
+                    </tr>
+                  </tbody>
+                  <tbody *ngIf="fin.ingresosPorEspecialidad.length > 0">
+                    <tr *ngFor="let item of fin.ingresosPorEspecialidad">
+                      <td class="fw-semibold">{{ item.categoria }}</td>
+                      <td class="text-center">{{ item.cantidadFacturas }}</td>
+                      <td class="text-end">${{ item.ingresosServicios | number:'1.0-2' }}</td>
+                      <td class="text-end">${{ item.ingresosMedicamentos | number:'1.0-2' }}</td>
+                      <td class="text-end fw-bold">${{ item.totalFacturado | number:'1.0-2' }}</td>
+                      <td class="text-end text-success fw-semibold">${{ item.totalRecaudado | number:'1.0-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-2">
+              <strong class="small text-uppercase text-muted">
+                <i class="fa fa-user-md text-info me-1"></i>Ingresos por Veterinario
+              </strong>
+            </div>
+            <div class="card-body p-2">
+              <div class="table-responsive">
+                <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Veterinario</th>
+                      <th>Especialidad</th>
+                      <th class="text-center">Facturas</th>
+                      <th class="text-end">Consultas</th>
+                      <th class="text-end">Medicamentos</th>
+                      <th class="text-end">Total Facturado</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="fin.ingresosPorVeterinario.length === 0">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-3">Sin registros financieros en el período.</td>
+                    </tr>
+                  </tbody>
+                  <tbody *ngIf="fin.ingresosPorVeterinario.length > 0">
+                    <tr *ngFor="let item of fin.ingresosPorVeterinario">
+                      <td class="fw-semibold">{{ item.categoria }}</td>
+                      <td>{{ item.subcategoria }}</td>
+                      <td class="text-center">{{ item.cantidadFacturas }}</td>
+                      <td class="text-end">${{ item.ingresosServicios | number:'1.0-2' }}</td>
+                      <td class="text-end">${{ item.ingresosMedicamentos | number:'1.0-2' }}</td>
+                      <td class="text-end fw-bold text-primary">${{ item.totalFacturado | number:'1.0-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen por Día, Mes y Año -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+          <strong class="small text-uppercase text-muted">
+            <i class="fa fa-calendar-alt text-success me-1"></i>Resumen Contable por Día, Mes y Año
+          </strong>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn"
+              [ngClass]="agrupacionTemporal === 'DIA' ? 'btn-primary' : 'btn-outline-secondary'"
+              (click)="cambiarAgrupacionTemporal('DIA')">
+              Por Día
+            </button>
+            <button type="button" class="btn"
+              [ngClass]="agrupacionTemporal === 'MES' ? 'btn-primary' : 'btn-outline-secondary'"
+              (click)="cambiarAgrupacionTemporal('MES')">
+              Por Mes
+            </button>
+            <button type="button" class="btn"
+              [ngClass]="agrupacionTemporal === 'ANIO' ? 'btn-primary' : 'btn-outline-secondary'"
+              (click)="cambiarAgrupacionTemporal('ANIO')">
+              Por Año
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Período ({{ agrupacionTemporal }})</th>
+                  <th class="text-center">Facturas Activas</th>
+                  <th class="text-end">Ingresos Consultas</th>
+                  <th class="text-end">Ingresos Medicamentos</th>
+                  <th class="text-end">Descuentos</th>
+                  <th class="text-end">Impuestos</th>
+                  <th class="text-end">Total Facturado</th>
+                  <th class="text-end">Total Recaudado</th>
+                </tr>
+              </thead>
+              <tbody *ngIf="resumenTemporalFinancieroActivo.length === 0">
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-3">No hay movimientos facturados en el rango seleccionado.</td>
+                </tr>
+              </tbody>
+              <tbody *ngIf="resumenTemporalFinancieroActivo.length > 0">
+                <tr *ngFor="let r of resumenTemporalFinancieroActivo">
+                  <td class="fw-bold">{{ r.periodo }}</td>
+                  <td class="text-center">{{ r.cantidadFacturas }}</td>
+                  <td class="text-end">${{ r.ingresosServicios | number:'1.0-2' }}</td>
+                  <td class="text-end">${{ r.ingresosMedicamentos | number:'1.0-2' }}</td>
+                  <td class="text-end text-secondary">-${{ r.descuentos | number:'1.0-2' }}</td>
+                  <td class="text-end">+${{ r.impuestos | number:'1.0-2' }}</td>
+                  <td class="text-end fw-bold text-primary">${{ r.totalFacturado | number:'1.0-2' }}</td>
+                  <td class="text-end fw-bold text-success">${{ r.totalRecaudado | number:'1.0-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PESTAÑA 4.2: REPORTES DE INVENTARIO Y KARDEX                          -->
+  <!-- ===================================================================== -->
+  <div *ngIf="moduloActivo === 'INVENTARIO'">
+    <div *ngIf="cargandoInventario" class="text-center py-5 text-muted">
+      <i class="fa fa-spinner fa-spin fa-2x mb-2"></i>
+      <div>Generando reporte de valoración de inventario y Kardex...</div>
+    </div>
+
+    <div *ngIf="!cargandoInventario && reporteInventario as inv">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 small text-muted px-1">
+        <span>
+          <strong>4.2 Reporte de Valoración de Inventario, Alertas y Kardex</strong> | Período Kardex: <strong>{{ inv.rangoFechas }}</strong>
+        </span>
+        <span>Fecha de generación: {{ inv.fechaGeneracion | date:'yyyy-MM-dd HH:mm' }}</span>
+      </div>
+
+      <!-- KPIs de Valoración y Alertas (Clicables para filtrar) -->
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-primary">
+            <div class="card-body p-2">
+              <div class="small text-muted">Existencias Actuales</div>
+              <div class="fs-5 fw-bold text-primary">{{ inv.totalUnidadesExistencia | number }} und.</div>
+              <small class="text-muted">En {{ inv.totalProductos }} producto(s) registrado(s)</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-info">
+            <div class="card-body p-2">
+              <div class="small text-muted">Valor según Costo Adquisición</div>
+              <div class="fs-5 fw-bold text-dark">${{ inv.valorInventarioCostoAdquisicion | number:'1.0-2' }}</div>
+              <small class="text-muted">Inversión en stock actual</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-success">
+            <div class="card-body p-2">
+              <div class="small text-muted">Valor Potencial de Venta</div>
+              <div class="fs-5 fw-bold text-success">${{ inv.valorPotencialVenta | number:'1.0-2' }}</div>
+              <small class="text-muted">Margen pot.: ${{ inv.margenPotencialEstimado | number:'1.0-2' }}</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-2 d-flex justify-content-around align-items-center text-center">
+              <div role="button" (click)="alternarFiltroAlertaInventario('AGOTADO')"
+                [class.fw-bold]="filtroAlertaInventario === 'AGOTADO'">
+                <span class="badge bg-danger d-block mb-1">{{ inv.cantidadAgotados }}</span>
+                <small class="text-muted">Agotados</small>
+              </div>
+              <div role="button" (click)="alternarFiltroAlertaInventario('STOCK_MINIMO')"
+                [class.fw-bold]="filtroAlertaInventario === 'STOCK_MINIMO'">
+                <span class="badge bg-warning text-dark d-block mb-1">{{ inv.cantidadStockMinimo }}</span>
+                <small class="text-muted">Stock Mín.</small>
+              </div>
+              <div role="button" (click)="alternarFiltroAlertaInventario('PROXIMO_VENCER')"
+                [class.fw-bold]="filtroAlertaInventario === 'PROXIMO_VENCER'">
+                <span class="badge bg-info text-dark d-block mb-1">{{ inv.cantidadProximosVencer }}</span>
+                <small class="text-muted">Próx. Vencer</small>
+              </div>
+              <div role="button" (click)="alternarFiltroAlertaInventario('VENCIDO')"
+                [class.fw-bold]="filtroAlertaInventario === 'VENCIDO'">
+                <span class="badge bg-dark d-block mb-1">{{ inv.cantidadVencidos }}</span>
+                <small class="text-muted">Vencidos</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla 1: Existencias Actuales y Valoración Costo vs Venta -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2">
+          <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-md-5">
+              <strong class="small text-uppercase text-muted">
+                <i class="fa fa-warehouse text-primary me-1"></i>Existencias Actuales y Valoración (Costo vs. Venta)
+              </strong>
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control form-control-sm"
+                placeholder="Buscar por código, nombre, lote o Invima..."
+                [(ngModel)]="terminoBusquedaInventario" />
+            </div>
+            <div class="col-md-3">
+              <select class="form-select form-select-sm" [(ngModel)]="filtroAlertaInventario">
+                <option value="">Todos los estados de stock</option>
+                <option value="AGOTADO">Medicamentos Agotados (0)</option>
+                <option value="STOCK_MINIMO">Con Stock Mínimo</option>
+                <option value="PROXIMO_VENCER">Próximos por Vencer (≤ {{ inv.diasUmbralProximoVencer }} días)</option>
+                <option value="VENCIDO">Medicamentos Vencidos</option>
+                <option value="NORMAL">En Estado Normal</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-2">
+          <div class="table-responsive" style="max-height: 360px;">
+            <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Código</th>
+                  <th>Medicamento / Presentación</th>
+                  <th>Lote / Invima</th>
+                  <th class="text-center">Vencimiento</th>
+                  <th class="text-center">Existencia / Mín</th>
+                  <th class="text-end">Costo Unit.</th>
+                  <th class="text-end">Venta Unit.</th>
+                  <th class="text-end">Valor Costo Total</th>
+                  <th class="text-end">Valor Venta Potencial</th>
+                  <th class="text-center">Estado</th>
+                  <th class="text-center">Kardex</th>
+                </tr>
+              </thead>
+              <tbody *ngIf="existenciasValorizadasFiltradas.length === 0">
+                <tr>
+                  <td colspan="11" class="text-center text-muted py-3">No hay medicamentos con el filtro seleccionado.</td>
+                </tr>
+              </tbody>
+              <tbody *ngIf="existenciasValorizadasFiltradas.length > 0">
+                <tr *ngFor="let item of existenciasValorizadasFiltradas">
+                  <td><code>{{ item.codigo }}</code></td>
+                  <td>
+                    <div class="fw-semibold">{{ item.nombre }}</div>
+                    <small class="text-muted">{{ item.presentacion || 'Unidad' }}</small>
+                  </td>
+                  <td>
+                    <div>Lote: {{ item.lote || 'N/A' }}</div>
+                    <small class="text-muted">{{ item.registroInvima || 'Sin Invima' }}</small>
+                  </td>
+                  <td class="text-center">
+                    <div>{{ item.fechaVence }}</div>
+                    <small [ngClass]="item.diasParaVencer < 0 ? 'text-danger fw-bold' : (item.diasParaVencer <= inv.diasUmbralProximoVencer ? 'text-warning-emphasis fw-semibold' : 'text-muted')">
+                      {{ item.diasParaVencer < 0 ? ('Venció hace ' + (-item.diasParaVencer) + ' d') : (item.diasParaVencer + ' día(s)') }}
+                    </small>
+                  </td>
+                  <td class="text-center">
+                    <strong>{{ item.cantidadDisponible }}</strong> / <span class="text-muted">{{ item.stockMinimo }}</span>
+                  </td>
+                  <td class="text-end">${{ item.precioCompra | number:'1.0-2' }}</td>
+                  <td class="text-end">${{ item.precioVenta | number:'1.0-2' }}</td>
+                  <td class="text-end fw-semibold">${{ item.valorCostoTotal | number:'1.0-2' }}</td>
+                  <td class="text-end fw-bold text-success">${{ item.valorVentaTotal | number:'1.0-2' }}</td>
+                  <td class="text-center">
+                    <span class="badge" [ngClass]="claseAlertaInventario(item.estadoAlerta)">
+                      {{ etiquetaAlertaInventario(item.estadoAlerta) }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-xs btn-outline-primary"
+                      (click)="verKardexMedicamento(item.medicamentoId)"
+                      title="Filtrar historial de movimientos de este medicamento">
+                      <i class="fa fa-list"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla 2: Kardex de Entradas y Salidas de Inventario (Historial de Movimientos) -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div>
+            <strong class="small text-uppercase text-muted">
+              <i class="fa fa-right-left text-info me-1"></i>Entradas, Salidas e Historial de Movimientos (Kardex)
+            </strong>
+            <span class="badge bg-success ms-2">Entradas Período: +{{ inv.totalUnidadesEntradaPeriodo }} und.</span>
+            <span class="badge bg-danger ms-1">Salidas Período: -{{ inv.totalUnidadesSalidaPeriodo }} und.</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <select class="form-select form-select-sm" style="width: 170px;" [(ngModel)]="filtroTipoMovimientoKardex">
+              <option value="">Entradas y Salidas</option>
+              <option value="ENTRADA">Solo Entradas</option>
+              <option value="SALIDA">Solo Salidas</option>
+            </select>
+            <button *ngIf="filtroMedicamentoId" type="button" class="btn btn-xs btn-outline-secondary"
+              (click)="filtroMedicamentoId = null; consultarInventario()">
+              Ver todos los medicamentos
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-2">
+          <div class="table-responsive" style="max-height: 320px;">
+            <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Fecha y Hora</th>
+                  <th class="text-center">Tipo Movimiento</th>
+                  <th>Código / Medicamento</th>
+                  <th>Lote</th>
+                  <th class="text-center">Cantidad</th>
+                  <th>Motivo / Operación</th>
+                  <th>Referencia</th>
+                  <th>Usuario</th>
+                </tr>
+              </thead>
+              <tbody *ngIf="movimientosKardexFiltrados.length === 0">
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-3">No hay movimientos de inventario en el período seleccionado.</td>
+                </tr>
+              </tbody>
+              <tbody *ngIf="movimientosKardexFiltrados.length > 0">
+                <tr *ngFor="let mov of movimientosKardexFiltrados">
+                  <td>{{ mov.fechaRegistro | date:'yyyy-MM-dd HH:mm' }}</td>
+                  <td class="text-center">
+                    <span class="badge" [ngClass]="mov.tipo === 'ENTRADA' ? 'bg-success' : 'bg-danger'">
+                      {{ mov.tipo }}
+                    </span>
+                  </td>
+                  <td>
+                    <code>{{ mov.codigoMedicamento }}</code> — <strong>{{ mov.nombreMedicamento }}</strong>
+                  </td>
+                  <td>{{ mov.lote || 'N/A' }}</td>
+                  <td class="text-center fw-bold" [ngClass]="mov.tipo === 'ENTRADA' ? 'text-success' : 'text-danger'">
+                    {{ mov.tipo === 'ENTRADA' ? '+' : '-' }}{{ mov.cantidad }} und.
+                  </td>
+                  <td>{{ mov.motivo }}</td>
+                  <td>{{ mov.referenciaTipo }} <span *ngIf="mov.referenciaId">#{{ mov.referenciaId }}</span></td>
+                  <td>{{ mov.usuarioRegistro }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PESTAÑA 4.3: REPORTES DE GESTIÓN MÉDICA                               -->
+  <!-- ===================================================================== -->
+  <div *ngIf="moduloActivo === 'MEDICO'">
+    <div *ngIf="cargandoMedico" class="text-center py-5 text-muted">
+      <i class="fa fa-spinner fa-spin fa-2x mb-2"></i>
+      <div>Generando reporte de gestión médica...</div>
+    </div>
+
+    <div *ngIf="!cargandoMedico && reporteMedico as med">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 small text-muted px-1">
+        <span>
+          <strong>4.3 Reporte de Gestión Médica y Atención de Pacientes</strong> | Período: <strong>{{ med.rangoFechas }}</strong>
+        </span>
+        <span>Fecha de generación: {{ med.fechaGeneracion | date:'yyyy-MM-dd HH:mm' }}</span>
+      </div>
+
+      <!-- KPIs de Gestión Médica -->
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-primary">
+            <div class="card-body p-2">
+              <div class="small text-muted">Número de Citas del Período</div>
+              <div class="fs-4 fw-bold text-primary">{{ med.totalCitasPeriodo }}</div>
+              <small class="text-muted">Total agendadas en el rango</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-success">
+            <div class="card-body p-2">
+              <div class="small text-muted">Citas Atendidas</div>
+              <div class="fs-4 fw-bold text-success">{{ med.citasAtendidas }}</div>
+              <small class="text-muted">Consultas efectivamente realizadas</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-warning">
+            <div class="card-body p-2">
+              <div class="small text-muted">Citas Pendientes / Activas</div>
+              <div class="fs-4 fw-bold text-warning">{{ med.citasPendientesTotal }}</div>
+              <small class="text-muted">
+                Pend: {{ med.citasEstadoPendiente }} | Prog: {{ med.citasEstadoProgramada }} | Conf: {{ med.citasEstadoConfirmada }}
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-danger">
+            <div class="card-body p-2">
+              <div class="small text-muted">Citas Canceladas</div>
+              <div class="fs-4 fw-bold text-danger">{{ med.citasCanceladas }}</div>
+              <small class="text-muted">Desistidas o reprogramadas</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-2">
+          <div class="card border-0 shadow-sm h-100 kpi-card-top kpi-top-info">
+            <div class="card-body p-2">
+              <div class="small text-muted">Mascotas Atendidas</div>
+              <div class="fs-4 fw-bold text-info">{{ med.totalMascotasAtendidas }}</div>
+              <small class="text-muted">Pacientes únicos atendidos</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tablas de Consultas por Veterinario y por Especialidad -->
+      <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-2">
+              <strong class="small text-uppercase text-muted">
+                <i class="fa fa-user-md text-primary me-1"></i>Consultas Realizadas por Veterinario
+              </strong>
+            </div>
+            <div class="card-body p-2">
+              <div class="table-responsive">
+                <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Veterinario</th>
+                      <th>Especialidad</th>
+                      <th class="text-center">Total Citas</th>
+                      <th class="text-center">Atendidas</th>
+                      <th class="text-center">Pendientes</th>
+                      <th class="text-center">Canceladas</th>
+                      <th class="text-center">% Atención</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="med.consultasPorVeterinario.length === 0">
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-3">Sin citas registradas en el período.</td>
+                    </tr>
+                  </tbody>
+                  <tbody *ngIf="med.consultasPorVeterinario.length > 0">
+                    <tr *ngFor="let item of med.consultasPorVeterinario">
+                      <td class="fw-semibold">{{ item.nombre }}</td>
+                      <td>{{ item.subcategoria }}</td>
+                      <td class="text-center fw-bold">{{ item.totalCitas }}</td>
+                      <td class="text-center text-success fw-bold">{{ item.citasAtendidas }}</td>
+                      <td class="text-center text-warning-emphasis">{{ item.citasPendientes }}</td>
+                      <td class="text-center text-danger">{{ item.citasCanceladas }}</td>
+                      <td class="text-center">
+                        <span class="badge bg-light text-dark border">{{ item.porcentajeCumplimiento }}%</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-2">
+              <strong class="small text-uppercase text-muted">
+                <i class="fa fa-stethoscope text-info me-1"></i>Consultas Realizadas por Especialidad
+              </strong>
+            </div>
+            <div class="card-body p-2">
+              <div class="table-responsive">
+                <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Especialidad Médica</th>
+                      <th class="text-center">Total Citas</th>
+                      <th class="text-center">Atendidas</th>
+                      <th class="text-center">Pendientes</th>
+                      <th class="text-center">Canceladas</th>
+                      <th class="text-center">% Atención</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="med.consultasPorEspecialidad.length === 0">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-3">Sin citas registradas en el período.</td>
+                    </tr>
+                  </tbody>
+                  <tbody *ngIf="med.consultasPorEspecialidad.length > 0">
+                    <tr *ngFor="let item of med.consultasPorEspecialidad">
+                      <td class="fw-semibold">{{ item.nombre }}</td>
+                      <td class="text-center fw-bold">{{ item.totalCitas }}</td>
+                      <td class="text-center text-success fw-bold">{{ item.citasAtendidas }}</td>
+                      <td class="text-center text-warning-emphasis">{{ item.citasPendientes }}</td>
+                      <td class="text-center text-danger">{{ item.citasCanceladas }}</td>
+                      <td class="text-center">
+                        <span class="badge bg-light text-dark border">{{ item.porcentajeCumplimiento }}%</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla 3: Mascotas Atendidas por Período -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-2">
+          <strong class="small text-uppercase text-muted">
+            <i class="fa fa-paw text-success me-1"></i>Mascotas Atendidas en el Período ({{ med.mascotasAtendidasPeriodo.length }})
+          </strong>
+        </div>
+        <div class="card-body p-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-striped table-bordered small align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Paciente (Mascota)</th>
+                  <th>Raza / Edad</th>
+                  <th>Propietario</th>
+                  <th>Documento / Teléfono</th>
+                  <th class="text-center">Consultas Atendidas</th>
+                  <th class="text-center">Última Atención</th>
+                  <th>Último Veterinario</th>
+                  <th>Último Motivo</th>
+                </tr>
+              </thead>
+              <tbody *ngIf="med.mascotasAtendidasPeriodo.length === 0">
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-3">No hay mascotas con citas atendidas en el período seleccionado.</td>
+                </tr>
+              </tbody>
+              <tbody *ngIf="med.mascotasAtendidasPeriodo.length > 0">
+                <tr *ngFor="let mas of med.mascotasAtendidasPeriodo">
+                  <td class="fw-bold text-primary">{{ mas.nombreMascota }}</td>
+                  <td>{{ mas.raza }} ({{ mas.edad }} año(s))</td>
+                  <td class="fw-semibold">{{ mas.propietario }}</td>
+                  <td>{{ mas.documentoPropietario }} | Tel: {{ mas.telefonoPropietario }}</td>
+                  <td class="text-center">
+                    <span class="badge bg-success">{{ mas.consultasAtendidas }}</span>
+                  </td>
+                  <td class="text-center">{{ mas.ultimaFechaAtencion | date:'yyyy-MM-dd HH:mm' }}</td>
+                  <td>{{ mas.ultimoVeterinario }}</td>
+                  <td>{{ mas.ultimoMotivo }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,5 +1,7 @@
+import { FormulaMedicaRq } from './formula-medica-rq';
+
 /**
- * Datos que se envían al backend para crear o actualizar una historia médica.
+ * Datos que se envían al backend para crear o actualizar una historia médica (atención médica) y sus fórmulas opcionales.
  */
 export class HistoriaMedicaRq {
   historiaMedicaId?: number;
@@ -12,4 +14,5 @@ export class HistoriaMedicaRq {
   diagnostico?: string;
   observaciones?: string;
   estado?: string;
+  formulas?: FormulaMedicaRq[];
 }

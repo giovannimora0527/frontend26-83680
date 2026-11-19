@@ -87,6 +87,22 @@ export const NavigationItems: NavigationItem[] = [
         icon: 'feather icon-edit',
         classes: 'nav-item'
       },
+      {
+        id: 'facturacion',
+        title: 'Facturación y Pagos',
+        type: 'item',
+        url: '/inicio/facturacion',
+        icon: 'feather icon-credit-card',
+        classes: 'nav-item'
+      },
+      {
+        id: 'reportes',
+        title: 'Reportes Administrativos',
+        type: 'item',
+        url: '/inicio/reportes',
+        icon: 'feather icon-bar-chart-2',
+        classes: 'nav-item'
+      },
     ]
   },  
 ];

@@ -8,6 +8,7 @@ export class FormulaMedicaRq {
   medicoId?: number;
   medicamentoId?: number;
   fechaEmision?: string;
+  cantidadSolicitada?: number;
   dosis?: string;
   frecuencia?: string;
   duracionDias?: number;

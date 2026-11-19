@@ -11,6 +11,7 @@ import { Mascota } from 'src/app/models/mascota';
 import { Medicamento } from 'src/app/models/medicamento';
 import { Medico } from 'src/app/models/medico';
 import { MiRespuesta } from 'src/app/models/mi-respuesta';
+import { MovimientoMedicamento } from 'src/app/models/movimiento-medicamento';
 import { ClienteService } from 'src/app/services/cliente.service';
 import { confirmarAccion, mostrarAdvertencia, mostrarError, mostrarExito } from 'src/app/utils/mensajes-utils';
 import { compararValores, estaEnRangoFechas, fechaHoy, nombreCompleto, normalizarTexto, textoEstado } from 'src/app/utils/tabla-utils';
@@ -27,14 +28,25 @@ import { FormulaMedicaService } from './service/formula-medica.service';
   styleUrl: './formula-medica.component.scss'
 })
 export class FormulaMedicaComponent {
-  // Variables para los modales de formulario y de detalle.
+  // Instancias de modales Bootstrap
   modalInstance: Modal | null = null;
   modalDetalleInstance: Modal | null = null;
-  titleModal: string = '';
-  modoFormulario: string = '';
-  titleBoton: string = '';
+  modalDispensarInstance: Modal | null = null;
+  titleModal = '';
+  modoFormulario = '';
+  titleBoton = '';
 
-  // Variables para la paginación, búsqueda, filtros y ordenamiento de la datatable.
+  // Frecuencias sugeridas para facilitar la prescripción y el cálculo de unidades
+  readonly frecuenciasSugeridas = [
+    'Cada 6 horas (4 veces al día)',
+    'Cada 8 horas (3 veces al día)',
+    'Cada 12 horas (2 veces al día)',
+    'Cada 24 horas (1 vez al día)',
+    'Cada 48 horas',
+    'Dosis única'
+  ];
+
+  // Variables para la paginación, búsqueda, filtros y ordenamiento de la datatable
   listFormulas: FormulaMedica[] = [];
   terminoBusqueda = '';
   filtroEstado = '';
@@ -43,39 +55,46 @@ export class FormulaMedicaComponent {
   campoOrden = 'fechaCreacionRegistro';
   ordenAscendente = false;
   paginaActual = 1;
-  readonly registrosPorPagina = 5;
+  readonly registrosPorPagina = 6;
   cargando = false;
   guardando = false;
+  dispensando = false;
+  cargandoMovimientos = false;
 
-  // Listas para los combos dependientes: Cliente -> Mascotas del cliente -> Citas de la mascota.
+  // Listas para los combos dependientes: Cliente -> Mascotas del cliente -> Citas de la mascota
   listClientes: Cliente[] = [];
   listMascotas: Mascota[] = [];
   listCitas: Cita[] = [];
   listMedicos: Medico[] = [];
   listMedicamentos: Medicamento[] = [];
 
-  // Formulario y registros seleccionados.
+  // Formularios y registros seleccionados
   form!: FormGroup;
+  formDispensar!: FormGroup;
   formulaSelected: FormulaMedica | null = null;
   formulaDetalle: FormulaMedica | null = null;
+  formulaDispensar: FormulaMedica | null = null;
+  movimientosFormula: MovimientoMedicamento[] = [];
 
-  // Funciones de utilidad que se usan en la plantilla.
+  // Funciones de utilidad expuestas a la plantilla
   readonly nombreCompleto = nombreCompleto;
   readonly textoEstado = textoEstado;
 
-  constructor(private readonly formulaService: FormulaMedicaService,
+  constructor(
+    private readonly formulaService: FormulaMedicaService,
     private readonly clienteService: ClienteService,
     private readonly mascotaService: MascotaService,
     private readonly citaService: CitaService,
     private readonly medicoService: MedicoService,
     private readonly medicamentoService: MedicamentoService,
-    private readonly formBuilder: FormBuilder) {
+    private readonly formBuilder: FormBuilder
+  ) {
     this.inicializarFormulario();
+    this.inicializarFormularioDispensar();
     this.listar();
     this.cargarCombos();
   }
 
-  // Metodo que permite inicializar el formulario con sus controles y validaciones.
   inicializarFormulario() {
     this.form = this.formBuilder.group({
       clienteId: [null, Validators.required],
@@ -87,17 +106,18 @@ export class FormulaMedicaComponent {
       dosis: ['', [Validators.required, Validators.maxLength(100), Validators.pattern(/\d/)]],
       frecuencia: ['', [Validators.required, Validators.maxLength(100)]],
       duracionDias: [null, [Validators.required, Validators.min(1), Validators.max(365)]],
+      cantidadSolicitada: [1, [Validators.required, Validators.min(1)]],
       indicaciones: ['', [Validators.required, Validators.maxLength(1000)]]
     });
 
-    // Combos dependientes: al cambiar el cliente se cargan sus mascotas y al cambiar la mascota sus citas.
+    // Combos dependientes: cliente -> mascotas -> citas
     this.form.get('clienteId')?.valueChanges.subscribe((clienteId) => {
       this.cargarMascotasCliente(clienteId);
     });
     this.form.get('mascotaId')?.valueChanges.subscribe((mascotaId) => {
       this.cargarCitasMascota(mascotaId);
     });
-    // Al elegir la consulta se propone el veterinario que la atendió.
+    // Al elegir la consulta se propone el veterinario que la atendió
     this.form.get('citaId')?.valueChanges.subscribe((citaId) => {
       const cita = this.listCitas.find((item) => item.id === citaId);
       if (cita?.medico) {
@@ -106,24 +126,191 @@ export class FormulaMedicaComponent {
     });
   }
 
-  // Obtiene los controles del formulario para facilitar el acceso a sus propiedades y métodos.
+  inicializarFormularioDispensar() {
+    this.formDispensar = this.formBuilder.group({
+      cantidad: [1, [Validators.required, Validators.min(1)]],
+      usuario: ['', [Validators.required, Validators.maxLength(100)]],
+      observacion: ['', [Validators.maxLength(300)]]
+    });
+  }
+
   get f(): { [key: string]: AbstractControl } {
     return this.form.controls;
   }
 
+  get fd(): { [key: string]: AbstractControl } {
+    return this.formDispensar.controls;
+  }
+
+  // Medicamento seleccionado actualmente en el formulario de prescripción
+  get medicamentoSeleccionado(): Medicamento | undefined {
+    const id = this.form?.getRawValue()?.medicamentoId;
+    return this.listMedicamentos.find((m) => m.id === Number(id));
+  }
+
+  // Calcula la cantidad total sugerida a partir de la dosis, frecuencia y duración en días
+  get cantidadCalculadaSugerida(): number | null {
+    if (!this.form) {
+      return null;
+    }
+    const raw = this.form.getRawValue();
+    const duracion = Number(raw.duracionDias);
+    if (!duracion || duracion <= 0) {
+      return null;
+    }
+    const textoFrecuencia = String(raw.frecuencia ?? '').toLowerCase();
+    let tomasPorDia = 1;
+    if (textoFrecuencia.includes('6 hora') || textoFrecuencia.includes('4 veces')) {
+      tomasPorDia = 4;
+    } else if (textoFrecuencia.includes('8 hora') || textoFrecuencia.includes('3 veces')) {
+      tomasPorDia = 3;
+    } else if (textoFrecuencia.includes('12 hora') || textoFrecuencia.includes('2 veces')) {
+      tomasPorDia = 2;
+    } else if (textoFrecuencia.includes('24 hora') || textoFrecuencia.includes('1 vez') || textoFrecuencia.includes('diaria')) {
+      tomasPorDia = 1;
+    } else if (textoFrecuencia.includes('48 hora')) {
+      tomasPorDia = 0.5;
+    } else if (textoFrecuencia.includes('unica') || textoFrecuencia.includes('única')) {
+      return 1;
+    }
+
+    // Si la dosis menciona explícitamente tabletas/cápsulas/unidades, se multiplica; si es mg/ml, se sugiere 1 por toma
+    const textoDosis = String(raw.dosis ?? '').toLowerCase();
+    let unidadesPorToma = 1;
+    const matchUnidades = textoDosis.match(/(\d+)\s*(tableta|capsula|cápsula|comprimido|ampolla|sobre|unidad)/);
+    if (matchUnidades) {
+      unidadesPorToma = Number(matchUnidades[1]) || 1;
+    }
+
+    return Math.max(1, Math.ceil(unidadesPorToma * tomasPorDia * duracion));
+  }
+
+  aplicarCantidadSugerida() {
+    const sugerida = this.cantidadCalculadaSugerida;
+    if (sugerida && sugerida > 0) {
+      this.form.get('cantidadSolicitada')?.setValue(sugerida);
+    }
+  }
+
+  // Validación preventiva de inventario al formular
+  get alertaInventarioFormulario(): string | null {
+    const med = this.medicamentoSeleccionado;
+    if (!med) {
+      return null;
+    }
+    if (med.activo === false) {
+      return `El medicamento "${med.nombre}" se encuentra INACTIVO en el inventario.`;
+    }
+    if (this.estaMedicamentoVencido(med)) {
+      return `El medicamento "${med.nombre}" está VENCIDO (fecha de vencimiento: ${med.fechaVence}). No puede formularse.`;
+    }
+    const disponible = med.cantidadDisponible ?? 0;
+    const solicitada = Number(this.form?.getRawValue()?.cantidadSolicitada ?? 0);
+    const yaEntregada = this.modoFormulario === 'E' ? (this.formulaSelected?.cantidadEntregada ?? 0) : 0;
+    const pendiente = Math.max(0, solicitada - yaEntregada);
+
+    if (disponible <= 0) {
+      return `El medicamento "${med.nombre}" está AGOTADO en inventario (0 unidades disponibles).`;
+    }
+    if (pendiente > disponible) {
+      return `Existencia insuficiente: se requieren ${pendiente} unidad(es) y solo hay ${disponible} disponible(s) en inventario.`;
+    }
+    return null;
+  }
+
+  estaMedicamentoVencido(med?: Medicamento): boolean {
+    if (!med?.fechaVence) {
+      return false;
+    }
+    return String(med.fechaVence).substring(0, 10) < fechaHoy();
+  }
+
+  esStockBajo(med?: Medicamento): boolean {
+    if (!med) {
+      return false;
+    }
+    const disp = med.cantidadDisponible ?? 0;
+    const min = med.stockMinimo ?? 0;
+    return disp > 0 && disp <= min;
+  }
+
+  // Contadores KPI para diferenciar Formulación vs. Dispensación
+  contarPorEstadoDispensacion(tipo: 'FORMULADA' | 'PARCIAL' | 'ENTREGADA' | 'INACTIVA'): number {
+    return this.listFormulas.filter((f) => {
+      if (tipo === 'INACTIVA') {
+        return !f.activo;
+      }
+      if (!f.activo) {
+        return false;
+      }
+      const est = (f.estado ?? 'FORMULADA').toUpperCase();
+      return est === tipo;
+    }).length;
+  }
+
+  filtrarRapidoEstado(estado: string) {
+    this.filtroEstado = this.filtroEstado === estado ? '' : estado;
+    this.paginaActual = 1;
+  }
+
+  saldoPendiente(formula?: FormulaMedica | null): number {
+    if (!formula) {
+      return 0;
+    }
+    const sol = formula.cantidadSolicitada ?? 0;
+    const ent = formula.cantidadEntregada ?? 0;
+    return Math.max(0, sol - ent);
+  }
+
+  etiquetaEstadoDispensacion(formula?: FormulaMedica | null): string {
+    if (!formula) {
+      return '-';
+    }
+    if (!formula.activo) {
+      return 'Inactiva / Anulada';
+    }
+    switch ((formula.estado ?? 'FORMULADA').toUpperCase()) {
+      case 'ENTREGADA':
+        return 'Dispensada Completa';
+      case 'PARCIAL':
+        return 'Dispensación Parcial';
+      default:
+        return 'Formulada (Pendiente Despacho)';
+    }
+  }
+
+  claseEstadoDispensacion(formula?: FormulaMedica | null): string {
+    if (!formula || !formula.activo) {
+      return 'bg-secondary text-white';
+    }
+    switch ((formula.estado ?? 'FORMULADA').toUpperCase()) {
+      case 'ENTREGADA':
+        return 'bg-success text-white';
+      case 'PARCIAL':
+        return 'bg-warning text-dark';
+      default:
+        return 'bg-primary text-white';
+    }
+  }
+
   /**
    * Filtra la lista de fórmulas según la búsqueda y los filtros, y la ordena por la columna seleccionada.
-   * @returns Un arreglo de fórmulas filtradas y ordenadas.
    */
   get formulasFiltradas(): FormulaMedica[] {
     const termino = normalizarTexto(this.terminoBusqueda.trim());
 
     const filtradas = this.listFormulas.filter((formula) => {
+      const estDisp = (formula.estado ?? 'FORMULADA').toUpperCase();
       if (this.filtroEstado === 'ACTIVA' && !formula.activo) {
         return false;
       }
       if (this.filtroEstado === 'INACTIVA' && formula.activo) {
         return false;
+      }
+      if (['FORMULADA', 'PARCIAL', 'ENTREGADA'].includes(this.filtroEstado)) {
+        if (!formula.activo || estDisp !== this.filtroEstado) {
+          return false;
+        }
       }
       if (!estaEnRangoFechas(formula.fechaEmision, this.filtroFechaDesde, this.filtroFechaHasta)) {
         return false;
@@ -137,8 +324,12 @@ export class FormulaMedicaComponent {
         formula.mascota?.nombreMascota,
         nombreCompleto(formula.mascota?.cliente),
         formula.medicamento?.nombre,
+        formula.medicamento?.codigo,
+        formula.medicamento?.lote,
         nombreCompleto(formula.medico),
-        formula.dosis
+        formula.dosis,
+        formula.frecuencia,
+        formula.estado
       ];
 
       return valores.some((valor) =>
@@ -164,14 +355,11 @@ export class FormulaMedicaComponent {
     return Array.from({ length: this.totalPaginas }, (_, indice) => indice + 1);
   }
 
-  /**
-   * Metodo que permite listar las fórmulas registradas en la base de datos y mostrarlas en la tabla.
-   */
   listar() {
     this.cargando = true;
     this.formulaService.listar().subscribe({
       next: (data) => {
-        this.listFormulas = data;
+        this.listFormulas = data ?? [];
         this.paginaActual = 1;
         this.cargando = false;
       },
@@ -182,23 +370,25 @@ export class FormulaMedicaComponent {
     });
   }
 
-  // Carga los clientes, veterinarios y medicamentos de los combos.
   cargarCombos() {
     this.clienteService.listar().subscribe({
-      next: (data) => this.listClientes = data,
+      next: (data) => (this.listClientes = data ?? []),
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
     this.medicoService.listar().subscribe({
-      next: (data) => this.listMedicos = data,
+      next: (data) => (this.listMedicos = data ?? []),
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
+    this.cargarMedicamentos();
+  }
+
+  cargarMedicamentos() {
     this.medicamentoService.listar().subscribe({
-      next: (data) => this.listMedicamentos = data,
+      next: (data) => (this.listMedicamentos = data ?? []),
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
   }
 
-  // Consulta las mascotas del cliente seleccionado.
   cargarMascotasCliente(clienteId: number | null) {
     this.listMascotas = [];
     this.listCitas = [];
@@ -207,12 +397,11 @@ export class FormulaMedicaComponent {
       return;
     }
     this.mascotaService.listarPorCliente(clienteId).subscribe({
-      next: (data) => this.listMascotas = data,
+      next: (data) => (this.listMascotas = data ?? []),
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
   }
 
-  // Consulta las citas de la mascota; no se muestran las canceladas porque no pueden tener fórmula.
   cargarCitasMascota(mascotaId: number | null) {
     this.listCitas = [];
     this.form.get('citaId')?.setValue(null, { emitEvent: false });
@@ -221,24 +410,21 @@ export class FormulaMedicaComponent {
     }
     this.citaService.listarPorMascota(mascotaId).subscribe({
       next: (data) => {
-        this.listCitas = data.filter((cita) => cita.estado?.toUpperCase() !== 'CANCELADA');
+        this.listCitas = (data ?? []).filter((cita) => cita.estado?.toUpperCase() !== 'CANCELADA');
       },
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
   }
 
-  // Metodo que actualiza el termino de busqueda y reinicia la pagina actual a 1.
   actualizarBusqueda(event: Event) {
     this.terminoBusqueda = (event.target as HTMLInputElement).value;
     this.paginaActual = 1;
   }
 
-  // Reinicia la paginación cuando cambia algún filtro.
   aplicarFiltros() {
     this.paginaActual = 1;
   }
 
-  // Quita todos los filtros de la tabla.
   limpiarFiltros() {
     this.terminoBusqueda = '';
     this.filtroEstado = '';
@@ -247,7 +433,6 @@ export class FormulaMedicaComponent {
     this.paginaActual = 1;
   }
 
-  // Cambia la columna de ordenamiento o invierte el orden si es la misma columna.
   ordenarPor(campo: string) {
     if (this.campoOrden === campo) {
       this.ordenAscendente = !this.ordenAscendente;
@@ -258,7 +443,6 @@ export class FormulaMedicaComponent {
     this.paginaActual = 1;
   }
 
-  // Devuelve el icono que indica el orden de la columna.
   iconoOrden(campo: string): string {
     if (this.campoOrden !== campo) {
       return 'fa-sort';
@@ -266,36 +450,37 @@ export class FormulaMedicaComponent {
     return this.ordenAscendente ? 'fa-sort-up' : 'fa-sort-down';
   }
 
-  // Cambia paginacion.
   cambiarPagina(pagina: number) {
     if (pagina >= 1 && pagina <= this.totalPaginas) {
       this.paginaActual = pagina;
     }
   }
 
-  // Evento para abrir el modal de crear fórmula.
   nuevaFormula(modo: string) {
     this.formulaSelected = null;
     this.resetFormulario();
-    this.form.patchValue({ fechaEmision: fechaHoy() });
+    this.cargarMedicamentos();
+    this.form.patchValue({ fechaEmision: fechaHoy(), cantidadSolicitada: 1 });
     this.openModal(modo);
   }
 
   resetFormulario() {
     this.form.enable({ emitEvent: false });
-    this.form.reset({}, { emitEvent: false });
+    this.form.reset({ cantidadSolicitada: 1 }, { emitEvent: false });
     this.listMascotas = [];
     this.listCitas = [];
   }
 
-  // Consulta la fórmula y carga en el formulario los datos que se pueden editar.
   abrirEdicion(formula: FormulaMedica) {
+    if (!formula.id) {
+      return;
+    }
+    this.cargarMedicamentos();
     this.formulaService.consultar(formula.id).subscribe({
       next: (data) => {
         this.formulaSelected = data;
         this.resetFormulario();
 
-        // La mascota y la consulta de una fórmula no se cambian, solo se muestran.
         this.listMascotas = data.mascota ? [data.mascota] : [];
         this.listCitas = data.cita ? [data.cita] : [];
         this.form.patchValue({
@@ -308,13 +493,17 @@ export class FormulaMedicaComponent {
           dosis: data.dosis,
           frecuencia: data.frecuencia,
           duracionDias: data.duracionDias,
+          cantidadSolicitada: data.cantidadSolicitada ?? 1,
           indicaciones: data.indicaciones
         }, { emitEvent: false });
         this.form.get('clienteId')?.disable({ emitEvent: false });
         this.form.get('mascotaId')?.disable({ emitEvent: false });
         this.form.get('citaId')?.disable({ emitEvent: false });
 
-        if (!data.activo) {
+        if ((data.cantidadEntregada ?? 0) > 0) {
+          this.form.get('medicamentoId')?.disable({ emitEvent: false });
+        }
+        if (!data.activo || data.estado?.toUpperCase() === 'ENTREGADA') {
           this.form.disable({ emitEvent: false });
         }
         this.openModal('E');
@@ -323,11 +512,15 @@ export class FormulaMedicaComponent {
     });
   }
 
-  // Consulta el detalle completo de la fórmula y lo muestra en el modal de detalle.
   verDetalle(formula: FormulaMedica) {
+    if (!formula.id) {
+      return;
+    }
     this.formulaService.consultar(formula.id).subscribe({
       next: (data) => {
         this.formulaDetalle = data;
+        this.movimientosFormula = [];
+        this.cargarMovimientosFormula(data.id!);
         const modalElement = document.getElementById('modalDetalleFormula');
         if (modalElement) {
           this.modalDetalleInstance ??= new Modal(modalElement);
@@ -338,23 +531,120 @@ export class FormulaMedicaComponent {
     });
   }
 
-  closeModalDetalle() {
-    if (this.modalDetalleInstance) {
-      this.modalDetalleInstance.hide();
-    }
+  private cargarMovimientosFormula(formulaId: number) {
+    this.cargandoMovimientos = true;
+    this.formulaService.consultarHistorial(formulaId).subscribe({
+      next: (movs) => {
+        this.movimientosFormula = movs ?? [];
+        this.cargandoMovimientos = false;
+      },
+      error: () => {
+        this.cargandoMovimientos = false;
+      }
+    });
   }
 
-  // Valida el formulario y envía la fórmula al backend para crearla o actualizarla.
+  closeModalDetalle() {
+    this.modalDetalleInstance?.hide();
+  }
+
+  // Abre el modal para confirmar la dispensación física y descontar inventario
+  abrirModalDispensar(formula: FormulaMedica) {
+    if (!formula.id) {
+      return;
+    }
+    this.cargarMedicamentos();
+    this.formulaService.consultar(formula.id).subscribe({
+      next: (data) => {
+        this.formulaDispensar = data;
+        const pendiente = this.saldoPendiente(data);
+        const usuarioDefecto = data.medico
+          ? `Dr(a). ${nombreCompleto(data.medico)}`
+          : 'Despacho Farmacia';
+        this.formDispensar.reset({
+          cantidad: pendiente > 0 ? pendiente : 1,
+          usuario: usuarioDefecto,
+          observacion: ''
+        });
+        const el = document.getElementById('modalDispensarFormula');
+        if (el) {
+          this.modalDispensarInstance ??= new Modal(el);
+          this.modalDispensarInstance.show();
+        }
+      },
+      error: (error: HttpErrorResponse) => mostrarError(error)
+    });
+  }
+
+  closeModalDispensar() {
+    this.modalDispensarInstance?.hide();
+  }
+
+  confirmarDispensacion() {
+    if (!this.formulaDispensar?.id) {
+      return;
+    }
+    if (this.formDispensar.invalid) {
+      this.formDispensar.markAllAsTouched();
+      mostrarAdvertencia('Datos incompletos', 'Indique la cantidad a dispensar y el usuario responsable.');
+      return;
+    }
+
+    const val = this.formDispensar.getRawValue();
+    const cantidad = Number(val.cantidad);
+    const pendiente = this.saldoPendiente(this.formulaDispensar);
+    const stockActual = this.formulaDispensar.medicamento?.cantidadDisponible ?? 0;
+
+    if (cantidad <= 0 || cantidad > pendiente) {
+      mostrarAdvertencia(
+        'Cantidad inválida',
+        `La cantidad a dispensar debe estar entre 1 y el saldo pendiente de la fórmula (${pendiente}).`
+      );
+      return;
+    }
+    if (cantidad > stockActual) {
+      mostrarAdvertencia(
+        'Stock insuficiente',
+        `No hay unidades suficientes en inventario (disponible: ${stockActual}, solicitado: ${cantidad}).`
+      );
+      return;
+    }
+
+    this.dispensando = true;
+    this.formulaService.dispensar(
+      this.formulaDispensar.id,
+      cantidad,
+      val.observacion,
+      val.usuario
+    ).subscribe({
+      next: (res) => {
+        this.dispensando = false;
+        mostrarExito(res.message);
+        this.closeModalDispensar();
+        this.listar();
+        this.cargarMedicamentos();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.dispensando = false;
+        mostrarError(error);
+      }
+    });
+  }
+
   guardar() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      mostrarAdvertencia('Campos obligatorios', 'Por favor revise los campos marcados en rojo.');
+      mostrarAdvertencia('Campos obligatorios', 'Por favor revise los campos marcados con *.');
+      return;
+    }
+    if (this.alertaInventarioFormulario) {
+      mostrarAdvertencia('Validación de inventario', this.alertaInventarioFormulario);
       return;
     }
 
     const datos = this.form.getRawValue();
 
-    // La fecha de emisión no puede ser anterior a la fecha de la consulta.
+    // La fecha de emisión no puede ser anterior a la fecha de la consulta
     const cita = this.listCitas.find((item) => item.id === datos.citaId);
     const fechaConsulta = String(cita?.fechaHora ?? '').substring(0, 10);
     if (fechaConsulta && datos.fechaEmision < fechaConsulta) {
@@ -369,9 +659,10 @@ export class FormulaMedicaComponent {
       medicoId: datos.medicoId,
       medicamentoId: datos.medicamentoId,
       fechaEmision: datos.fechaEmision,
+      cantidadSolicitada: Number(datos.cantidadSolicitada),
       dosis: datos.dosis,
       frecuencia: datos.frecuencia,
-      duracionDias: datos.duracionDias,
+      duracionDias: Number(datos.duracionDias),
       indicaciones: datos.indicaciones
     };
 
@@ -394,32 +685,33 @@ export class FormulaMedicaComponent {
     });
   }
 
-  // Las fórmulas no se eliminan: se inactivan para conservar la información clínica.
   inactivarFormula(formula: FormulaMedica) {
-    confirmarAccion('Inactivar fórmula',
-      `¿Desea inactivar la fórmula #${formula.id}? Ya no se podrá modificar.`)
-      .then((confirmado) => {
-        if (!confirmado) {
-          return;
-        }
-        this.formulaService.inactivar(formula.id).subscribe({
-          next: (respuesta) => {
-            mostrarExito(respuesta.message);
-            this.listar();
-          },
-          error: (error: HttpErrorResponse) => mostrarError(error)
-        });
+    if (!formula.id) {
+      return;
+    }
+    confirmarAccion(
+      'Inactivar fórmula médica',
+      `¿Desea inactivar la fórmula #${formula.id} (${formula.medicamento?.nombre})? Ya no se podrá modificar ni dispensar.`
+    ).then((confirmado) => {
+      if (!confirmado || !formula.id) {
+        return;
+      }
+      this.formulaService.inactivar(formula.id).subscribe({
+        next: (respuesta) => {
+          mostrarExito(respuesta.message);
+          this.listar();
+        },
+        error: (error: HttpErrorResponse) => mostrarError(error)
       });
+    });
   }
 
   closeModal() {
-    if (this.modalInstance) {
-      this.modalInstance.hide();
-    }
+    this.modalInstance?.hide();
   }
 
   openModal(modo: string) {
-    this.titleModal = modo === 'C' ? 'Crear Fórmula Médica' : 'Editar Fórmula Médica';
+    this.titleModal = modo === 'C' ? 'Generar Nueva Fórmula Médica' : 'Editar Fórmula Médica';
     this.titleBoton = modo === 'C' ? 'Guardar Fórmula Médica' : 'Actualizar Fórmula Médica';
     this.modoFormulario = modo;
     const modalElement = document.getElementById('modalCrearFormulaMedica');
@@ -429,7 +721,6 @@ export class FormulaMedicaComponent {
     }
   }
 
-  // Devuelve el valor de la columna por la que se está ordenando.
   private valorOrden(formula: FormulaMedica): string | number | undefined {
     switch (this.campoOrden) {
       case 'fechaEmision':
@@ -441,7 +732,7 @@ export class FormulaMedicaComponent {
       case 'medico':
         return nombreCompleto(formula.medico);
       case 'estado':
-        return formula.activo ? 'Activa' : 'Inactiva';
+        return this.etiquetaEstadoDispensacion(formula);
       default:
         return String(formula.fechaCreacionRegistro ?? '');
     }

@@ -1,1 +1,37 @@
-/* Estilos del componente formula-medica */
+/* Estilos del componente de Fórmulas Médicas y Dispensación */
+
+.kpi-formula-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  &.kpi-seleccionado {
+    background-color: #f4f8ff;
+    box-shadow: 0 0 0 2px #0d6efd !important;
+  }
+}
+
+.kpi-border-primary {
+  border-left: 4px solid #0d6efd !important;
+}
+
+.kpi-border-warning {
+  border-left: 4px solid #ffc107 !important;
+}
+
+.kpi-border-success {
+  border-left: 4px solid #198754 !important;
+}
+
+.kpi-border-secondary {
+  border-left: 4px solid #6c757d !important;
+}
+
+.ordenable {
+  cursor: pointer;
+  user-select: none;
+}

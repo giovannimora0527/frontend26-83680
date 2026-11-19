@@ -1,1 +1,303 @@
-/* Estilos del componente cita */
+/* Estilos del Módulo de Gestión de Citas Médicas mediante Calendario */
+
+.perfil-banner {
+  background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+  border-left: 4px solid #0d6efd !important;
+}
+
+.perfil-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tarjetas KPI por estado */
+.estado-kpi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  }
+
+  &.kpi-activo {
+    border-color: #0d6efd;
+    background-color: #f0f6ff;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.18);
+  }
+}
+
+.kpi-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1.1;
+}
+
+.kpi-valor {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1.2;
+}
+
+.selector-fecha-rapida {
+  width: 145px;
+}
+
+/* Colores de tarjetas de cita por estado */
+.cita-card-pendiente {
+  background-color: #fff8e1;
+  border-left: 4px solid #ffc107;
+  color: #5c4500;
+}
+
+.cita-card-programada {
+  background-color: #e0f7fa;
+  border-left: 4px solid #0dcaf0;
+  color: #055160;
+}
+
+.cita-card-confirmada {
+  background-color: #e7f1ff;
+  border-left: 4px solid #0d6efd;
+  color: #084298;
+}
+
+.cita-card-atendida {
+  background-color: #e8f5e9;
+  border-left: 4px solid #198754;
+  color: #0f5132;
+}
+
+.cita-card-cancelada {
+  background-color: #fdecea;
+  border-left: 4px solid #dc3545;
+  color: #842029;
+  opacity: 0.82;
+  text-decoration: line-through;
+}
+
+.cita-card-default {
+  background-color: #f8f9fa;
+  border-left: 4px solid #6c757d;
+}
+
+/* Vista Día */
+.agenda-franjas-wrapper {
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.agenda-franja-row {
+  min-height: 54px;
+  transition: background-color 0.12s ease;
+
+  &:hover {
+    background-color: #fafcff;
+  }
+}
+
+.agenda-hora-col {
+  width: 82px;
+  flex-shrink: 0;
+  background-color: #f8f9fa;
+}
+
+.agenda-contenido-col {
+  cursor: pointer;
+}
+
+.franja-disponible-hint {
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+.agenda-franja-row:hover .franja-disponible-hint {
+  opacity: 0.85;
+}
+
+.cita-calendario-card {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* Bloqueos de horario */
+.franja-bloqueada {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f1f3f5,
+    #f1f3f5 8px,
+    #e9ecef 8px,
+    #e9ecef 16px
+  ) !important;
+}
+
+.bloqueo-chip {
+  background-color: #343a40;
+  color: #ffffff;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.bloqueo-mini-badge {
+  background-color: #343a40;
+  color: #ffffff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Vista Semana */
+.calendario-semana-container {
+  max-height: 660px;
+  overflow-y: auto;
+}
+
+.calendario-semana-table {
+  table-layout: fixed;
+  min-width: 900px;
+
+  .hora-header-col,
+  .hora-celda {
+    width: 72px;
+  }
+}
+
+.dia-hoy-header {
+  background-color: #eef5ff !important;
+}
+
+.semana-slot-celda {
+  height: 52px;
+  vertical-align: top;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f5f9ff;
+  }
+
+  &.celda-hoy {
+    background-color: #fbfdff;
+  }
+}
+
+.cita-semana-item {
+  font-size: 0.74rem;
+  line-height: 1.2;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+}
+
+.estado-mini-dot {
+  font-size: 0.62rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+/* Vista Mes */
+.calendario-mes-table {
+  table-layout: fixed;
+  min-width: 820px;
+}
+
+.mes-dia-celda {
+  height: 125px;
+  cursor: pointer;
+  transition: background-color 0.12s;
+
+  &:hover {
+    background-color: #f8fbff;
+  }
+}
+
+.mes-dia-fuera {
+  background-color: #f8f9fa;
+  color: #adb5bd;
+}
+
+.mes-dia-hoy {
+  background-color: #f2f7ff;
+}
+
+.numero-dia-mes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+
+  &:hover {
+    background-color: #e9ecef;
+  }
+}
+
+.dia-hoy-badge {
+  background-color: #0d6efd;
+  color: #ffffff !important;
+}
+
+.mes-citas-lista {
+  max-height: 82px;
+  overflow-y: auto;
+}
+
+.cita-mes-pill {
+  font-size: 0.73rem;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(0.96);
+  }
+}
+
+/* Botones extra pequeños y utilidades */
+.btn-xs {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.72rem;
+  border-radius: 0.2rem;
+}
+
+.ordenable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.historial-cambios-box {
+  max-height: 130px;
+  overflow-y: auto;
+}

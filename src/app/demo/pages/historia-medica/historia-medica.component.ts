@@ -7,17 +7,22 @@ import { AnotacionHistoria } from 'src/app/models/anotacion-historia';
 import { AnotacionHistoriaRq } from 'src/app/models/anotacion-historia-rq';
 import { Cita } from 'src/app/models/cita';
 import { Cliente } from 'src/app/models/cliente';
+import { FormulaMedica } from 'src/app/models/formula-medica';
+import { FormulaMedicaRq } from 'src/app/models/formula-medica-rq';
 import { HistoriaMedica } from 'src/app/models/historia-medica';
 import { HistoriaMedicaRq } from 'src/app/models/historia-medica-rq';
 import { Mascota } from 'src/app/models/mascota';
+import { Medicamento } from 'src/app/models/medicamento';
 import { Medico } from 'src/app/models/medico';
 import { MiRespuesta } from 'src/app/models/mi-respuesta';
 import { ClienteService } from 'src/app/services/cliente.service';
 import { mostrarAdvertencia, mostrarError, mostrarExito } from 'src/app/utils/mensajes-utils';
-import { compararValores, estaEnRangoFechas, nombreCompleto, normalizarTexto, textoEstado } from 'src/app/utils/tabla-utils';
+import { compararValores, estaEnRangoFechas, fechaHoy, nombreCompleto, normalizarTexto, textoEstado } from 'src/app/utils/tabla-utils';
 import { AnotacionHistoriaService } from '../anotacion-historia/service/anotacion-historia.service';
 import { CitaService } from '../cita/service/cita.service';
+import { FormulaMedicaService } from '../formula-medica/service/formula-medica.service';
 import { MascotaService } from '../mascota/service/mascota.service';
+import { MedicamentoService } from '../medicamento/service/medicamento.service';
 import { MedicoService } from '../medico/service/medico.service';
 import { HistoriaMedicaService } from './service/historia-medica.service';
 
@@ -28,17 +33,25 @@ import { HistoriaMedicaService } from './service/historia-medica.service';
   styleUrl: './historia-medica.component.scss'
 })
 export class HistoriaMedicaComponent {
-  // Variables para los modales de formulario y de detalle.
+  // Instancias de modales Bootstrap
   modalInstance: Modal | null = null;
   modalDetalleInstance: Modal | null = null;
-  titleModal: string = '';
-  modoFormulario: string = '';
-  titleBoton: string = '';
+  titleModal = '';
+  modoFormulario = '';
+  titleBoton = '';
 
-  // Estados de una historia clínica: abierta recibe anotaciones, cerrada ya no se modifica.
+  // Estados de una historia clínica: abierta recibe anotaciones y fórmulas, cerrada ya no se modifica
   readonly estados = ['ABIERTA', 'CERRADA'];
+  readonly frecuenciasSugeridas = [
+    'Cada 6 horas (4 veces al día)',
+    'Cada 8 horas (3 veces al día)',
+    'Cada 12 horas (2 veces al día)',
+    'Cada 24 horas (1 vez al día)',
+    'Cada 48 horas',
+    'Dosis única'
+  ];
 
-  // Variables para la paginación, búsqueda, filtros y ordenamiento de la datatable.
+  // Variables para la paginación, búsqueda, filtros y ordenamiento de la datatable
   listHistorias: HistoriaMedica[] = [];
   terminoBusqueda = '';
   filtroEstado = '';
@@ -51,18 +64,26 @@ export class HistoriaMedicaComponent {
   cargando = false;
   guardando = false;
 
-  // Listas para los combos dependientes: Cliente -> Mascotas del cliente -> Citas atendidas de la mascota.
+  // Listas para los combos dependientes: Cliente -> Mascotas del cliente -> Citas de la mascota
   listClientes: Cliente[] = [];
   listMascotas: Mascota[] = [];
   listCitas: Cita[] = [];
   listMedicos: Medico[] = [];
+  listMedicamentos: Medicamento[] = [];
 
-  // Formulario para crear o editar historia.
+  // Formulario para crear o editar atención médica (historia)
   form!: FormGroup;
+  formFormulaItem!: FormGroup;
   historiaSelected: HistoriaMedica | null = null;
+  formulasBorrador: Array<FormulaMedicaRq & { nombreMedicamento?: string; presentacion?: string }> = [];
 
-  // Variables del detalle (Ver) y del historial de anotaciones.
+  // Variables del detalle (Ver), fórmulas de la atención e historial de anotaciones
   historiaDetalle: HistoriaMedica | null = null;
+  listFormulasHistoria: FormulaMedica[] = [];
+  cargandoFormulasHistoria = false;
+  mostrarFormNuevaFormulaDetalle = false;
+  guardandoFormulaDetalle = false;
+
   listAnotaciones: AnotacionHistoria[] = [];
   anotacionSelected: AnotacionHistoria | null = null;
   terminoAnotacion = '';
@@ -74,24 +95,28 @@ export class HistoriaMedicaComponent {
   mostrarFormAnotacion = false;
   formAnotacion!: FormGroup;
 
-  // Funciones de utilidad que se usan en la plantilla.
+  // Funciones de utilidad expuestas a la plantilla
   readonly nombreCompleto = nombreCompleto;
   readonly textoEstado = textoEstado;
 
-  constructor(private readonly historiaService: HistoriaMedicaService,
+  constructor(
+    private readonly historiaService: HistoriaMedicaService,
     private readonly anotacionService: AnotacionHistoriaService,
+    private readonly formulaService: FormulaMedicaService,
+    private readonly medicamentoService: MedicamentoService,
     private readonly clienteService: ClienteService,
     private readonly mascotaService: MascotaService,
     private readonly citaService: CitaService,
     private readonly medicoService: MedicoService,
-    private readonly formBuilder: FormBuilder) {
+    private readonly formBuilder: FormBuilder
+  ) {
     this.inicializarFormulario();
+    this.inicializarFormularioFormulaItem();
     this.inicializarFormularioAnotacion();
     this.listar();
     this.cargarCombos();
   }
 
-  // Metodo que permite inicializar el formulario de la historia con sus controles y validaciones.
   inicializarFormulario() {
     this.form = this.formBuilder.group({
       clienteId: [null, Validators.required],
@@ -106,14 +131,14 @@ export class HistoriaMedicaComponent {
       estado: ['ABIERTA', Validators.required]
     });
 
-    // Combos dependientes: cliente -> mascotas -> citas.
+    // Combos dependientes: cliente -> mascotas -> citas
     this.form.get('clienteId')?.valueChanges.subscribe((clienteId) => {
       this.cargarMascotasCliente(clienteId);
     });
     this.form.get('mascotaId')?.valueChanges.subscribe((mascotaId) => {
       this.cargarCitasMascota(mascotaId);
     });
-    // Al elegir la cita se proponen el veterinario, la fecha, la hora y el motivo de esa cita.
+    // Al elegir la cita se proponen el veterinario, la fecha, la hora y el motivo de esa cita
     this.form.get('citaId')?.valueChanges.subscribe((citaId) => {
       const cita = this.listCitas.find((item) => item.id === citaId);
       if (cita) {
@@ -127,7 +152,17 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Formulario para agregar una anotación a la historia que se está viendo.
+  inicializarFormularioFormulaItem() {
+    this.formFormulaItem = this.formBuilder.group({
+      medicamentoId: [null, Validators.required],
+      dosis: ['', [Validators.required, Validators.maxLength(100), Validators.pattern(/\d/)]],
+      frecuencia: ['', [Validators.required, Validators.maxLength(100)]],
+      duracionDias: [null, [Validators.required, Validators.min(1), Validators.max(365)]],
+      cantidadSolicitada: [1, [Validators.required, Validators.min(1)]],
+      indicaciones: ['', [Validators.required, Validators.maxLength(1000)]]
+    });
+  }
+
   inicializarFormularioAnotacion() {
     this.formAnotacion = this.formBuilder.group({
       medicoId: [null, Validators.required],
@@ -137,20 +172,106 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Obtiene los controles del formulario para facilitar el acceso a sus propiedades y métodos.
   get f(): { [key: string]: AbstractControl } {
     return this.form.controls;
   }
 
-  // Obtiene los controles del formulario de anotación.
+  get ff(): { [key: string]: AbstractControl } {
+    return this.formFormulaItem.controls;
+  }
+
   get fa(): { [key: string]: AbstractControl } {
     return this.formAnotacion.controls;
   }
 
-  /**
-   * Filtra la lista de historias según la búsqueda y los filtros, y la ordena por la columna seleccionada.
-   * @returns Un arreglo de historias filtradas y ordenadas.
-   */
+  // Medicamento seleccionado en el subformulario de prescripción
+  get medicamentoFormulaSeleccionado(): Medicamento | undefined {
+    const id = this.formFormulaItem?.getRawValue()?.medicamentoId;
+    return this.listMedicamentos.find((m) => m.id === Number(id));
+  }
+
+  get cantidadFormulaSugerida(): number | null {
+    const raw = this.formFormulaItem?.getRawValue();
+    const duracion = Number(raw?.duracionDias);
+    if (!duracion || duracion <= 0) {
+      return null;
+    }
+    const freq = String(raw?.frecuencia ?? '').toLowerCase();
+    let tomas = 1;
+    if (freq.includes('6 hora') || freq.includes('4 veces')) tomas = 4;
+    else if (freq.includes('8 hora') || freq.includes('3 veces')) tomas = 3;
+    else if (freq.includes('12 hora') || freq.includes('2 veces')) tomas = 2;
+    else if (freq.includes('48 hora')) tomas = 0.5;
+    else if (freq.includes('unica') || freq.includes('única')) return 1;
+
+    const textoDosis = String(raw?.dosis ?? '').toLowerCase();
+    let undPorToma = 1;
+    const match = textoDosis.match(/(\d+)\s*(tableta|capsula|cápsula|comprimido|ampolla|sobre|unidad)/);
+    if (match) {
+      undPorToma = Number(match[1]) || 1;
+    }
+    return Math.max(1, Math.ceil(undPorToma * tomas * duracion));
+  }
+
+  aplicarCantidadFormulaSugerida() {
+    const sug = this.cantidadFormulaSugerida;
+    if (sug && sug > 0) {
+      this.formFormulaItem.get('cantidadSolicitada')?.setValue(sug);
+    }
+  }
+
+  // Agrega un medicamento prescrito a la lista borrador durante el registro de la atención médica
+  agregarFormulaBorrador() {
+    if (this.formFormulaItem.invalid) {
+      this.formFormulaItem.markAllAsTouched();
+      mostrarAdvertencia('Datos de fórmula incompletos', 'Complete medicamento, dosis, frecuencia, duración, cantidad e indicaciones.');
+      return;
+    }
+    const val = this.formFormulaItem.getRawValue();
+    const med = this.medicamentoFormulaSeleccionado;
+    if (!med) {
+      return;
+    }
+    if (med.activo === false) {
+      mostrarAdvertencia('Medicamento inactivo', `El medicamento "${med.nombre}" está inactivo en el inventario.`);
+      return;
+    }
+    if (med.fechaVence && String(med.fechaVence).substring(0, 10) < fechaHoy()) {
+      mostrarAdvertencia('Medicamento vencido', `El medicamento "${med.nombre}" está vencido (${med.fechaVence}).`);
+      return;
+    }
+    if (this.formulasBorrador.some((item) => item.medicamentoId === Number(val.medicamentoId))) {
+      mostrarAdvertencia('Medicamento duplicado', 'Este medicamento ya fue agregado a la fórmula de esta atención.');
+      return;
+    }
+    const disponible = med.cantidadDisponible ?? 0;
+    const solicitada = Number(val.cantidadSolicitada);
+    if (solicitada > disponible) {
+      mostrarAdvertencia(
+        'Inventario insuficiente',
+        `Solo hay ${disponible} unidad(es) disponible(s) de "${med.nombre}" y se intentan formular ${solicitada}.`
+      );
+      return;
+    }
+
+    this.formulasBorrador.push({
+      medicamentoId: Number(val.medicamentoId),
+      dosis: val.dosis.trim(),
+      frecuencia: val.frecuencia.trim(),
+      duracionDias: Number(val.duracionDias),
+      cantidadSolicitada: solicitada,
+      indicaciones: val.indicaciones.trim(),
+      nombreMedicamento: med.nombre,
+      presentacion: med.presentacion
+    });
+
+    this.formFormulaItem.reset({ cantidadSolicitada: 1 });
+  }
+
+  quitarFormulaBorrador(indice: number) {
+    this.formulasBorrador.splice(indice, 1);
+  }
+
   get historiasFiltradas(): HistoriaMedica[] {
     const termino = normalizarTexto(this.terminoBusqueda.trim());
 
@@ -197,11 +318,6 @@ export class HistoriaMedicaComponent {
     return Array.from({ length: this.totalPaginas }, (_, indice) => indice + 1);
   }
 
-  /**
-   * Filtra y ordena por fecha las anotaciones de la historia que se está viendo.
-   * Por defecto se muestran de la más reciente a la más antigua.
-   * @returns Un arreglo de anotaciones filtradas y ordenadas.
-   */
   get anotacionesFiltradas(): AnotacionHistoria[] {
     const termino = normalizarTexto(this.terminoAnotacion.trim());
 
@@ -238,14 +354,11 @@ export class HistoriaMedicaComponent {
     return Array.from({ length: this.totalPaginasAnotacion }, (_, indice) => indice + 1);
   }
 
-  /**
-   * Metodo que permite listar las historias registradas en la base de datos y mostrarlas en la tabla.
-   */
   listar() {
     this.cargando = true;
     this.historiaService.listar().subscribe({
       next: (data) => {
-        this.listHistorias = data;
+        this.listHistorias = data ?? [];
         this.paginaActual = 1;
         this.cargando = false;
       },
@@ -256,19 +369,25 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Carga los clientes y veterinarios de los combos.
   cargarCombos() {
     this.clienteService.listar().subscribe({
-      next: (data) => this.listClientes = data,
+      next: (data) => (this.listClientes = data ?? []),
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
     this.medicoService.listar().subscribe({
-      next: (data) => this.listMedicos = data,
+      next: (data) => (this.listMedicos = data ?? []),
+      error: (error: HttpErrorResponse) => mostrarError(error)
+    });
+    this.cargarMedicamentos();
+  }
+
+  cargarMedicamentos() {
+    this.medicamentoService.listar().subscribe({
+      next: (data) => (this.listMedicamentos = data ?? []),
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
   }
 
-  // Consulta las mascotas del cliente seleccionado.
   cargarMascotasCliente(clienteId: number | null) {
     this.listMascotas = [];
     this.listCitas = [];
@@ -277,12 +396,12 @@ export class HistoriaMedicaComponent {
       return;
     }
     this.mascotaService.listarPorCliente(clienteId).subscribe({
-      next: (data) => this.listMascotas = data,
+      next: (data) => (this.listMascotas = data ?? []),
       error: (error: HttpErrorResponse) => mostrarError(error)
     });
   }
 
-  // Consulta las citas de la mascota; solo sirven las atendidas que aún no tienen historia.
+  // Permite seleccionar citas activas o atendidas de la mascota que aún no tengan atención/historia registrada
   cargarCitasMascota(mascotaId: number | null) {
     this.listCitas = [];
     this.form.get('citaId')?.setValue(null, { emitEvent: false });
@@ -291,8 +410,8 @@ export class HistoriaMedicaComponent {
     }
     this.citaService.listarPorMascota(mascotaId).subscribe({
       next: (data) => {
-        this.listCitas = data.filter((cita) =>
-          cita.estado?.toUpperCase() === 'ATENDIDA'
+        this.listCitas = (data ?? []).filter((cita) =>
+          cita.estado?.toUpperCase() !== 'CANCELADA'
           && !this.listHistorias.some((historia) => historia.cita?.id === cita.id)
         );
       },
@@ -300,18 +419,15 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Metodo que actualiza el termino de busqueda y reinicia la pagina actual a 1.
   actualizarBusqueda(event: Event) {
     this.terminoBusqueda = (event.target as HTMLInputElement).value;
     this.paginaActual = 1;
   }
 
-  // Reinicia la paginación cuando cambia algún filtro.
   aplicarFiltros() {
     this.paginaActual = 1;
   }
 
-  // Quita todos los filtros de la tabla.
   limpiarFiltros() {
     this.terminoBusqueda = '';
     this.filtroEstado = '';
@@ -320,7 +436,6 @@ export class HistoriaMedicaComponent {
     this.paginaActual = 1;
   }
 
-  // Cambia la columna de ordenamiento o invierte el orden si es la misma columna.
   ordenarPor(campo: string) {
     if (this.campoOrden === campo) {
       this.ordenAscendente = !this.ordenAscendente;
@@ -331,7 +446,6 @@ export class HistoriaMedicaComponent {
     this.paginaActual = 1;
   }
 
-  // Devuelve el icono que indica el orden de la columna.
   iconoOrden(campo: string): string {
     if (this.campoOrden !== campo) {
       return 'fa-sort';
@@ -339,34 +453,36 @@ export class HistoriaMedicaComponent {
     return this.ordenAscendente ? 'fa-sort-up' : 'fa-sort-down';
   }
 
-  // Cambia paginacion.
   cambiarPagina(pagina: number) {
     if (pagina >= 1 && pagina <= this.totalPaginas) {
       this.paginaActual = pagina;
     }
   }
 
-  // Una historia cerrada ya no se puede editar ni recibir anotaciones.
   esHistoriaCerrada(historia: HistoriaMedica | null): boolean {
     return historia?.estado?.toUpperCase() === 'CERRADA';
   }
 
-  // Evento para abrir el modal de crear historia.
   nuevaHistoria(modo: string) {
     this.historiaSelected = null;
     this.resetFormulario();
+    this.cargarMedicamentos();
     this.openModal(modo);
   }
 
   resetFormulario() {
     this.form.enable({ emitEvent: false });
     this.form.reset({ estado: 'ABIERTA' }, { emitEvent: false });
+    this.formFormulaItem.reset({ cantidadSolicitada: 1 }, { emitEvent: false });
+    this.formulasBorrador = [];
     this.listMascotas = [];
     this.listCitas = [];
   }
 
-  // Consulta la historia y la carga en el formulario; solo se edita diagnóstico, observaciones y estado.
   abrirEdicion(historia: HistoriaMedica) {
+    if (!historia.id) {
+      return;
+    }
     this.historiaService.consultar(historia.id).subscribe({
       next: (data) => {
         this.historiaSelected = data;
@@ -387,7 +503,6 @@ export class HistoriaMedicaComponent {
           estado: data.estado?.toUpperCase()
         }, { emitEvent: false });
 
-        // Los datos de la consulta son históricos y no se modifican.
         ['clienteId', 'mascotaId', 'citaId', 'medicoId', 'fecha', 'hora', 'motivo'].forEach((campo) => {
           this.form.get(campo)?.disable({ emitEvent: false });
         });
@@ -400,7 +515,6 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Valida el formulario y envía la historia al backend para crearla o actualizarla.
   guardar() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -411,10 +525,9 @@ export class HistoriaMedicaComponent {
     const datos = this.form.getRawValue();
     const fechaHora = `${datos.fecha}T${datos.hora}:00`;
 
-    // La fecha de la consulta no puede ser anterior a la fecha de la cita.
     const cita = this.listCitas.find((item) => item.id === datos.citaId);
     if (this.modoFormulario === 'C' && cita && fechaHora.substring(0, 16) < String(cita.fechaHora).substring(0, 16)) {
-      mostrarAdvertencia('Fecha no válida', 'La fecha de la consulta no puede ser anterior a la fecha de la cita.');
+      mostrarAdvertencia('Fecha no válida', 'La fecha de la atención médica no puede ser anterior a la fecha de la cita.');
       return;
     }
 
@@ -428,7 +541,8 @@ export class HistoriaMedicaComponent {
       motivo: datos.motivo,
       diagnostico: datos.diagnostico,
       observaciones: datos.observaciones,
-      estado: datos.estado
+      estado: datos.estado,
+      formulas: this.modoFormulario === 'C' ? this.formulasBorrador : undefined
     };
 
     this.guardando = true;
@@ -450,17 +564,24 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Abre el detalle de la historia con el historial de anotaciones.
+  // Abre el detalle de la atención médica con sus fórmulas prescritas y el historial de anotaciones
   verDetalle(historia: HistoriaMedica) {
+    if (!historia.id) {
+      return;
+    }
+    this.cargarMedicamentos();
     this.historiaService.consultar(historia.id).subscribe({
       next: (data) => {
         this.historiaDetalle = data;
         this.anotacionSelected = null;
         this.mostrarFormAnotacion = false;
+        this.mostrarFormNuevaFormulaDetalle = false;
         this.terminoAnotacion = '';
         this.anotacionesAscendente = false;
         this.listAnotaciones = [];
+        this.listFormulasHistoria = [];
         this.cargarAnotaciones();
+        this.cargarFormulasDeHistoria();
         const modalElement = document.getElementById('modalDetalleHistoria');
         if (modalElement) {
           this.modalDetalleInstance ??= new Modal(modalElement);
@@ -471,15 +592,111 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Consulta en el backend las anotaciones de la historia que se está viendo.
+  cargarFormulasDeHistoria() {
+    const citaId = this.historiaDetalle?.cita?.id;
+    if (!citaId) {
+      return;
+    }
+    this.cargandoFormulasHistoria = true;
+    this.formulaService.listarPorCita(citaId).subscribe({
+      next: (formulas) => {
+        this.listFormulasHistoria = formulas ?? [];
+        this.cargandoFormulasHistoria = false;
+      },
+      error: () => {
+        this.cargandoFormulasHistoria = false;
+      }
+    });
+  }
+
+  abrirNuevaFormulaEnDetalle() {
+    this.formFormulaItem.reset({ cantidadSolicitada: 1 });
+    this.mostrarFormNuevaFormulaDetalle = true;
+  }
+
+  cancelarNuevaFormulaEnDetalle() {
+    this.mostrarFormNuevaFormulaDetalle = false;
+  }
+
+  guardarNuevaFormulaEnDetalle() {
+    if (!this.historiaDetalle?.cita?.id || !this.historiaDetalle?.mascota?.mascotaId) {
+      return;
+    }
+    if (this.formFormulaItem.invalid) {
+      this.formFormulaItem.markAllAsTouched();
+      mostrarAdvertencia('Campos obligatorios', 'Complete medicamento, dosis, frecuencia, duración, cantidad e indicaciones.');
+      return;
+    }
+
+    const val = this.formFormulaItem.getRawValue();
+    const fechaCita = String(this.historiaDetalle.cita.fechaHora ?? '').substring(0, 10);
+    const hoy = fechaHoy();
+    const fechaEmision = hoy >= fechaCita ? hoy : fechaCita;
+
+    const rq: FormulaMedicaRq = {
+      citaId: this.historiaDetalle.cita.id,
+      mascotaId: this.historiaDetalle.mascota.mascotaId,
+      medicoId: this.historiaDetalle.medico?.id,
+      medicamentoId: Number(val.medicamentoId),
+      fechaEmision,
+      cantidadSolicitada: Number(val.cantidadSolicitada),
+      dosis: val.dosis.trim(),
+      frecuencia: val.frecuencia.trim(),
+      duracionDias: Number(val.duracionDias),
+      indicaciones: val.indicaciones.trim()
+    };
+
+    this.guardandoFormulaDetalle = true;
+    this.formulaService.guardar(rq).subscribe({
+      next: (res) => {
+        this.guardandoFormulaDetalle = false;
+        this.mostrarFormNuevaFormulaDetalle = false;
+        mostrarExito(res.message);
+        this.cargarFormulasDeHistoria();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.guardandoFormulaDetalle = false;
+        mostrarError(error);
+      }
+    });
+  }
+
+  etiquetaEstadoFormula(f: FormulaMedica): string {
+    if (!f.activo) {
+      return 'Inactiva';
+    }
+    switch ((f.estado ?? 'FORMULADA').toUpperCase()) {
+      case 'ENTREGADA':
+        return 'Dispensada Completa';
+      case 'PARCIAL':
+        return 'Dispensación Parcial';
+      default:
+        return 'Formulada (Pendiente Despacho)';
+    }
+  }
+
+  claseEstadoFormula(f: FormulaMedica): string {
+    if (!f.activo) {
+      return 'bg-secondary';
+    }
+    switch ((f.estado ?? 'FORMULADA').toUpperCase()) {
+      case 'ENTREGADA':
+        return 'bg-success';
+      case 'PARCIAL':
+        return 'bg-warning text-dark';
+      default:
+        return 'bg-primary';
+    }
+  }
+
   cargarAnotaciones() {
-    if (!this.historiaDetalle) {
+    if (!this.historiaDetalle?.id) {
       return;
     }
     this.cargandoAnotaciones = true;
     this.anotacionService.listarPorHistoria(this.historiaDetalle.id).subscribe({
       next: (data) => {
-        this.listAnotaciones = data;
+        this.listAnotaciones = data ?? [];
         this.paginaAnotacion = 1;
         this.cargandoAnotaciones = false;
       },
@@ -490,32 +707,27 @@ export class HistoriaMedicaComponent {
     });
   }
 
-  // Actualiza la búsqueda dentro de las anotaciones.
   actualizarBusquedaAnotacion(event: Event) {
     this.terminoAnotacion = (event.target as HTMLInputElement).value;
     this.paginaAnotacion = 1;
   }
 
-  // Invierte el orden por fecha de las anotaciones.
   cambiarOrdenAnotaciones() {
     this.anotacionesAscendente = !this.anotacionesAscendente;
     this.paginaAnotacion = 1;
   }
 
-  // Cambia la página de la tabla de anotaciones.
   cambiarPaginaAnotacion(pagina: number) {
     if (pagina >= 1 && pagina <= this.totalPaginasAnotacion) {
       this.paginaAnotacion = pagina;
     }
   }
 
-  // Muestra el detalle completo de una anotación.
   verAnotacion(anotacion: AnotacionHistoria) {
     this.anotacionSelected = anotacion;
     this.mostrarFormAnotacion = false;
   }
 
-  // Muestra el formulario para agregar una anotación; propone el veterinario de la historia.
   nuevaAnotacion() {
     this.formAnotacion.reset({ medicoId: this.historiaDetalle?.medico?.id ?? null });
     this.anotacionSelected = null;
@@ -526,7 +738,6 @@ export class HistoriaMedicaComponent {
     this.mostrarFormAnotacion = false;
   }
 
-  // Valida y guarda la nueva anotación, luego recarga el historial.
   guardarAnotacion() {
     if (this.formAnotacion.invalid) {
       this.formAnotacion.markAllAsTouched();
@@ -559,20 +770,16 @@ export class HistoriaMedicaComponent {
   }
 
   closeModalDetalle() {
-    if (this.modalDetalleInstance) {
-      this.modalDetalleInstance.hide();
-    }
+    this.modalDetalleInstance?.hide();
   }
 
   closeModal() {
-    if (this.modalInstance) {
-      this.modalInstance.hide();
-    }
+    this.modalInstance?.hide();
   }
 
   openModal(modo: string) {
-    this.titleModal = modo === 'C' ? 'Crear Historia Médica' : 'Editar Historia Médica';
-    this.titleBoton = modo === 'C' ? 'Guardar Historia Médica' : 'Actualizar Historia Médica';
+    this.titleModal = modo === 'C' ? 'Registrar Atención Médica y Formulación' : 'Editar Atención / Historia Médica';
+    this.titleBoton = modo === 'C' ? 'Guardar Atención Médica' : 'Actualizar Historia Médica';
     this.modoFormulario = modo;
     const modalElement = document.getElementById('modalCrearHistoriaMedica');
     if (modalElement) {
@@ -581,7 +788,6 @@ export class HistoriaMedicaComponent {
     }
   }
 
-  // Devuelve el valor de la columna por la que se está ordenando.
   private valorOrden(historia: HistoriaMedica): string | number | undefined {
     switch (this.campoOrden) {
       case 'mascota':

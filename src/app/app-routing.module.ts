@@ -9,6 +9,8 @@ import { CitaComponent } from './demo/pages/cita/cita.component';
 import { FormulaMedicaComponent } from './demo/pages/formula-medica/formula-medica.component';
 import { HistoriaMedicaComponent } from './demo/pages/historia-medica/historia-medica.component';
 import { AnotacionHistoriaComponent } from './demo/pages/anotacion-historia/anotacion-historia.component';
+import { FacturaComponent } from './demo/pages/factura/factura.component';
+import { ReporteComponent } from './demo/pages/reporte/reporte.component';
 
 export const routes: Routes = [
   {
@@ -28,7 +30,9 @@ export const routes: Routes = [
       { path: 'citas', component: CitaComponent, data: { title: 'Citas' }},
       { path: 'formulas-medicas', component: FormulaMedicaComponent, data: { title: 'Formulas Medicas' }},
       { path: 'historias-medicas', component: HistoriaMedicaComponent, data: { title: 'Historias Medicas' }},
-      { path: 'anotaciones-historia', component: AnotacionHistoriaComponent, data: { title: 'Anotaciones de Historia' }}
+      { path: 'anotaciones-historia', component: AnotacionHistoriaComponent, data: { title: 'Anotaciones de Historia' }},
+      { path: 'facturacion', component: FacturaComponent, data: { title: 'Facturacion y Pagos' }},
+      { path: 'reportes', component: ReporteComponent, data: { title: 'Reportes Administrativos y Contables' }}
       /* Inserte nuevos menus aqui */    
     ]
   },

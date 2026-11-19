@@ -1,0 +1,52 @@
+/* Estilos del Módulo de Facturación y Pagos */
+
+.kpi-factura-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  &.kpi-activo {
+    background-color: #f4f8ff;
+    box-shadow: 0 0 0 2px #0d6efd !important;
+  }
+}
+
+.kpi-left-primary {
+  border-left: 4px solid #0d6efd !important;
+}
+
+.kpi-left-warning {
+  border-left: 4px solid #ffc107 !important;
+}
+
+.kpi-left-success {
+  border-left: 4px solid #198754 !important;
+}
+
+.kpi-left-danger {
+  border-left: 4px solid #dc3545 !important;
+}
+
+.fila-anulada {
+  opacity: 0.72;
+}
+
+.ordenable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-xs {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.72rem;
+  border-radius: 0.2rem;
+}
+
+.trazabilidad-box {
+  max-height: 150px;
+  overflow-y: auto;
+}

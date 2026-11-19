@@ -1,36 +1,99 @@
 <div class="container-fluid">
-  <div class="card">
-    <div class="card-header">
-      <div class="row g-2">
-        <div class="col col-md-9">
-          <input class="form-control" placeholder="Buscar por mascota, cliente, medicamento, veterinario o dosis"
+  <!-- Tarjetas KPI: Diferenciación visual entre Formulación y Dispensación -->
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm kpi-formula-card kpi-border-primary"
+        [class.kpi-seleccionado]="filtroEstado === 'FORMULADA'"
+        (click)="filtrarRapidoEstado('FORMULADA')" role="button">
+        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small text-muted fw-semibold">Formuladas (Pendientes Despacho)</div>
+            <div class="fs-4 fw-bold text-primary">{{ contarPorEstadoDispensacion('FORMULADA') }}</div>
+            <small class="text-muted">Prescritas sin descuento de stock aún</small>
+          </div>
+          <i class="fa fa-file-prescription fa-2x text-primary opacity-50"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm kpi-formula-card kpi-border-warning"
+        [class.kpi-seleccionado]="filtroEstado === 'PARCIAL'"
+        (click)="filtrarRapidoEstado('PARCIAL')" role="button">
+        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small text-muted fw-semibold">Dispensación Parcial</div>
+            <div class="fs-4 fw-bold text-warning">{{ contarPorEstadoDispensacion('PARCIAL') }}</div>
+            <small class="text-muted">Con saldo pendiente por entregar</small>
+          </div>
+          <i class="fa fa-boxes-packing fa-2x text-warning opacity-50"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm kpi-formula-card kpi-border-success"
+        [class.kpi-seleccionado]="filtroEstado === 'ENTREGADA'"
+        (click)="filtrarRapidoEstado('ENTREGADA')" role="button">
+        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small text-muted fw-semibold">Dispensadas Completas</div>
+            <div class="fs-4 fw-bold text-success">{{ contarPorEstadoDispensacion('ENTREGADA') }}</div>
+            <small class="text-muted">Entregadas y descontadas de inventario</small>
+          </div>
+          <i class="fa fa-check-double fa-2x text-success opacity-50"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm kpi-formula-card kpi-border-secondary"
+        [class.kpi-seleccionado]="filtroEstado === 'INACTIVA'"
+        (click)="filtrarRapidoEstado('INACTIVA')" role="button">
+        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+          <div>
+            <div class="small text-muted fw-semibold">Inactivas / Anuladas</div>
+            <div class="fs-4 fw-bold text-secondary">{{ contarPorEstadoDispensacion('INACTIVA') }}</div>
+            <small class="text-muted">Histórico sin despacho activo</small>
+          </div>
+          <i class="fa fa-ban fa-2x text-secondary opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-8">
+          <input class="form-control" placeholder="Buscar por mascota, propietario, medicamento, código, lote, veterinario o dosis..."
             type="text" [value]="terminoBusqueda" (input)="actualizarBusqueda($event)" />
         </div>
-        <div class="col col-md-3 text-end">
-          <button class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
-            (click)="nuevaFormula('C')" title="Agregar fórmula médica">
-            <i class="fa fa-plus" aria-hidden="true"></i>
-            &nbsp; Nuevo
+        <div class="col-md-4 text-end">
+          <button class="btn btn-primary d-inline-flex align-items-center justify-content-center"
+            (click)="nuevaFormula('C')" title="Generar nueva fórmula médica">
+            <i class="fa fa-plus me-1" aria-hidden="true"></i> Nueva Fórmula Médica
           </button>
         </div>
       </div>
+
       <!-- Filtros de la tabla -->
-      <div class="row g-2 mt-1 align-items-end">
+      <div class="row g-2 mt-2 align-items-end">
         <div class="col-md-3">
-          <label class="form-label small mb-1">Estado</label>
+          <label class="form-label small mb-1 text-muted">Estado de Formulación / Dispensación</label>
           <select class="form-select form-select-sm" [(ngModel)]="filtroEstado" (ngModelChange)="aplicarFiltros()">
-            <option value="">Todas</option>
-            <option value="ACTIVA">Activas</option>
-            <option value="INACTIVA">Inactivas</option>
+            <option value="">Todas las fórmulas</option>
+            <option value="FORMULADA">Formuladas (Pendientes de dispensar)</option>
+            <option value="PARCIAL">Con dispensación parcial</option>
+            <option value="ENTREGADA">Dispensadas completamente</option>
+            <option value="ACTIVA">Todas las activas</option>
+            <option value="INACTIVA">Inactivas / Anuladas</option>
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label small mb-1">Emitida desde</label>
+          <label class="form-label small mb-1 text-muted">Emitida desde</label>
           <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroFechaDesde"
             (ngModelChange)="aplicarFiltros()" />
         </div>
         <div class="col-md-3">
-          <label class="form-label small mb-1">Emitida hasta</label>
+          <label class="form-label small mb-1 text-muted">Emitida hasta</label>
           <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroFechaHasta"
             (ngModelChange)="aplicarFiltros()" />
         </div>
@@ -41,99 +104,149 @@
         </div>
       </div>
     </div>
+
     <div class="card-body">
-      <div class="row">
-        <div class="table table-responsive table-condensed col col-md-12">
-          <table class="table table-stripped table-condensed table-responsive table-hover">
-            <thead>
-              <tr>
-                <th class="text-center ordenable" (click)="ordenarPor('fechaCreacionRegistro')">
-                  Registro <i class="fa" [ngClass]="iconoOrden('fechaCreacionRegistro')"></i>
-                </th>
-                <th class="text-center ordenable" (click)="ordenarPor('fechaEmision')">
-                  Emisión <i class="fa" [ngClass]="iconoOrden('fechaEmision')"></i>
-                </th>
-                <th class="text-center ordenable" (click)="ordenarPor('mascota')">
-                  Mascota / Cliente <i class="fa" [ngClass]="iconoOrden('mascota')"></i>
-                </th>
-                <th class="text-center ordenable" (click)="ordenarPor('medicamento')">
-                  Medicamento <i class="fa" [ngClass]="iconoOrden('medicamento')"></i>
-                </th>
-                <th class="text-center ordenable" (click)="ordenarPor('medico')">
-                  Veterinario <i class="fa" [ngClass]="iconoOrden('medico')"></i>
-                </th>
-                <th class="text-center ordenable" (click)="ordenarPor('estado')">
-                  Estado <i class="fa" [ngClass]="iconoOrden('estado')"></i>
-                </th>
-                <th class="text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody *ngIf="cargando">
-              <tr>
-                <td colspan="7" class="text-center text-muted">
-                  <i class="fa fa-spinner fa-spin"></i>&nbsp;Cargando fórmulas médicas...
-                </td>
-              </tr>
-            </tbody>
-            <tbody *ngIf="!cargando && listFormulas.length === 0">
-              <tr>
-                <td colspan="7" class="text-center">No hay fórmulas médicas registradas</td>
-              </tr>
-            </tbody>
-            <tbody *ngIf="!cargando && listFormulas.length > 0 && formulasFiltradas.length === 0">
-              <tr>
-                <td colspan="7" class="text-center">No se encontraron fórmulas médicas con los filtros aplicados</td>
-              </tr>
-            </tbody>
-            <tbody *ngIf="!cargando && formulasFiltradas.length > 0">
-              <tr *ngFor="let formula of formulasPaginadas">
-                <td class="text-center">{{ formula.fechaCreacionRegistro | date:'yyyy-MM-dd HH:mm' }}</td>
-                <td class="text-center">{{ formula.fechaEmision | date:'yyyy-MM-dd' }}</td>
-                <td class="text-center">
-                  {{ formula.mascota?.nombreMascota ?? '-' }}<br />
-                  <small class="text-muted">{{ nombreCompleto(formula.mascota?.cliente) }}</small>
-                </td>
-                <td class="text-center">{{ formula.medicamento?.nombre }}</td>
-                <td class="text-center">{{ nombreCompleto(formula.medico) }}</td>
-                <td class="text-center">
-                  <span class="badge" [ngClass]="formula.activo ? 'bg-success' : 'bg-secondary'">
-                    {{ formula.activo ? 'Activa' : 'Inactiva' }}
-                  </span>
-                </td>
-                <td class="text-center text-nowrap">
-                  <button class="btn btn-sm btn-outline-primary" (click)="verDetalle(formula)" title="Ver detalle">
-                    <i class="fa fa-eye"></i>
-                  </button>
-                  <button class="btn btn-sm btn-outline-info ms-1" (click)="abrirEdicion(formula)"
-                    [disabled]="!formula.activo" title="Editar fórmula">
-                    <i class="fa fa-edit"></i>
-                  </button>
-                  <button class="btn btn-sm btn-outline-danger ms-1" (click)="inactivarFormula(formula)"
-                    [disabled]="!formula.activo" title="Inactivar fórmula">
-                    <i class="fa fa-ban"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th class="text-center ordenable" (click)="ordenarPor('fechaEmision')">
+                Fórmula / Emisión <i class="fa" [ngClass]="iconoOrden('fechaEmision')"></i>
+              </th>
+              <th class="ordenable" (click)="ordenarPor('mascota')">
+                Paciente / Propietario <i class="fa" [ngClass]="iconoOrden('mascota')"></i>
+              </th>
+              <th class="ordenable" (click)="ordenarPor('medicamento')">
+                Medicamento (Inventario) <i class="fa" [ngClass]="iconoOrden('medicamento')"></i>
+              </th>
+              <th>Prescripción (Dosis / Frecuencia / Duración)</th>
+              <th class="text-center">Formulación vs. Dispensación</th>
+              <th class="ordenable text-center" (click)="ordenarPor('medico')">
+                Veterinario <i class="fa" [ngClass]="iconoOrden('medico')"></i>
+              </th>
+              <th class="text-center ordenable" (click)="ordenarPor('estado')">
+                Estado <i class="fa" [ngClass]="iconoOrden('estado')"></i>
+              </th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody *ngIf="cargando">
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">
+                <i class="fa fa-spinner fa-spin"></i>&nbsp;Cargando fórmulas médicas...
+              </td>
+            </tr>
+          </tbody>
+          <tbody *ngIf="!cargando && listFormulas.length === 0">
+            <tr>
+              <td colspan="8" class="text-center py-4">No hay fórmulas médicas registradas</td>
+            </tr>
+          </tbody>
+          <tbody *ngIf="!cargando && listFormulas.length > 0 && formulasFiltradas.length === 0">
+            <tr>
+              <td colspan="8" class="text-center py-4">No se encontraron fórmulas médicas con los filtros aplicados</td>
+            </tr>
+          </tbody>
+          <tbody *ngIf="!cargando && formulasFiltradas.length > 0">
+            <tr *ngFor="let formula of formulasPaginadas">
+              <td class="text-center">
+                <div class="fw-bold">#{{ formula.id }}</div>
+                <small class="text-muted">{{ formula.fechaEmision | date:'yyyy-MM-dd' }}</small>
+              </td>
+              <td>
+                <div class="fw-semibold">
+                  <i class="fa fa-paw text-primary me-1"></i>{{ formula.mascota?.nombreMascota ?? '-' }}
+                </div>
+                <small class="text-muted d-block">{{ nombreCompleto(formula.mascota?.cliente) }}</small>
+                <small class="badge bg-light text-dark border" *ngIf="formula.cita">
+                  Cita #{{ formula.cita.id }} ({{ formula.cita.fechaHora | date:'yyyy-MM-dd' }})
+                </small>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ formula.medicamento?.nombre }}</div>
+                <small class="text-muted d-block">
+                  {{ formula.medicamento?.presentacion || 'Unidad' }} | Cód: {{ formula.medicamento?.codigo }}
+                </small>
+                <small class="text-muted" *ngIf="formula.medicamento?.lote">
+                  Lote: {{ formula.medicamento?.lote }} (Stock actual: {{ formula.medicamento?.cantidadDisponible }})
+                </small>
+              </td>
+              <td class="small">
+                <div><strong>Dosis:</strong> {{ formula.dosis }}</div>
+                <div><strong>Frecuencia:</strong> {{ formula.frecuencia || '-' }}</div>
+                <div><strong>Duración:</strong> {{ formula.duracionDias }} día(s)</div>
+              </td>
+              <td class="text-center small">
+                <div class="d-inline-block text-start p-1 rounded border bg-light" style="min-width: 145px;">
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted">Formulada:</span>
+                    <strong>{{ formula.cantidadSolicitada ?? 0 }} und.</strong>
+                  </div>
+                  <div class="d-flex justify-content-between text-success">
+                    <span>Dispensada:</span>
+                    <strong>{{ formula.cantidadEntregada ?? 0 }} und.</strong>
+                  </div>
+                  <div class="d-flex justify-content-between border-top pt-1"
+                    [ngClass]="saldoPendiente(formula) > 0 ? 'text-warning-emphasis fw-bold' : 'text-muted'">
+                    <span>Pendiente:</span>
+                    <span>{{ saldoPendiente(formula) }} und.</span>
+                  </div>
+                </div>
+              </td>
+              <td class="text-center">
+                <div>Dr(a). {{ nombreCompleto(formula.medico) }}</div>
+                <small class="text-muted">{{ formula.medico?.especializacion?.nombre }}</small>
+              </td>
+              <td class="text-center">
+                <span class="badge" [ngClass]="claseEstadoDispensacion(formula)">
+                  {{ etiquetaEstadoDispensacion(formula) }}
+                </span>
+              </td>
+              <td class="text-center text-nowrap">
+                <button class="btn btn-sm btn-outline-primary" (click)="verDetalle(formula)"
+                  title="Ver detalle completo e historial de dispensación">
+                  <i class="fa fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-success ms-1"
+                  *ngIf="formula.activo && saldoPendiente(formula) > 0"
+                  (click)="abrirModalDispensar(formula)"
+                  title="Confirmar dispensación y descontar inventario">
+                  <i class="fa fa-hand-holding-medical"></i>&nbsp;Dispensar
+                </button>
+                <button class="btn btn-sm btn-outline-info ms-1" (click)="abrirEdicion(formula)"
+                  [disabled]="!formula.activo || formula.estado === 'ENTREGADA'"
+                  title="Editar prescripción">
+                  <i class="fa fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger ms-1" (click)="inactivarFormula(formula)"
+                  [disabled]="!formula.activo || (formula.cantidadEntregada ?? 0) > 0"
+                  title="Inactivar fórmula (solo si no tiene entregas)">
+                  <i class="fa fa-ban"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="d-flex justify-content-between align-items-center">
+
+      <div class="d-flex justify-content-between align-items-center mt-2">
         <small class="text-muted">{{ formulasFiltradas.length }} fórmula(s) encontrada(s)</small>
         <nav *ngIf="totalPaginas > 1" aria-label="Paginación de fórmulas médicas">
-          <ul class="pagination justify-content-end mb-0">
+          <ul class="pagination pagination-sm justify-content-end mb-0">
             <li class="page-item" [class.disabled]="paginaActual === 1">
-              <button class="page-link" type="button" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+              <button class="page-link" type="button" [disabled]="paginaActual === 1"
+                (click)="cambiarPagina(paginaActual - 1)">
                 Anterior
               </button>
             </li>
             <li class="page-item" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual">
-              <button class="page-link" type="button" [attr.aria-current]="pagina === paginaActual ? 'page' : null" (click)="cambiarPagina(pagina)">
+              <button class="page-link" type="button" (click)="cambiarPagina(pagina)">
                 {{ pagina }}
               </button>
             </li>
             <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
-              <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+              <button class="page-link" type="button" [disabled]="paginaActual === totalPaginas"
+                (click)="cambiarPagina(paginaActual + 1)">
                 Siguiente
               </button>
             </li>
@@ -144,7 +257,9 @@
   </div>
 </div>
 
-<!-- Modal crear / editar -->
+<!-- ======================================================================= -->
+<!-- MODAL 1: CREAR / EDITAR FÓRMULA MÉDICA (ACTO DE FORMULACIÓN)            -->
+<!-- ======================================================================= -->
 <div class="modal fade" id="modalCrearFormulaMedica" tabindex="-1" aria-labelledby="modalCrearFormulaMedicaLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -153,25 +268,32 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()"></button>
       </div>
       <div class="modal-body">
-        <div class="alert alert-light border small" *ngIf="modoFormulario === 'E'">
-          La mascota y la consulta de una fórmula no se pueden cambiar. Si son otras, registre una fórmula nueva.
+        <!-- Aviso de regla de negocio: diferencia entre formulación y dispensación -->
+        <div class="alert alert-info py-2 small mb-3">
+          <i class="fa fa-info-circle me-1"></i>
+          <strong>Formulación vs. Dispensación:</strong> Al guardar esta fórmula se registra la prescripción médica y se valida que exista stock suficiente en inventario, pero <strong>el descuento de unidades solo se realiza al confirmar la dispensación</strong>.
         </div>
+
+        <div class="alert alert-danger py-2 small mb-3" *ngIf="alertaInventarioFormulario">
+          <i class="fa fa-exclamation-triangle me-1"></i>{{ alertaInventarioFormulario }}
+        </div>
+
         <form [formGroup]="form">
-          <h6 class="text-muted mb-2">Consulta</h6>
+          <h6 class="text-muted fw-bold small text-uppercase mb-2">1. Vinculación con Cita y Mascota</h6>
           <div class="row">
             <div class="col-md-4 mb-3">
-              <label class="form-label">Cliente *</label>
+              <label class="form-label">Propietario (Cliente) *</label>
               <select class="form-select" formControlName="clienteId"
                 [class.is-invalid]="f['clienteId'].touched && f['clienteId'].invalid">
                 <option [ngValue]="null">Seleccione un cliente</option>
                 <option *ngFor="let cliente of listClientes" [ngValue]="cliente.clienteId">
-                  {{ nombreCompleto(cliente) }}
+                  {{ nombreCompleto(cliente) }} - {{ cliente.numeroDocumento }}
                 </option>
               </select>
               <div class="invalid-feedback">Seleccione el cliente.</div>
             </div>
             <div class="col-md-4 mb-3">
-              <label class="form-label">Mascota *</label>
+              <label class="form-label">Paciente (Mascota) *</label>
               <select class="form-select" formControlName="mascotaId"
                 [class.is-invalid]="f['mascotaId'].touched && f['mascotaId'].invalid">
                 <option [ngValue]="null">{{ f['clienteId'].value ? 'Seleccione una mascota' : 'Primero seleccione el cliente' }}</option>
@@ -182,78 +304,127 @@
               <div class="invalid-feedback">Seleccione la mascota.</div>
             </div>
             <div class="col-md-4 mb-3">
-              <label class="form-label">Consulta (cita) *</label>
+              <label class="form-label">Consulta (Cita Médica) *</label>
               <select class="form-select" formControlName="citaId"
                 [class.is-invalid]="f['citaId'].touched && f['citaId'].invalid">
                 <option [ngValue]="null">{{ f['mascotaId'].value ? 'Seleccione la consulta' : 'Primero seleccione la mascota' }}</option>
                 <option *ngFor="let cita of listCitas" [ngValue]="cita.id">
-                  {{ cita.fechaHora | date:'yyyy-MM-dd HH:mm' }} - {{ textoEstado(cita.estado) }}
+                  #{{ cita.id }} | {{ cita.fechaHora | date:'yyyy-MM-dd HH:mm' }} ({{ textoEstado(cita.estado) }})
                 </option>
               </select>
-              <div class="invalid-feedback">Seleccione la consulta.</div>
-              <small class="text-muted" *ngIf="f['mascotaId'].value && listCitas.length === 0 && modoFormulario === 'C'">
-                La mascota no tiene consultas disponibles.
+              <div class="invalid-feedback">Seleccione la consulta asociada.</div>
+              <small class="text-danger" *ngIf="f['mascotaId'].value && listCitas.length === 0 && modoFormulario === 'C'">
+                La mascota no tiene citas activas o atendidas disponibles.
               </small>
             </div>
           </div>
-          <h6 class="text-muted mb-2">Medicamento</h6>
+
+          <h6 class="text-muted fw-bold small text-uppercase mb-2 mt-1">2. Selección de Medicamento del Inventario y Prescripción</h6>
           <div class="row">
-            <div class="col-md-4 mb-3">
-              <label class="form-label">Veterinario *</label>
+            <div class="col-md-5 mb-3">
+              <label class="form-label">Veterinario que prescribe *</label>
               <select class="form-select" formControlName="medicoId"
                 [class.is-invalid]="f['medicoId'].touched && f['medicoId'].invalid">
                 <option [ngValue]="null">Seleccione un veterinario</option>
-                <option *ngFor="let medico of listMedicos" [ngValue]="medico.id">{{ nombreCompleto(medico) }}</option>
+                <option *ngFor="let medico of listMedicos" [ngValue]="medico.id">
+                  Dr(a). {{ nombreCompleto(medico) }}
+                </option>
               </select>
               <div class="invalid-feedback">Seleccione el veterinario.</div>
             </div>
             <div class="col-md-4 mb-3">
-              <label class="form-label">Medicamento *</label>
+              <label class="form-label">Medicamento del Inventario *</label>
               <select class="form-select" formControlName="medicamentoId"
                 [class.is-invalid]="f['medicamentoId'].touched && f['medicamentoId'].invalid">
                 <option [ngValue]="null">Seleccione un medicamento</option>
                 <option *ngFor="let medicamento of listMedicamentos" [ngValue]="medicamento.id">
-                  {{ medicamento.nombre }} - {{ medicamento.presentacion }}
+                  {{ medicamento.nombre }} ({{ medicamento.presentacion || 'Und' }}) — Stock: {{ medicamento.cantidadDisponible }}
                 </option>
               </select>
               <div class="invalid-feedback">Seleccione el medicamento.</div>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
               <label class="form-label">Fecha de emisión *</label>
               <input type="date" class="form-control" formControlName="fechaEmision"
                 [class.is-invalid]="f['fechaEmision'].touched && f['fechaEmision'].invalid" />
               <div class="invalid-feedback">Ingrese la fecha de emisión.</div>
             </div>
-            <div class="col-md-4 mb-3">
+
+            <!-- Ficha de Disponibilidad del Medicamento en Inventario (Requisito 1.3) -->
+            <div class="col-12 mb-3" *ngIf="medicamentoSeleccionado as med">
+              <div class="p-2 rounded border bg-light small d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                  <span class="fw-bold text-dark"><i class="fa fa-capsules text-primary me-1"></i>{{ med.nombre }}</span>
+                  <span class="text-muted ms-2">Código: {{ med.codigo }} | Lote: {{ med.lote || 'N/A' }}</span>
+                  <span class="text-muted ms-2" *ngIf="med.registroInvima">| Invima: {{ med.registroInvima }}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span>Vence: <strong>{{ med.fechaVence | date:'yyyy-MM-dd' }}</strong></span>
+                  <span class="badge"
+                    [ngClass]="(med.cantidadDisponible ?? 0) <= 0 ? 'bg-danger' : (esStockBajo(med) ? 'bg-warning text-dark' : 'bg-success')">
+                    Disponible en inventario: {{ med.cantidadDisponible }} und. (Mín: {{ med.stockMinimo }})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
               <label class="form-label">Dosis *</label>
-              <input type="text" class="form-control" formControlName="dosis" placeholder="Ej: 500 mg" maxlength="100"
+              <input type="text" class="form-control" formControlName="dosis"
+                placeholder="Ej: 1 tableta (500 mg)" maxlength="100"
                 [class.is-invalid]="f['dosis'].touched && f['dosis'].invalid" />
-              <div class="invalid-feedback">La dosis debe indicar una cantidad, por ejemplo: 500 mg o 1 tableta.</div>
+              <div class="invalid-feedback">Indique la dosis con valor numérico (ej. 500 mg o 1 tableta).</div>
             </div>
-            <div class="col-md-4 mb-3">
+
+            <div class="col-md-3 mb-3">
               <label class="form-label">Frecuencia *</label>
-              <input type="text" class="form-control" formControlName="frecuencia" placeholder="Ej: Cada 8 horas"
-                maxlength="100" [class.is-invalid]="f['frecuencia'].touched && f['frecuencia'].invalid" />
-              <div class="invalid-feedback">Ingrese la frecuencia.</div>
+              <input type="text" class="form-control" formControlName="frecuencia"
+                list="listaFrecuenciasSugeridas" placeholder="Ej: Cada 8 horas" maxlength="100"
+                [class.is-invalid]="f['frecuencia'].touched && f['frecuencia'].invalid" />
+              <datalist id="listaFrecuenciasSugeridas">
+                <option *ngFor="let freq of frecuenciasSugeridas" [value]="freq"></option>
+              </datalist>
+              <div class="invalid-feedback">Ingrese la frecuencia de administración.</div>
             </div>
-            <div class="col-md-4 mb-3">
+
+            <div class="col-md-3 mb-3">
               <label class="form-label">Duración (días) *</label>
               <input type="number" class="form-control" formControlName="duracionDias" min="1" max="365"
+                placeholder="Ej: 7"
                 [class.is-invalid]="f['duracionDias'].touched && f['duracionDias'].invalid" />
-              <div class="invalid-feedback">La duración debe estar entre 1 y 365 días.</div>
+              <div class="invalid-feedback">Entre 1 y 365 días.</div>
             </div>
-            <div class="col-md-12 mb-3">
-              <label class="form-label">Indicaciones *</label>
+
+            <div class="col-md-3 mb-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <label class="form-label mb-1">Cantidad total (und.) *</label>
+                <button *ngIf="cantidadCalculadaSugerida" type="button"
+                  class="btn btn-link btn-sm p-0 text-decoration-none small"
+                  (click)="aplicarCantidadSugerida()"
+                  title="Aplicar cantidad calculada según dosis, frecuencia y días">
+                  Sugerido: {{ cantidadCalculadaSugerida }}
+                </button>
+              </div>
+              <input type="number" class="form-control" formControlName="cantidadSolicitada" min="1"
+                [class.is-invalid]="f['cantidadSolicitada'].touched && f['cantidadSolicitada'].invalid" />
+              <div class="invalid-feedback">Ingrese la cantidad total requerida (> 0).</div>
+            </div>
+
+            <div class="col-md-12 mb-2">
+              <label class="form-label">Indicaciones médicas *</label>
               <textarea class="form-control" rows="3" formControlName="indicaciones" maxlength="1000"
+                placeholder="Instrucciones detalladas de administración para el propietario (ej. administrar con alimento, completar esquema)..."
                 [class.is-invalid]="f['indicaciones'].touched && f['indicaciones'].invalid"></textarea>
-              <div class="invalid-feedback">Ingrese las indicaciones para el propietario.</div>
+              <div class="invalid-feedback">Ingrese las indicaciones médicas.</div>
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeModal()">Cerrar</button>
-        <button type="button" class="btn btn-primary" [disabled]="guardando" (click)="guardar()">
+        <button type="button" class="btn btn-primary"
+          [disabled]="guardando || (modoFormulario === 'E' && (!formulaSelected?.activo || formulaSelected?.estado === 'ENTREGADA'))"
+          (click)="guardar()">
           <i class="fa fa-spinner fa-spin" *ngIf="guardando"></i>&nbsp;{{ titleBoton }}
         </button>
       </div>
@@ -261,15 +432,89 @@
   </div>
 </div>
 
-<!-- Modal detalle (Ver) -->
+<!-- ======================================================================= -->
+<!-- MODAL 2: CONFIRMAR DISPENSACIÓN Y DESCUENTO DE INVENTARIO               -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="modalDispensarFormula" tabindex="-1" aria-labelledby="modalDispensarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" *ngIf="formulaDispensar as fDisp">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="modalDispensarLabel">
+          <i class="fa fa-hand-holding-medical me-1"></i>Confirmar Dispensación — Fórmula #{{ fDisp.id }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModalDispensar()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="p-2 rounded border bg-light small mb-3">
+          <div><strong>Paciente:</strong> {{ fDisp.mascota?.nombreMascota }} (Propietario: {{ nombreCompleto(fDisp.mascota?.cliente) }})</div>
+          <div><strong>Medicamento:</strong> {{ fDisp.medicamento?.nombre }} ({{ fDisp.medicamento?.presentacion || 'Und' }} — Lote: {{ fDisp.medicamento?.lote || 'N/A' }})</div>
+          <div><strong>Prescripción:</strong> {{ fDisp.dosis }} | {{ fDisp.frecuencia }} por {{ fDisp.duracionDias }} día(s)</div>
+          <hr class="my-2" />
+          <div class="row text-center">
+            <div class="col-3">
+              <span class="text-muted d-block">Formulada</span>
+              <strong>{{ fDisp.cantidadSolicitada }} und.</strong>
+            </div>
+            <div class="col-3">
+              <span class="text-muted d-block">Ya Entregada</span>
+              <strong class="text-success">{{ fDisp.cantidadEntregada }} und.</strong>
+            </div>
+            <div class="col-3">
+              <span class="text-muted d-block">Pendiente</span>
+              <strong class="text-warning-emphasis">{{ saldoPendiente(fDisp) }} und.</strong>
+            </div>
+            <div class="col-3">
+              <span class="text-muted d-block">En Inventario</span>
+              <strong class="text-primary">{{ fDisp.medicamento?.cantidadDisponible }} und.</strong>
+            </div>
+          </div>
+        </div>
+
+        <form [formGroup]="formDispensar">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Cantidad a dispensar (unidades) *</label>
+            <input type="number" class="form-control" formControlName="cantidad"
+              min="1" [max]="saldoPendiente(fDisp)"
+              [class.is-invalid]="fd['cantidad'].touched && fd['cantidad'].invalid" />
+            <small class="text-muted">
+              Stock tras dispensar:
+              <strong>{{ (fDisp.medicamento?.cantidadDisponible ?? 0) - (fd['cantidad'].value || 0) }} unidad(es)</strong>
+            </small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Usuario responsable de la dispensación *</label>
+            <input type="text" class="form-control" formControlName="usuario"
+              placeholder="Nombre del veterinario o responsable de farmacia"
+              [class.is-invalid]="fd['usuario'].touched && fd['usuario'].invalid" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold">Observación de entrega</label>
+            <textarea class="form-control" rows="2" formControlName="observacion"
+              placeholder="Ej: Se entrega lote vigente al propietario con indicaciones firmadas..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModalDispensar()">Cancelar</button>
+        <button type="button" class="btn btn-success" [disabled]="dispensando" (click)="confirmarDispensacion()">
+          <i class="fa" [ngClass]="dispensando ? 'fa-spinner fa-spin' : 'fa-check'"></i>&nbsp;Confirmar y Descontar Stock
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL 3: DETALLE DE FÓRMULA E HISTORIAL DE MOVIMIENTOS DE INVENTARIO    -->
+<!-- ======================================================================= -->
 <div class="modal fade" id="modalDetalleFormula" tabindex="-1" aria-labelledby="modalDetalleFormulaLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content" *ngIf="formulaDetalle">
       <div class="modal-header">
         <h1 class="modal-title fs-5" id="modalDetalleFormulaLabel">
           Fórmula médica #{{ formulaDetalle.id }}
-          <span class="badge ms-2" [ngClass]="formulaDetalle.activo ? 'bg-success' : 'bg-secondary'">
-            {{ formulaDetalle.activo ? 'Activa' : 'Inactiva' }}
+          <span class="badge ms-2" [ngClass]="claseEstadoDispensacion(formulaDetalle)">
+            {{ etiquetaEstadoDispensacion(formulaDetalle) }}
           </span>
         </h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeModalDetalle()"></button>
@@ -277,13 +522,13 @@
       <div class="modal-body">
         <div class="row">
           <div class="col-md-6 mb-3">
-            <h6 class="text-muted">Paciente</h6>
+            <h6 class="text-muted fw-bold small text-uppercase">Paciente y Propietario</h6>
             <dl class="row mb-0 small">
               <dt class="col-5">Mascota</dt>
               <dd class="col-7">{{ formulaDetalle.mascota?.nombreMascota }} ({{ formulaDetalle.mascota?.raza?.nombre }})</dd>
               <dt class="col-5">Edad</dt>
               <dd class="col-7">{{ formulaDetalle.mascota?.edad }} año(s)</dd>
-              <dt class="col-5">Cliente</dt>
+              <dt class="col-5">Propietario</dt>
               <dd class="col-7">{{ nombreCompleto(formulaDetalle.mascota?.cliente) }}</dd>
               <dt class="col-5">Documento</dt>
               <dd class="col-7">{{ formulaDetalle.mascota?.cliente?.tipoDocumento }} {{ formulaDetalle.mascota?.cliente?.numeroDocumento }}</dd>
@@ -292,42 +537,87 @@
             </dl>
           </div>
           <div class="col-md-6 mb-3">
-            <h6 class="text-muted">Consulta</h6>
+            <h6 class="text-muted fw-bold small text-uppercase">Consulta Asociada</h6>
             <dl class="row mb-0 small">
-              <dt class="col-5">Fecha consulta</dt>
-              <dd class="col-7">{{ formulaDetalle.cita?.fechaHora | date:'yyyy-MM-dd HH:mm' }}</dd>
-              <dt class="col-5">Motivo</dt>
+              <dt class="col-5">Cita #</dt>
+              <dd class="col-7">#{{ formulaDetalle.cita?.id }} ({{ formulaDetalle.cita?.fechaHora | date:'yyyy-MM-dd HH:mm' }})</dd>
+              <dt class="col-5">Motivo cita</dt>
               <dd class="col-7">{{ formulaDetalle.cita?.motivo }}</dd>
               <dt class="col-5">Estado cita</dt>
               <dd class="col-7">{{ textoEstado(formulaDetalle.cita?.estado) }}</dd>
               <dt class="col-5">Veterinario</dt>
-              <dd class="col-7">{{ nombreCompleto(formulaDetalle.medico) }}</dd>
+              <dd class="col-7">Dr(a). {{ nombreCompleto(formulaDetalle.medico) }}</dd>
               <dt class="col-5">Especialidad</dt>
               <dd class="col-7">{{ formulaDetalle.medico?.especializacion?.nombre }}</dd>
             </dl>
           </div>
         </div>
-        <h6 class="text-muted">Tratamiento</h6>
-        <dl class="row small">
+
+        <h6 class="text-muted fw-bold small text-uppercase">Tratamiento Formulado vs. Dispensado</h6>
+        <dl class="row small mb-2">
           <dt class="col-sm-3">Medicamento</dt>
-          <dd class="col-sm-9">{{ formulaDetalle.medicamento?.nombre }} - {{ formulaDetalle.medicamento?.presentacion }}</dd>
-          <dt class="col-sm-3">Dosis</dt>
-          <dd class="col-sm-9">{{ formulaDetalle.dosis }}</dd>
-          <dt class="col-sm-3">Frecuencia</dt>
-          <dd class="col-sm-9">{{ formulaDetalle.frecuencia ?? '-' }}</dd>
+          <dd class="col-sm-9">
+            <strong>{{ formulaDetalle.medicamento?.nombre }}</strong> ({{ formulaDetalle.medicamento?.presentacion || 'Und' }})
+            — Código: {{ formulaDetalle.medicamento?.codigo }} | Lote: {{ formulaDetalle.medicamento?.lote || 'N/A' }}
+          </dd>
+          <dt class="col-sm-3">Dosis / Frecuencia</dt>
+          <dd class="col-sm-9">{{ formulaDetalle.dosis }} — {{ formulaDetalle.frecuencia ?? '-' }}</dd>
           <dt class="col-sm-3">Duración</dt>
           <dd class="col-sm-9">{{ formulaDetalle.duracionDias ? formulaDetalle.duracionDias + ' día(s)' : '-' }}</dd>
+          <dt class="col-sm-3">Cantidades</dt>
+          <dd class="col-sm-9">
+            Formulada: <strong>{{ formulaDetalle.cantidadSolicitada ?? 0 }} und.</strong> |
+            Dispensada: <strong class="text-success">{{ formulaDetalle.cantidadEntregada ?? 0 }} und.</strong> |
+            Pendiente: <strong class="text-warning-emphasis">{{ saldoPendiente(formulaDetalle) }} und.</strong>
+          </dd>
           <dt class="col-sm-3">Indicaciones</dt>
           <dd class="col-sm-9">{{ formulaDetalle.indicaciones }}</dd>
-          <dt class="col-sm-3">Fecha de emisión</dt>
-          <dd class="col-sm-9">{{ formulaDetalle.fechaEmision | date:'yyyy-MM-dd' }}</dd>
-          <dt class="col-sm-3">Registrada</dt>
-          <dd class="col-sm-9">{{ formulaDetalle.fechaCreacionRegistro | date:'yyyy-MM-dd HH:mm' }}</dd>
-          <dt class="col-sm-3">Última actualización</dt>
-          <dd class="col-sm-9">{{ (formulaDetalle.fechaActualizacionRegistro | date:'yyyy-MM-dd HH:mm') ?? '-' }}</dd>
+          <dt class="col-sm-3">Fechas</dt>
+          <dd class="col-sm-9">
+            Emisión: {{ formulaDetalle.fechaEmision | date:'yyyy-MM-dd' }} |
+            Última dispensación: {{ (formulaDetalle.fechaDispenacion | date:'yyyy-MM-dd HH:mm') ?? 'Sin entregas aún' }}
+          </dd>
         </dl>
+
+        <!-- Historial de movimientos de salida del inventario asociados a esta fórmula -->
+        <hr />
+        <h6 class="text-muted fw-bold small text-uppercase mb-2">
+          <i class="fa fa-boxes-stacked me-1"></i>Movimientos de Salida de Inventario por Dispensación
+        </h6>
+        <div *ngIf="cargandoMovimientos" class="text-center py-2 small text-muted">
+          <i class="fa fa-spinner fa-spin"></i>&nbsp;Consultando movimientos de inventario...
+        </div>
+        <div *ngIf="!cargandoMovimientos && movimientosFormula.length === 0" class="small text-muted fst-italic">
+          Aún no se han registrado salidas de inventario para esta fórmula (estado: Formulada).
+        </div>
+        <div class="table-responsive" *ngIf="!cargandoMovimientos && movimientosFormula.length > 0">
+          <table class="table table-sm table-bordered small mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha y Hora</th>
+                <th class="text-center">Tipo</th>
+                <th class="text-center">Cantidad Descontada</th>
+                <th>Usuario Responsable</th>
+                <th>Referencia / Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let mov of movimientosFormula">
+                <td>{{ mov.fechaRegistro | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td class="text-center"><span class="badge bg-danger">{{ mov.tipo }}</span></td>
+                <td class="text-center fw-bold">-{{ mov.cantidad }} und.</td>
+                <td>{{ mov.usuarioRegistro || 'DESPACHO' }}</td>
+                <td>{{ mov.motivo }} ({{ mov.referenciaTipo }} #{{ mov.referenciaId }})</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <div class="modal-footer">
+        <button *ngIf="formulaDetalle.activo && saldoPendiente(formulaDetalle) > 0" type="button"
+          class="btn btn-success" (click)="closeModalDetalle(); abrirModalDispensar(formulaDetalle)">
+          <i class="fa fa-hand-holding-medical"></i>&nbsp;Dispensar ahora
+        </button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeModalDetalle()">Cerrar</button>
       </div>
     </div>

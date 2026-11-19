@@ -7,6 +7,8 @@ export class CitaRq {
   mascotaId?: number;
   medicoId?: number;
   fechaHora?: string;
+  fechaHoraFin?: string;
   estado?: string;
   motivo?: string;
+  usuarioCambio?: string;
 }
