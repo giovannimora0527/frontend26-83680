@@ -1,0 +1,229 @@
+<div class="d-flex flex-wrap align-items-center mb-3 gap-2">
+  <h4 class="titulo-pagina mb-0">Inventario de medicamentos y productos</h4>
+  @if (!esAdmin) { <span class="badge bg-secondary ms-2"><i class="bi bi-eye me-1"></i>Sólo consulta</span> }
+</div>
+
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-2"><div class="card kpi"><div class="card-body py-2"><small class="text-muted">Activos</small><div class="valor">{{ alertas.totalProductos ?? 0 }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card kpi" style="border-left-color:#dc3545"><div class="card-body py-2"><small class="text-muted">Agotados</small><div class="valor">{{ alertas.agotados ?? 0 }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card kpi" style="border-left-color:#f0ad4e"><div class="card-body py-2"><small class="text-muted">Bajo stock</small><div class="valor">{{ alertas.bajoStock ?? 0 }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card kpi" style="border-left-color:#fd7e14"><div class="card-body py-2"><small class="text-muted">Próx. a vencer</small><div class="valor">{{ alertas.proximosAVencer ?? 0 }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card kpi" style="border-left-color:#6c757d"><div class="card-body py-2"><small class="text-muted">Lotes vencidos</small><div class="valor">{{ alertas.conLotesVencidos ?? 0 }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card kpi" style="border-left-color:#20c997"><div class="card-body py-2"><small class="text-muted">Pedidos por hacer</small><div class="valor">{{ alertas.pedidosPendientes ?? 0 }}</div></div></div></div>
+</div>
+
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link" [class.active]="tab==='p'" (click)="tab='p'">Productos</a></li>
+  @if (esAdmin || auth.tienePerfil('DESPACHO_MEDICO')) { <li class="nav-item"><a class="nav-link" [class.active]="tab==='k'" (click)="verKardex()">Entradas y salidas</a></li> }
+  @if (esAdmin) {
+    <li class="nav-item"><a class="nav-link" [class.active]="tab==='c'" (click)="tab='c'">Carga masiva</a></li>
+    <li class="nav-item"><a class="nav-link" [class.active]="tab==='l'" (click)="verCargas()">Log de cargues</a></li>
+  }
+</ul>
+
+@if (tab === 'p') {
+  <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+    @for (f of filtros; track f.k) {
+      <button class="btn btn-sm" [class]="filtro===f.k ? 'btn-primary' : 'btn-outline-primary'" (click)="cambiarFiltro(f.k)">{{ f.t }}</button>
+    }
+    <input class="form-control form-control-sm ms-auto" style="max-width:220px" placeholder="Código o nombre" [(ngModel)]="texto" (keyup.enter)="cargar()">
+    <button class="btn btn-sm btn-outline-secondary" (click)="cargar()"><i class="bi bi-search"></i></button>
+    @if (esAdmin) { <button class="btn btn-sm btn-primary" (click)="nuevo()"><i class="bi bi-plus-lg me-1"></i>Nuevo producto</button> }
+  </div>
+  <div class="card"><div class="table-responsive">
+    <table class="table table-hover table-sm mb-0">
+      <thead><tr><th appOrden="codigo" [tabla]="tabla">Código</th><th appOrden="nombre" [tabla]="tabla">Producto</th><th appOrden="tipo" [tabla]="tabla">Tipo</th><th>INVIMA</th><th class="text-end" appOrden="vigente" [tabla]="tabla">Vigente</th><th class="text-end" appOrden="vencido" [tabla]="tabla">Vencido</th>
+        <th class="text-end" appOrden="minimo" [tabla]="tabla">Mínimo</th><th appOrden="estado" [tabla]="tabla">Estado</th><th class="text-end" appOrden="compra" [tabla]="tabla">P. compra</th><th class="text-end" appOrden="venta" [tabla]="tabla">P. venta</th><th appOrden="vence" [tabla]="tabla">Vence</th><th appOrden="pedido" [tabla]="tabla">Próx. pedido</th><th></th></tr></thead>
+      <tbody>
+        @for (m of tabla.ver(productos); track m.id) {
+          <tr [class.table-secondary]="!m.activo">
+            <td class="font-monospace">{{ m.codigo }}</td>
+            <td><span class="fw-semibold">{{ m.nombre }}</span><br><small class="text-muted">{{ m.presentacion }}</small></td>
+            <td>{{ m.tipoProducto }}</td><td><small>{{ m.registroInvima ?? 'No aplica' }}</small></td>
+            <td class="text-end fw-semibold">{{ m.stockVigente }} <small class="text-muted">{{ m.unidadMedida.toLowerCase() }}</small></td>
+            <td class="text-end" [class.text-danger]="m.stockVencido > 0">{{ m.stockVencido }}</td>
+            <td class="text-end">{{ m.stockMinimo }}</td>
+            <td><app-estado [valor]="m.estadoStock" /></td>
+            <td class="text-end">{{ m.precioCompra | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+            <td class="text-end">{{ m.precioVenta | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+            <td>@if (m.vencimientoProximo) { <span [class.text-warning]="m.proximoAVencer" [class.fw-bold]="m.proximoAVencer">{{ m.vencimientoProximo | date:'dd/MM/yyyy' }}</span>
+              <br><small class="text-muted">{{ m.diasParaVencer }} días</small> } @else { - }</td>
+            <td>{{ m.fechaProximoPedido ? (m.fechaProximoPedido | date:'dd/MM/yyyy') : '-' }}</td>
+            <td class="text-end text-nowrap">
+              <button class="btn btn-sm btn-outline-secondary me-1" title="Lotes" (click)="verLotes(m)"><i class="bi bi-box-seam"></i></button>
+              @if (esAdmin || auth.tienePerfil('DESPACHO_MEDICO')) { <button class="btn btn-sm btn-outline-secondary me-1" title="Kardex" (click)="verKardex(m)"><i class="bi bi-arrow-left-right"></i></button> }
+              @if (esAdmin) {
+                <button class="btn btn-sm btn-outline-success me-1" title="Ingresar lote" (click)="nuevoLote(m)" [disabled]="!m.activo"><i class="bi bi-plus-square"></i></button>
+                <button class="btn btn-sm btn-outline-primary me-1" title="Editar" (click)="editar(m)"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm" [class]="m.activo ? 'btn-outline-danger' : 'btn-outline-success'" title="Activar / inactivar" (click)="estado(m)"><i class="bi bi-power"></i></button>
+              }
+            </td>
+          </tr>
+        } @empty { <tr><td colspan="13" class="text-center text-muted py-4">Sin productos para el filtro.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+<app-paginador [tabla]="tabla" /></div>
+}
+
+@if (tab === 'k') {
+  <div class="card mb-2"><div class="card-body row g-2 align-items-end">
+    <div class="col-md-4"><label class="form-label">Medicamento</label>
+      <select class="form-select" [(ngModel)]="kMed"><option [ngValue]="null">Todos</option>
+        @for (p of productos; track p.id) { <option [ngValue]="p.id">{{ p.codigo }} - {{ p.nombre }}</option> }</select></div>
+    <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" [(ngModel)]="kTipo"><option value="">Entradas y salidas</option><option value="ENTRADA">Entradas</option><option value="SALIDA">Salidas</option></select></div>
+    <div class="col-md-2"><label class="form-label">Desde</label><input type="date" class="form-control" [(ngModel)]="kDesde"></div>
+    <div class="col-md-2"><label class="form-label">Hasta</label><input type="date" class="form-control" [(ngModel)]="kHasta"></div>
+    <div class="col-md-2"><button class="btn btn-primary w-100" (click)="cargarKardex()"><i class="bi bi-search me-1"></i>Consultar</button></div>
+  </div></div>
+  <div class="card"><div class="table-responsive tabla-scroll">
+    <table class="table table-sm table-hover mb-0">
+      <thead><tr><th appOrden="fecha" [tabla]="tablaK">Fecha</th><th appOrden="tipo" [tabla]="tablaK">Tipo</th><th appOrden="concepto" [tabla]="tablaK">Concepto</th><th appOrden="producto" [tabla]="tablaK">Producto</th><th appOrden="lote" [tabla]="tablaK">Lote</th><th class="text-end" appOrden="cantidad" [tabla]="tablaK">Cant.</th><th class="text-end">Saldo ant.</th><th class="text-end">Saldo nuevo</th><th>Referencia</th><th appOrden="usuario" [tabla]="tablaK">Usuario</th></tr></thead>
+      <tbody>
+        @for (k of tablaK.ver(kardex); track k.id) {
+          <tr><td>{{ k.fecha | date:'dd/MM/yyyy HH:mm' }}</td><td><app-estado [valor]="k.tipo" /></td><td>{{ k.concepto }}</td>
+            <td>{{ k.medicamento.codigo }} - {{ k.medicamento.nombre }}</td><td>{{ k.lote?.numeroLote }}</td>
+            <td class="text-end fw-semibold" [class.text-danger]="k.tipo==='SALIDA'">{{ k.tipo==='SALIDA' ? '-' : '+' }}{{ k.cantidad }}</td>
+            <td class="text-end">{{ k.saldoAnterior }}</td><td class="text-end">{{ k.saldoNuevo }}</td>
+            <td><small>{{ k.observacion }}</small></td><td>{{ k.usuario.nombreCompleto }}</td></tr>
+        } @empty { <tr><td colspan="10" class="text-center text-muted py-4">Sin movimientos.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+<app-paginador [tabla]="tablaK" /></div>
+}
+
+@if (tab === 'c') {
+  <div class="card mb-3"><div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5"><label class="form-label">Archivo (.xlsx o .csv, más de 50 registros admitidos)</label>
+        <input type="file" class="form-control" accept=".xlsx,.csv" (change)="seleccionar($event)"></div>
+      <div class="col-md-7 d-flex gap-2">
+        <button class="btn btn-outline-secondary" (click)="plantilla()"><i class="bi bi-download me-1"></i>Plantilla</button>
+        <button class="btn btn-primary" (click)="previsualizar()" [disabled]="subiendo">
+          @if (subiendo) { <span class="spinner-border spinner-border-sm me-1"></span> }<i class="bi bi-eye me-1"></i>Validar y previsualizar</button>
+      </div>
+    </div>
+    <small class="text-muted">El archivo se valida (estructura, obligatorios, duplicados, precios, cantidades y fechas) antes de afectar el inventario.
+      Cada registro se importa en su propia transacción.</small>
+  </div></div>
+
+  @if (carga) {
+    <div class="card"><div class="card-header d-flex flex-wrap gap-2 align-items-center">
+      <span>Carga #{{ carga.carga.id }} · {{ carga.carga.nombreArchivo }}</span><app-estado [valor]="carga.carga.estado" />
+      <span class="badge bg-light text-dark border">Total {{ carga.carga.totalRegistros }}</span>
+      <span class="badge bg-success">Válidos {{ carga.carga.registrosValidos }}</span>
+      <span class="badge bg-danger">Con error {{ carga.carga.registrosError }}</span>
+      @if (carga.carga.estado === 'CONFIRMADA') { <span class="badge bg-primary">Importados {{ carga.carga.registrosImportados }}</span> }
+      <div class="form-check ms-3"><input class="form-check-input" type="checkbox" id="se" [(ngModel)]="soloErrores"><label class="form-check-label" for="se">Sólo errores</label></div>
+      <div class="ms-auto d-flex gap-2">
+        <button class="btn btn-sm btn-outline-danger" (click)="informeErrores(carga.carga.id)"><i class="bi bi-file-earmark-excel me-1"></i>Informe de errores</button>
+        @if (carga.carga.estado === 'PREVISUALIZADA') {
+          <button class="btn btn-sm btn-outline-secondary" (click)="cancelarCarga()">Cancelar</button>
+          <button class="btn btn-sm btn-success" (click)="confirmarCarga()" [disabled]="subiendo || carga.carga.registrosValidos === 0">
+            <i class="bi bi-check2-circle me-1"></i>Confirmar importación</button>
+        }
+      </div>
+    </div>
+    <div class="table-responsive tabla-scroll"><table class="table table-sm mb-0">
+      <thead><tr><th>Fila</th><th>Estado</th><th>Código</th><th>Nombre</th><th>Tipo</th><th>Lote</th><th class="text-end">Cant.</th><th class="text-end">P. compra</th><th class="text-end">P. venta</th><th>Vence</th><th>Acción / errores</th></tr></thead>
+      <tbody>
+        @for (f of filasVisibles(); track f.id) {
+          <tr [class.table-danger]="!f.valido || f.estado==='FALLIDO'">
+            <td>{{ f.fila }}</td><td><app-estado [valor]="f.estado" /></td><td class="font-monospace">{{ f.codigo }}</td><td>{{ f.nombre }}</td>
+            <td>{{ f.datos.tipo_producto }}</td><td>{{ f.datos.numero_lote }}</td><td class="text-end">{{ f.datos.cantidad }}</td>
+            <td class="text-end">{{ f.datos.precio_compra }}</td><td class="text-end">{{ f.datos.precio_venta }}</td><td>{{ f.datos.fecha_vencimiento }}</td>
+            <td>@if (f.errores.length) { <ul class="mb-0 ps-3 small text-danger">@for (e of f.errores; track $index) { <li>{{ e }}</li> }</ul> }
+              @else { <small class="text-success">{{ f.accion }}</small> }</td>
+          </tr>
+        }
+      </tbody>
+    </table></div></div>
+  }
+}
+
+@if (tab === 'l') {
+  <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>#</th><th>Fecha de carga</th><th>Usuario</th><th>Archivo</th><th>Estado</th><th class="text-end">Total</th><th class="text-end">Válidos</th><th class="text-end">Error</th><th class="text-end">Importados</th><th>Confirmó</th><th></th></tr></thead>
+    <tbody>@for (c of cargas; track c.id) {
+      <tr><td>{{ c.id }}</td><td>{{ c.fechaCarga | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ c.usuario.nombreCompleto }}</td><td>{{ c.nombreArchivo }} <small class="text-muted">({{ c.tipoArchivo }})</small></td>
+        <td><app-estado [valor]="c.estado" /></td><td class="text-end">{{ c.totalRegistros }}</td><td class="text-end">{{ c.registrosValidos }}</td>
+        <td class="text-end">{{ c.registrosError }}</td><td class="text-end">{{ c.registrosImportados }}</td>
+        <td>{{ c.usuarioConfirma?.nombreCompleto ?? '-' }}<br><small class="text-muted">{{ c.fechaConfirmacion | date:'dd/MM/yyyy HH:mm' }}</small></td>
+        <td class="text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" (click)="abrirCarga(c.id)"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-sm btn-outline-danger" (click)="informeErrores(c.id)"><i class="bi bi-file-earmark-excel"></i></button></td></tr>
+    } @empty { <tr><td colspan="11" class="text-center text-muted py-4">Sin cargas registradas.</td></tr> }</tbody>
+  </table></div></div>
+}
+
+<!-- Producto -->
+<app-modal [abierto]="modalProd" [titulo]="prod.id ? 'Editar producto' : 'Nuevo producto'" tamano="xl" (cerrar)="modalProd=false">
+  <form #fp="ngForm" class="row g-3" novalidate>
+    <div class="col-md-2"><label class="form-label requerido">Código</label>
+      <input class="form-control font-monospace text-uppercase" name="cod" [(ngModel)]="prod.codigo" required pattern="^[A-Za-z0-9]{8}$" maxlength="8" [readonly]="!!prod.id"
+             #c="ngModel" [class.is-invalid]="c.invalid && enviado"><div class="invalid-feedback">8 caracteres alfanuméricos.</div></div>
+    <div class="col-md-5"><label class="form-label requerido">Nombre</label>
+      <input class="form-control" name="nom" [(ngModel)]="prod.nombre" required maxlength="100" #n="ngModel" [class.is-invalid]="n.invalid && enviado"></div>
+    <div class="col-md-3"><label class="form-label requerido">Tipo de producto</label>
+      <select class="form-select" name="tipo" [(ngModel)]="prod.tipoProducto" required>
+        <option value="MEDICAMENTO">Medicamento</option><option value="INSUMO">Insumo</option><option value="UTENSILIO">Utensilio</option></select></div>
+    <div class="col-md-2"><label class="form-label requerido">Unidad</label>
+      <input class="form-control text-uppercase" name="uni" [(ngModel)]="prod.unidadMedida" required maxlength="30" list="unidades"></div>
+    <datalist id="unidades"><option value="TABLETA"><option value="CAPSULA"><option value="FRASCO"><option value="DOSIS"><option value="AMPOLLA"><option value="UNIDAD"><option value="CAJA"><option value="PAQUETE"></datalist>
+    <div class="col-md-4"><label class="form-label">Presentación</label><input class="form-control" name="pre" [(ngModel)]="prod.presentacion" maxlength="100"></div>
+    <div class="col-md-4"><label class="form-label" [class.requerido]="requiereInvima()">Registro INVIMA</label>
+      <input class="form-control" name="inv" [(ngModel)]="prod.registroInvima" [required]="requiereInvima()" maxlength="50" #iv="ngModel" [class.is-invalid]="iv.invalid && enviado">
+      <div class="invalid-feedback">Obligatorio para medicamentos.</div></div>
+    <div class="col-md-4 d-flex align-items-end">@if (prod.tipoProducto !== 'MEDICAMENTO') {
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="ri" name="ri" [(ngModel)]="prod.requiereInvima"><label class="form-check-label" for="ri">Este producto requiere registro INVIMA</label></div> }</div>
+    <div class="col-md-3"><label class="form-label requerido">Precio de compra</label>
+      <input class="form-control" type="number" min="0" name="pc" [(ngModel)]="prod.precioCompra" required #pc="ngModel" [class.is-invalid]="pc.invalid && enviado"></div>
+    <div class="col-md-3"><label class="form-label requerido">Precio de venta al público</label>
+      <input class="form-control" type="number" min="0" name="pv" [(ngModel)]="prod.precioVenta" required #pv="ngModel" [class.is-invalid]="pv.invalid && enviado"></div>
+    <div class="col-md-2"><label class="form-label requerido">Impuesto</label>
+      <select class="form-select" name="imp" [(ngModel)]="prod.impuestoId" required>@for (i of impuestos; track i.id) { <option [ngValue]="i.id">{{ i.codigo }}</option> }</select></div>
+    <div class="col-md-2"><label class="form-label requerido">Stock mínimo</label>
+      <input class="form-control" type="number" min="0" name="min" [(ngModel)]="prod.stockMinimo" required></div>
+    <div class="col-md-2"><label class="form-label">Próximo pedido</label><input class="form-control" type="date" name="pp" [(ngModel)]="prod.fechaProximoPedido"></div>
+    <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" rows="2" name="des" [(ngModel)]="prod.descripcion"></textarea></div>
+    @if (!prod.id) {
+      <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="cl" name="cl" [(ngModel)]="prod.conLote">
+        <label class="form-check-label fw-semibold" for="cl">Registrar lote inicial (entrada al inventario)</label></div></div>
+      @if (prod.conLote) {
+        <div class="col-md-3"><label class="form-label requerido">N° lote</label><input class="form-control" name="ln" [(ngModel)]="prod.loteInicial.numeroLote" required maxlength="50"></div>
+        <div class="col-md-3"><label class="form-label requerido">Cantidad</label><input class="form-control" type="number" min="1" name="lc" [(ngModel)]="prod.loteInicial.cantidad" required></div>
+        <div class="col-md-3"><label class="form-label requerido">Fecha compra</label><input class="form-control" type="date" name="lf" [(ngModel)]="prod.loteInicial.fechaCompra" required [max]="hoy"></div>
+        <div class="col-md-3"><label class="form-label" [class.requerido]="prod.tipoProducto==='MEDICAMENTO'">Vencimiento</label>
+          <input class="form-control" type="date" name="lv" [(ngModel)]="prod.loteInicial.fechaVencimiento" [required]="prod.tipoProducto==='MEDICAMENTO'" [min]="hoy"></div>
+      }
+    }
+  </form>
+  <div pie><button class="btn btn-light" (click)="modalProd=false">Cancelar</button><button class="btn btn-primary" (click)="guardarProducto(fp)">Guardar</button></div>
+</app-modal>
+
+<!-- Lotes -->
+<app-modal [abierto]="modalLotes" [titulo]="'Lotes de ' + (lotesDe?.nombre ?? '')" tamano="xl" (cerrar)="modalLotes=false">
+  <table class="table table-sm"><thead><tr><th>Lote</th><th>Compra</th><th>Ingreso</th><th>Vencimiento</th><th class="text-end">P. compra</th><th class="text-end">Inicial</th><th class="text-end">Disponible</th><th>Estado</th></tr></thead>
+    <tbody>@for (l of lotes; track l.id) {
+      <tr [class.table-danger]="vencido(l) && l.cantidadDisponible > 0"><td class="font-monospace">{{ l.numeroLote }}</td><td>{{ l.fechaCompra | date:'dd/MM/yyyy' }}</td>
+        <td>{{ l.fechaIngreso | date:'dd/MM/yyyy' }}</td><td>{{ l.fechaVencimiento ? (l.fechaVencimiento | date:'dd/MM/yyyy') : 'No vence' }}</td>
+        <td class="text-end">{{ l.precioCompra | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td class="text-end">{{ l.cantidadInicial }}</td>
+        <td class="text-end fw-semibold">{{ l.cantidadDisponible }}</td>
+        <td>@if (l.cantidadDisponible === 0) { <span class="badge bg-secondary">Agotado</span> } @else if (vencido(l)) { <span class="badge bg-danger">Vencido</span> } @else { <span class="badge bg-success">Vigente</span> }</td></tr>
+    } @empty { <tr><td colspan="8" class="text-muted">Sin lotes.</td></tr> }</tbody></table>
+  <div pie><button class="btn btn-light" (click)="modalLotes=false">Cerrar</button></div>
+</app-modal>
+
+<!-- Nuevo lote -->
+<app-modal [abierto]="modalLote" [titulo]="'Ingresar lote: ' + (lotesDe?.nombre ?? '')" tamano="md" (cerrar)="modalLote=false">
+  <form #fl="ngForm" class="row g-2" novalidate>
+    <div class="col-6"><label class="form-label requerido">N° lote</label><input class="form-control" name="n" [(ngModel)]="lote.numeroLote" required maxlength="50"></div>
+    <div class="col-6"><label class="form-label requerido">Cantidad</label><input class="form-control" type="number" min="1" name="c" [(ngModel)]="lote.cantidad" required></div>
+    <div class="col-6"><label class="form-label requerido">Fecha de compra</label><input class="form-control" type="date" name="f" [(ngModel)]="lote.fechaCompra" required [max]="hoy"></div>
+    <div class="col-6"><label class="form-label" [class.requerido]="lotesDe?.tipoProducto==='MEDICAMENTO'">Vencimiento</label>
+      <input class="form-control" type="date" name="v" [(ngModel)]="lote.fechaVencimiento" [required]="lotesDe?.tipoProducto==='MEDICAMENTO'" [min]="hoy"></div>
+    <div class="col-6"><label class="form-label requerido">Precio de compra</label><input class="form-control" type="number" min="0" name="p" [(ngModel)]="lote.precioCompra" required></div>
+    <div class="col-12"><label class="form-label">Observación</label><input class="form-control" name="o" [(ngModel)]="lote.observacion" maxlength="200"></div>
+  </form>
+  <div pie><button class="btn btn-light" (click)="modalLote=false">Cancelar</button><button class="btn btn-success" (click)="guardarLote(fl)">Ingresar</button></div>
+</app-modal>

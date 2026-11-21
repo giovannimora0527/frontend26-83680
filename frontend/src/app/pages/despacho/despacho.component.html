@@ -1,0 +1,136 @@
+<h4 class="titulo-pagina mb-3">Despacho y dispensación de medicamentos</h4>
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link" [class.active]="tab==='p'" (click)="tab='p'">Fórmulas pendientes <span class="badge bg-warning text-dark">{{ pendientes.length }}</span></a></li>
+  <li class="nav-item"><a class="nav-link" [class.active]="tab==='h'" (click)="cargarHistorial()">Historial de despachos</a></li>
+  <li class="nav-item"><a class="nav-link" [class.active]="tab==='m'" (click)="tab='m'">Dispensaciones por medicamento</a></li>
+</ul>
+
+@if (tab === 'p') {
+  @if (!prep) {
+    <div class="card mb-2"><div class="card-body row g-2 align-items-end">
+      <div class="col-md-2"><label class="form-label">N° fórmula</label><input class="form-control" [(ngModel)]="b.numero" placeholder="FM-..."></div>
+      <div class="col-md-3"><label class="form-label">Propietario</label><input class="form-control" [(ngModel)]="b.propietario" placeholder="Nombre o documento"></div>
+      <div class="col-md-2"><label class="form-label">Mascota</label><input class="form-control" [(ngModel)]="b.mascota"></div>
+      <div class="col-md-2"><label class="form-label">Fecha</label><input type="date" class="form-control" [(ngModel)]="b.fecha"></div>
+      <div class="col-md-2"><label class="form-label">Estado</label><select class="form-select" [(ngModel)]="b.estado"><option value="">Todos</option>
+        @for (e of estadosBandeja; track e) { <option [value]="e">{{ e }}</option> }</select></div>
+      <div class="col-md-1"><button class="btn btn-primary w-100" (click)="buscar()"><i class="bi bi-search"></i></button></div>
+    </div></div>
+    <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+      <thead><tr><th>Fórmula</th><th>Generación</th><th>Veterinario</th><th>Propietario</th><th>Mascota</th><th>Medicamentos formulados</th><th>Estado</th><th></th></tr></thead>
+      <tbody>@for (f of pendientes; track f.id) {
+        <tr><td class="fw-semibold">{{ f.numero }}</td><td>{{ f.fechaConfirmacion | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ f.medico.nombres }} {{ f.medico.apellidos }}</td>
+          <td>{{ f.cita.cliente.nombres }} {{ f.cita.cliente.apellidos }}</td><td>{{ f.mascota.nombreMascota }}</td>
+          <td><ul class="mb-0 ps-3 small">@for (d of f.detalles; track d.id) { <li>{{ d.medicamento.nombre }}: {{ d.cantidadPrescrita }} ({{ d.dosis }} c/{{ d.frecuenciaHoras }}h x {{ d.duracionDias }}d)
+            @if (d.cantidadDespachada) { <span class="text-success">· entregado {{ d.cantidadDespachada }}</span> }</li> }</ul></td>
+          <td><app-estado [valor]="f.estadoDespacho" /></td>
+          <td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-danger me-1" (click)="formulaPdf(f.id)" title="Ver fórmula"><i class="fa-solid fa-file-pdf"></i></button>
+            <button class="btn btn-sm btn-primary" (click)="preparar(f)"><i class="fa-solid fa-box-open me-1"></i>Preparar</button></td></tr>
+      } @empty { <tr><td colspan="8" class="text-center text-muted py-4">No hay fórmulas pendientes.</td></tr> }</tbody>
+    </table></div></div>
+  } @else {
+    <div class="card mb-3"><div class="card-body d-flex flex-wrap gap-3 align-items-center">
+      <div><div class="text-muted small">Fórmula</div><div class="fw-bold fs-5">{{ prep.formula.numero }}</div></div>
+      <div><div class="text-muted small">Mascota</div><div class="fw-semibold">{{ prep.formula.mascota.nombreMascota }}</div></div>
+      <div><div class="text-muted small">Propietario</div><div class="fw-semibold">{{ prep.formula.cita.cliente.nombres }} {{ prep.formula.cita.cliente.apellidos }}</div></div>
+      <div><div class="text-muted small">Veterinario</div><div>{{ prep.formula.medico.nombres }} {{ prep.formula.medico.apellidos }}</div></div>
+      <div><app-estado [valor]="prep.formula.estadoDespacho" /></div>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="prep=null; buscar()"><i class="bi bi-arrow-left me-1"></i>Volver</button>
+    </div>
+    @if (prep.formula.indicaciones) { <div class="px-3 pb-3 small"><strong>Indicaciones del veterinario:</strong> {{ prep.formula.indicaciones }}</div> }</div>
+
+    @for (it of prep.items; track it.formulaDetalleId) {
+      <div class="card mb-3" [class.border-danger]="!itemValido(it)">
+        <div class="card-header d-flex flex-wrap gap-3 align-items-center">
+          <span class="font-monospace">{{ it.codigo }}</span><strong>{{ it.medicamento }}</strong>
+          <span class="small text-muted">{{ it.dosis }} cada {{ it.frecuenciaHoras }} h por {{ it.duracionDias }} día(s) · vía {{ it.viaAdministracion }}</span>
+          <span class="ms-auto badge bg-light text-dark border">Prescrito {{ it.prescrita }}</span>
+          <span class="badge bg-light text-dark border">Entregado {{ it.despachada }}</span>
+          <span class="badge bg-primary">Pendiente {{ it.pendiente }}</span>
+          <span class="badge" [class]="it.alcanza ? 'bg-success' : 'bg-danger'">Vigente {{ it.stockVigente }}</span>
+          @if (it.stockVencido) { <span class="badge bg-secondary">Vencido {{ it.stockVencido }}</span> }
+        </div>
+        <div class="card-body p-0">
+          @if (it.indicaciones) { <div class="px-3 pt-2 small"><strong>Indicaciones:</strong> {{ it.indicaciones }}</div> }
+          @if (!it.alcanza && it.pendiente > 0) { <div class="alert alert-warning m-2 py-1 small">No hay existencias vigentes suficientes: se permite una entrega parcial.</div> }
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Lote (orden FEFO)</th><th>Vencimiento</th><th class="text-end">Disponible</th><th>Condición</th><th style="width:140px">Entregar</th></tr></thead>
+            <tbody>@for (l of it.lotes; track l.loteId) {
+              <tr [class.table-danger]="l.vencido"><td class="font-monospace">{{ l.numeroLote }}</td>
+                <td>{{ l.fechaVencimiento ? (l.fechaVencimiento | date:'dd/MM/yyyy') : 'No vence' }}</td><td class="text-end">{{ l.disponible }}</td>
+                <td>@if (l.vencido) { <span class="badge bg-danger">Vencido - no dispensable</span> } @else if (l.proximoAVencer) { <span class="badge bg-warning text-dark">Próximo a vencer</span> } @else { <span class="badge bg-success">Vigente</span> }</td>
+                <td><input type="number" class="form-control form-control-sm" min="0" [max]="l.disponible" [disabled]="l.vencido || it.pendiente === 0"
+                           [(ngModel)]="cantidades[l.loteId]"></td></tr>
+            } @empty { <tr><td colspan="5" class="text-danger small">Sin existencias de este medicamento.</td></tr> }</tbody>
+            <tfoot><tr><td colspan="4" class="text-end">A entregar</td><td class="fw-bold" [class.text-danger]="!itemValido(it)">{{ totalItem(it) }} / {{ it.pendiente }}</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    }
+    <div class="card"><div class="card-body row g-2 align-items-end">
+      <div class="col-md-6"><label class="form-label">Observaciones</label><input class="form-control" [(ngModel)]="observaciones" maxlength="1000"></div>
+      <div class="col-md-6 d-flex flex-wrap gap-2 justify-content-end">
+        <button class="btn btn-outline-danger" (click)="formulaPdf(prep.formula.id)"><i class="fa-solid fa-file-pdf me-1"></i>Fórmula</button>
+        <button class="btn btn-outline-secondary" (click)="cancelarDespacho(prep.formula)">Cancelar despacho</button>
+        <button class="btn btn-outline-warning" (click)="pendienteDisponibilidad()">Pendiente por disponibilidad</button>
+        <button class="btn btn-success" (click)="confirmar()" [disabled]="enviando">
+          @if (enviando) { <span class="spinner-border spinner-border-sm me-1"></span> }<i class="bi bi-check2-circle me-1"></i>Confirmar entrega ({{ totalGeneral() }})</button>
+      </div>
+    </div></div>
+  }
+}
+
+@if (tab === 'h') {
+  <div class="card mb-2"><div class="card-body row g-2 align-items-end">
+    <div class="col-md-2"><label class="form-label">Desde</label><input type="date" class="form-control" [(ngModel)]="hDesde"></div>
+    <div class="col-md-2"><label class="form-label">Hasta</label><input type="date" class="form-control" [(ngModel)]="hHasta"></div>
+    <div class="col-md-4"><label class="form-label">Buscar</label><input class="form-control" [(ngModel)]="hTexto" placeholder="Despacho, fórmula, mascota, propietario, usuario"></div>
+    <div class="col-md-1"><button class="btn btn-primary w-100" (click)="cargarHistorial()"><i class="bi bi-search"></i></button></div>
+  </div></div>
+  <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th appOrden="numero" [tabla]="tablaH">Despacho</th><th appOrden="fecha" [tabla]="tablaH">Fecha y hora</th><th appOrden="formula" [tabla]="tablaH">Fórmula</th><th>Mascota / propietario</th><th appOrden="medico" [tabla]="tablaH">Veterinario</th><th appOrden="usuario" [tabla]="tablaH">Responsable</th><th>Medicamentos (lote: cant.)</th><th>Estado final</th><th></th></tr></thead>
+    <tbody>@for (d of tablaH.ver(despachos); track d.id) {
+      <tr [class.table-secondary]="d.revertido"><td class="fw-semibold">{{ d.numero }}</td><td>{{ d.fechaDespacho | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ d.formula.numero }}</td>
+        <td>{{ d.formula.mascota.nombreMascota }}<br><small>{{ d.formula.cita.cliente.nombres }} {{ d.formula.cita.cliente.apellidos }}</small></td>
+        <td>{{ d.formula.medico.nombres }} {{ d.formula.medico.apellidos }}</td><td>{{ d.usuario.nombreCompleto }}</td>
+        <td><ul class="mb-0 ps-3 small">@for (x of d.detalles; track x.id) { <li>{{ x.medicamento.nombre }} ({{ x.lote.numeroLote }}): {{ x.cantidad }}</li> }</ul></td>
+        <td>@if (d.revertido) { <span class="badge bg-secondary">Revertido</span> } @else { <app-estado [valor]="d.estadoResultante" /> }</td>
+        <td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" (click)="verDetalle(d)"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-sm btn-outline-danger" (click)="comprobante(d.id)"><i class="fa-solid fa-file-pdf"></i></button></td></tr>
+    } @empty { <tr><td colspan="9" class="text-center text-muted py-4">Sin despachos en el periodo.</td></tr> }</tbody>
+  </table></div>
+<app-paginador [tabla]="tablaH" /></div>
+}
+
+@if (tab === 'm') {
+  <div class="card mb-2"><div class="card-body row g-2 align-items-end">
+    <div class="col-md-6"><label class="form-label">Medicamento</label><select class="form-select" [(ngModel)]="medSel" (ngModelChange)="cargarDispensaciones()">
+      <option [ngValue]="null">Seleccione...</option>@for (m of medicamentos; track m.id) { <option [ngValue]="m.id">{{ m.codigo }} - {{ m.nombre }}</option> }</select></div>
+  </div></div>
+  <div class="card"><div class="table-responsive"><table class="table table-sm table-hover mb-0">
+    <thead><tr><th appOrden="fecha" [tabla]="tablaM">Fecha</th><th appOrden="despacho" [tabla]="tablaM">Despacho</th><th appOrden="formula" [tabla]="tablaM">Fórmula</th><th appOrden="mascota" [tabla]="tablaM">Mascota</th><th appOrden="prop" [tabla]="tablaM">Propietario</th><th appOrden="lote" [tabla]="tablaM">Lote</th><th class="text-end" appOrden="cantidad" [tabla]="tablaM">Cantidad</th><th appOrden="usuario" [tabla]="tablaM">Responsable</th><th>Movimiento</th><th>Estado</th></tr></thead>
+    <tbody>@for (x of tablaM.ver(dispensaciones); track $index) {
+      <tr><td>{{ x.fecha | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ x.numeroDespacho }}</td><td>{{ x.formula }}</td><td>{{ x.mascota }}</td><td>{{ x.propietario }}</td>
+        <td>{{ x.lote }}</td><td class="text-end">{{ x.cantidad }}</td><td>{{ x.usuarioDespacho }}</td><td>#{{ x.movimientoId }}</td>
+        <td>{{ x.revertido ? 'Revertido' : 'Entregado' }}</td></tr>
+    } @empty { <tr><td colspan="10" class="text-center text-muted py-4">Sin dispensaciones.</td></tr> }</tbody>
+  </table></div>
+<app-paginador [tabla]="tablaM" /></div>
+}
+
+<app-modal [abierto]="!!detalle" [titulo]="'Despacho ' + (detalle?.numero ?? '')" tamano="xl" (cerrar)="detalle=null">
+  @if (detalle; as d) {
+    @if (d.revertido) { <div class="alert alert-secondary py-2">Revertido el {{ d.fechaReversion | date:'dd/MM/yyyy HH:mm' }} por {{ d.usuarioReversion?.nombreCompleto }}: {{ d.motivoReversion }}</div> }
+    <table class="table table-sm"><thead><tr><th>Medicamento</th><th>Lote</th><th>Vence</th><th class="text-end">Cantidad</th></tr></thead>
+      <tbody>@for (x of d.detalles; track x.id) { <tr><td>{{ x.medicamento.nombre }}</td><td>{{ x.lote.numeroLote }}</td>
+        <td>{{ x.lote.fechaVencimiento | date:'dd/MM/yyyy' }}</td><td class="text-end">{{ x.cantidad }}</td></tr> }</tbody></table>
+    <h6>Historial de estados de la fórmula {{ d.formula.numero }}</h6>
+    <table class="table table-sm"><thead><tr><th>Fecha</th><th>De</th><th>A</th><th>Observación</th><th>Responsable</th></tr></thead>
+      <tbody>@for (h of estadosFormula; track h.id) { <tr><td>{{ h.fecha | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ h.estadoAnterior }}</td><td>{{ h.estadoNuevo }}</td>
+        <td>{{ h.observacion }}</td><td>{{ h.usuario.nombreCompleto }}</td></tr> }</tbody></table>
+  }
+  <div pie class="w-100 d-flex gap-2">
+    @if (detalle && !detalle.revertido) { <button class="btn btn-outline-danger" (click)="revertir(detalle)"><i class="bi bi-arrow-counterclockwise me-1"></i>Revertir dispensación</button> }
+    <button class="btn btn-light ms-auto" (click)="detalle=null">Cerrar</button>
+  </div>
+</app-modal>

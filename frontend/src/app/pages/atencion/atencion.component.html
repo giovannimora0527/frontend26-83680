@@ -1,0 +1,138 @@
+@if (datos; as d) {
+  <div class="d-flex flex-wrap align-items-center mb-3 gap-2">
+    <a routerLink="/inicio/agenda" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+    <h4 class="titulo-pagina mb-0">Atención · Cita #{{ d.cita.id }}</h4>
+    <app-estado [valor]="d.cita.estado" />
+    <div class="ms-auto d-flex gap-2">
+      @if (sePuedeIniciar) { <button class="btn btn-primary" (click)="iniciar()"><i class="fa-solid fa-stethoscope me-1"></i>Iniciar atención</button> }
+      @if (enAtencion) { <button class="btn btn-success" (click)="finalizar()"><i class="bi bi-check2-circle me-1"></i>Finalizar atención</button> }
+      @if (d.historia) { <button class="btn btn-outline-danger" (click)="prefactura()"><i class="fa-solid fa-file-pdf me-1"></i>Prefactura</button> }
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card mb-3"><div class="card-body">
+        <h6 class="text-primary mb-1">Paciente</h6>
+        <div class="fs-5 fw-semibold"><i class="fa-solid fa-paw me-1"></i>{{ d.cita.mascota.nombreMascota }}</div>
+        <div>{{ d.cita.mascota.raza.especie }} · {{ d.cita.mascota.raza.nombre }}</div>
+        <div class="small text-muted">Edad {{ d.cita.mascota.edad ?? '-' }} años · Sexo {{ d.cita.mascota.sexo ?? '-' }} · Peso {{ d.cita.mascota.pesoKg ?? '-' }} kg</div>
+        <hr>
+        <h6 class="text-primary mb-1">Propietario</h6>
+        <div class="fw-semibold">{{ d.cita.cliente.nombres }} {{ d.cita.cliente.apellidos }}</div>
+        <div class="small">{{ d.cita.cliente.tipoDocumento }} {{ d.cita.cliente.numeroDocumento }} · {{ d.cita.cliente.telefono }}</div>
+        <hr>
+        <div class="small"><strong>Cita:</strong> {{ d.cita.fechaHora | date:'dd/MM/yyyy HH:mm' }} · {{ d.cita.tarifa?.nombre ?? 'Consulta' }}</div>
+        <div class="small"><strong>Motivo agendado:</strong> {{ d.cita.motivo }}</div>
+      </div></div>
+      <div class="card"><div class="card-header">Antecedentes médicos ({{ d.antecedentes.length }})</div>
+        <div class="list-group list-group-flush" style="max-height:420px;overflow:auto">
+          @for (a of d.antecedentes; track a.historia.id) {
+            <div class="list-group-item small">
+              <div class="d-flex justify-content-between"><strong>{{ a.historia.fechaHora | date:'dd/MM/yyyy' }}</strong>
+                <span class="text-muted">{{ a.historia.medico.nombres }} {{ a.historia.medico.apellidos }}</span></div>
+              <div><strong>Motivo:</strong> {{ a.historia.motivo }}</div>
+              <div><strong>Diagnóstico:</strong> {{ a.historia.diagnostico ?? '-' }}</div>
+              @if (a.historia.recomendaciones) { <div><strong>Recomendaciones:</strong> {{ a.historia.recomendaciones }}</div> }
+              @for (n of a.anotaciones; track n.id) { <div class="text-muted fst-italic">· {{ n.fecha | date:'dd/MM/yyyy' }}: {{ n.descripcion }}</div> }
+            </div>
+          } @empty { <div class="list-group-item text-muted small">Sin consultas anteriores.</div> }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      @if (!d.historia) {
+        <div class="alert alert-info">Inicie la atención para registrar la historia clínica, los servicios y las fórmulas.</div>
+      } @else {
+        <div class="card mb-3"><div class="card-header d-flex">Historia clínica <app-estado class="ms-2" [valor]="d.historia.estado" />
+          @if (enAtencion) { <button class="btn btn-sm btn-primary ms-auto" (click)="guardarHistoria()"><i class="bi bi-save me-1"></i>Guardar</button> }</div>
+          <div class="card-body"><fieldset [disabled]="!enAtencion" class="row g-2">
+            <div class="col-md-8"><label class="form-label requerido">Motivo de consulta</label><textarea class="form-control" rows="2" [(ngModel)]="historia.motivo"></textarea></div>
+            <div class="col-md-2"><label class="form-label">Peso (kg)</label><input type="number" step="0.01" min="0.01" max="500" class="form-control" [(ngModel)]="historia.pesoKg"></div>
+            <div class="col-md-2"><label class="form-label">Temp. (°C)</label><input type="number" step="0.1" min="30" max="45" class="form-control" [(ngModel)]="historia.temperaturaC"></div>
+            <div class="col-md-6"><label class="form-label">Síntomas identificados</label><textarea class="form-control" rows="3" [(ngModel)]="historia.sintomas"></textarea></div>
+            <div class="col-md-6"><label class="form-label requerido">Diagnóstico</label><textarea class="form-control" rows="3" [(ngModel)]="historia.diagnostico"></textarea></div>
+            <div class="col-md-6"><label class="form-label">Observaciones médicas</label><textarea class="form-control" rows="2" [(ngModel)]="historia.observaciones"></textarea></div>
+            <div class="col-md-6"><label class="form-label">Recomendaciones</label><textarea class="form-control" rows="2" [(ngModel)]="historia.recomendaciones"></textarea></div>
+          </fieldset></div>
+        </div>
+
+        <div class="card mb-3"><div class="card-header">Servicios prestados (se facturan)</div><div class="card-body">
+          <table class="table table-sm"><thead><tr><th>Servicio</th><th>Tipo</th><th class="text-end">Cant.</th><th class="text-end">Valor</th><th>Impuesto</th><th></th></tr></thead>
+            <tbody>@for (s of d.servicios; track s.id) {
+              <tr><td>{{ s.tarifa.nombre }}</td><td>{{ s.tarifa.tipoServicio }}</td><td class="text-end">{{ s.cantidad }}</td>
+                <td class="text-end">{{ s.tarifa.valor * s.cantidad | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td>{{ s.tarifa.impuesto.codigo }}</td>
+                <td class="text-end">@if (enAtencion) { <button class="btn btn-sm btn-outline-danger" (click)="quitarServicio(s.id)"><i class="bi bi-trash"></i></button> }</td></tr>
+            } @empty { <tr><td colspan="6" class="text-muted">Sin servicios registrados.</td></tr> }</tbody>
+            <tfoot><tr><th colspan="3">Subtotal servicios (antes de impuestos)</th><th class="text-end">{{ totalServicios() | currency:'COP':'symbol-narrow':'1.0-0' }}</th><th colspan="2"></th></tr></tfoot>
+          </table>
+          @if (enAtencion) {
+            <div class="row g-2">
+              <div class="col-md-7"><select class="form-select form-select-sm" [(ngModel)]="servicio.tarifaId"><option [ngValue]="undefined">Agregar servicio...</option>
+                @for (t of tarifas; track t.id) { <option [ngValue]="t.id">{{ t.nombre }} · {{ t.valor | currency:'COP':'symbol-narrow':'1.0-0' }}</option> }</select></div>
+              <div class="col-md-2"><input type="number" min="1" max="100" class="form-control form-control-sm" [(ngModel)]="servicio.cantidad"></div>
+              <div class="col-md-3"><button class="btn btn-sm btn-outline-primary w-100" (click)="agregarServicio()"><i class="bi bi-plus"></i> Agregar</button></div>
+            </div>
+          }
+        </div></div>
+
+        <div class="card"><div class="card-header d-flex">Fórmulas médicas
+          @if (enAtencion) { <button class="btn btn-sm btn-primary ms-auto" (click)="nuevaFormula()"><i class="bi bi-plus-lg me-1"></i>Nueva fórmula</button> }</div>
+          <div class="card-body">
+            @for (f of d.formulas; track f.id) {
+              <div class="border rounded p-2 mb-2">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+                  <strong>{{ f.numero ?? 'Borrador #' + f.id }}</strong><app-estado [valor]="f.estado" /><app-estado [valor]="f.estadoDespacho" />
+                  <div class="ms-auto d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-danger" (click)="pdfFormula(f)" title="PDF"><i class="fa-solid fa-file-pdf"></i></button>
+                    @if (enAtencion && f.estado === 'BORRADOR') {
+                      <button class="btn btn-sm btn-outline-primary" (click)="editarFormula(f)">Editar</button>
+                      <button class="btn btn-sm btn-success" (click)="confirmarFormula(f)">Confirmar y enviar a despacho</button>
+                    }
+                    @if (f.estado !== 'ANULADA') { <button class="btn btn-sm btn-outline-secondary" (click)="anularFormula(f)">Anular</button> }
+                  </div>
+                </div>
+                <table class="table table-sm mb-0"><thead><tr><th>Medicamento</th><th>Dosis</th><th>Frecuencia</th><th>Duración</th><th>Cantidad</th><th>Vía</th><th>Despachado</th></tr></thead>
+                  <tbody>@for (x of f.detalles; track x.id) { <tr><td>{{ x.medicamento.nombre }}</td><td>{{ x.dosis }}</td><td>c/{{ x.frecuenciaHoras }} h</td>
+                    <td>{{ x.duracionDias }} d</td><td>{{ x.cantidadPrescrita }}</td><td>{{ x.viaAdministracion }}</td><td>{{ x.cantidadDespachada }}</td></tr> }</tbody></table>
+              </div>
+            } @empty { <p class="text-muted mb-0">Sin fórmulas.</p> }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <app-modal [abierto]="modalFormula" [titulo]="formula.id ? 'Editar fórmula' : 'Nueva fórmula médica'" tamano="xl" (cerrar)="modalFormula=false">
+    <p class="small text-muted">La fórmula no descuenta el inventario: el descuento ocurre cuando despacho entrega los medicamentos.
+      La cantidad se calcula como dosis por toma × número de tomas y se puede ajustar.</p>
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th style="min-width:220px">Medicamento</th><th>Disponible</th><th>Dosis (texto)</th><th>Unid./toma</th><th>Cada (h)</th><th>Días</th><th>Cantidad</th><th>Vía</th><th style="min-width:160px">Indicaciones</th><th></th></tr></thead>
+      <tbody>
+        @for (d of formula.detalles; track $index) {
+          <tr>
+            <td><select class="form-select form-select-sm" [(ngModel)]="d.medicamentoId"><option [ngValue]="undefined">Seleccione...</option>
+              @for (m of medicamentos; track m.id) { <option [ngValue]="m.id">{{ m.nombre }}</option> }</select></td>
+            <td>@if (med(d.medicamentoId); as m) {
+              <span class="badge" [class]="m.stockVigente >= d.cantidadPrescrita ? 'bg-success' : (m.stockVigente > 0 ? 'bg-warning text-dark' : 'bg-danger')">{{ m.stockVigente }} {{ m.unidadMedida.toLowerCase() }}</span> }</td>
+            <td><input class="form-control form-control-sm" [(ngModel)]="d.dosis" placeholder="1 tableta" maxlength="100"></td>
+            <td><input type="number" min="0.25" step="0.25" class="form-control form-control-sm" style="width:80px" [(ngModel)]="d.dosisCantidad" (ngModelChange)="calcular(d)"></td>
+            <td><input type="number" min="1" max="168" class="form-control form-control-sm" style="width:70px" [(ngModel)]="d.frecuenciaHoras" (ngModelChange)="calcular(d)"></td>
+            <td><input type="number" min="1" max="365" class="form-control form-control-sm" style="width:70px" [(ngModel)]="d.duracionDias" (ngModelChange)="calcular(d)"></td>
+            <td><input type="number" min="1" class="form-control form-control-sm" style="width:80px" [(ngModel)]="d.cantidadPrescrita"></td>
+            <td><select class="form-select form-select-sm" [(ngModel)]="d.viaAdministracion">@for (v of vias; track v) { <option [value]="v">{{ v }}</option> }</select></td>
+            <td><input class="form-control form-control-sm" [(ngModel)]="d.indicaciones"></td>
+            <td><button class="btn btn-sm btn-outline-danger" (click)="formula.detalles.splice($index,1)"><i class="bi bi-trash"></i></button></td>
+          </tr>
+        }
+      </tbody>
+    </table></div>
+    <button class="btn btn-sm btn-outline-primary mb-3" (click)="formula.detalles.push(filaVacia())"><i class="bi bi-plus"></i> Agregar medicamento</button>
+    <label class="form-label">Indicaciones generales</label>
+    <textarea class="form-control" rows="2" [(ngModel)]="formula.indicaciones"></textarea>
+    <div pie><button class="btn btn-light" (click)="modalFormula=false">Cancelar</button><button class="btn btn-primary" (click)="guardarFormula()">Guardar borrador</button></div>
+  </app-modal>
+} @else {
+  <div class="text-center text-muted py-5"><span class="spinner-border"></span></div>
+}

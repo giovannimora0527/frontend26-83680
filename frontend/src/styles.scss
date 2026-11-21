@@ -1,0 +1,34 @@
+:root { --primario: #0d47a1; --sidebar: #0b2545; }
+body { background: #f4f6fb; font-size: .92rem; }
+.app-shell { display: flex; min-height: 100vh; }
+.sidebar { width: 260px; background: var(--sidebar); color: #cfd8e3; flex-shrink: 0; display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; transition: margin .2s; }
+.menu-cerrado .sidebar { margin-left: -260px; }
+.sidebar .brand { font-weight: 700; color: #fff; padding: 1.1rem 1.25rem; font-size: 1.05rem; border-bottom: 1px solid rgba(255,255,255,.08); }
+.sidebar .nav-link { color: #cfd8e3; padding: .55rem 1.25rem; border-left: 3px solid transparent; }
+.sidebar .nav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+.sidebar .nav-link.active { background: rgba(255,255,255,.1); color: #fff; border-left-color: #64b5f6; }
+.sidebar-pie { margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,.08); }
+.contenido { flex: 1; min-width: 0; }
+.topbar { background: #fff; border-bottom: 1px solid #e3e8ef; padding: .6rem 1rem; display: flex; align-items: center; position: sticky; top: 0; z-index: 1020; }
+@media (max-width: 992px) { .sidebar { position: fixed; z-index: 1040; } }
+.card { border: 0; box-shadow: 0 1px 3px rgba(16,24,40,.08); }
+.card-header { background: #fff; font-weight: 600; }
+.titulo-pagina { font-weight: 700; color: #1f2d3d; }
+.table thead th { background: #eef2f7; font-weight: 600; white-space: nowrap; font-size: .82rem; }
+.table td { vertical-align: middle; }
+.table thead th.ordenable { cursor: pointer; user-select: none; }
+.table thead th.ordenable:hover, .table thead th.ordenable:focus-visible { background: #dde5f0; outline: none; }
+.bg-purple { background: #6f42c1 !important; color: #fff; }
+.kpi { border-left: 4px solid var(--primario); }
+.kpi .valor { font-size: 1.6rem; font-weight: 700; }
+.modal { background: transparent; overflow-y: auto; }
+.modal-backdrop { z-index: 1050; }
+.modal.d-block { z-index: 1055; }
+.swal2-container { z-index: 2000 !important; }
+.fc .fc-toolbar-title { font-size: 1.15rem; }
+.fc-event { cursor: pointer; }
+.tabla-scroll { max-height: 60vh; overflow: auto; }
+.form-label { font-weight: 500; margin-bottom: .2rem; }
+.requerido::after { content: ' *'; color: #dc3545; }
+.nav-tabs .nav-link { cursor: pointer; }
