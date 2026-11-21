@@ -30,7 +30,7 @@ export const NavigationItems: NavigationItem[] = [
         url: '/inicio/usuarios',
         icon: 'feather icon-user',
         classes: 'nav-item',
-        roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA', 'VETERINARIO', 'DESPACHO_MEDICO']
+        roles: ['ADMINISTRADOR', 'ADMIN']
       },
       {
         id: 'clientes',
