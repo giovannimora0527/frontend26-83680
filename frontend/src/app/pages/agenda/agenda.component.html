@@ -1,0 +1,87 @@
+<div class="d-flex flex-wrap align-items-center mb-3 gap-2">
+  <h4 class="titulo-pagina mb-0">Mi agenda médica</h4>
+  <span class="text-muted">{{ auth.usuario()?.medicoNombre }}</span>
+  <button class="btn btn-primary ms-auto" (click)="nueva()"><i class="bi bi-plus-lg me-1"></i>Nueva cita</button>
+</div>
+@if (sinHorario) {
+  <div class="alert alert-warning py-2 small"><i class="bi bi-exclamation-triangle me-1"></i>No tiene horarios de atención
+    configurados. El administrador los registra en Gestión de médicos; mientras tanto el sistema rechazará las citas nuevas.</div>
+}
+<div class="row g-3">
+  <div class="col-xl-9">
+    <div class="card"><div class="card-body">
+      <full-calendar #calendario [options]="opciones"></full-calendar>
+      <small class="text-muted d-block mt-2">Arrastre una cita para cambiar su fecha y hora, o estire su borde para cambiar la duración.
+        Haga clic sobre un espacio libre para agendar.</small>
+    </div></div>
+  </div>
+  <div class="col-xl-3">
+    <div class="card mb-3"><div class="card-header">Citas en la vista (reporte por estado)</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between fw-semibold">Total <span>{{ resumen['TOTAL'] || 0 }}</span></li>
+        @for (e of leyenda; track e) {
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><span class="d-inline-block rounded me-2" style="width:12px;height:12px" [style.background]="colores[e]"></span>{{ etiqueta(e === 'ATENDIDA' ? 'FINALIZADA' : e) }}</span>
+            <span class="badge bg-light text-dark border">{{ resumen[e] || 0 }}</span></li>
+        }
+      </ul>
+    </div>
+    <div class="card"><div class="card-header">Reporte de mis citas</div><div class="card-body">
+      <label class="form-label">Fecha inicial</label><input type="date" class="form-control mb-2" [(ngModel)]="repDesde">
+      <label class="form-label">Fecha final</label><input type="date" class="form-control mb-3" [(ngModel)]="repHasta">
+      <div class="d-flex gap-2">
+        <button class="btn btn-success flex-fill" (click)="reporteExcel()"><i class="fa-solid fa-file-excel me-1"></i>Excel</button>
+        <button class="btn btn-outline-danger flex-fill" (click)="reportePdf()"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<app-cita-form [abierto]="formAbierto" [cita]="citaEditar" [medicoFijo]="medicoId" [inicioSugerido]="inicioSugerido"
+               (cerrar)="formAbierto=false" (guardado)="guardado()" />
+
+<app-modal [abierto]="!!seleccionada" [titulo]="'Cita #' + (seleccionada?.id ?? '')" (cerrar)="seleccionada=null">
+  @if (seleccionada; as c) {
+    <div class="row g-3">
+      <div class="col-md-6">
+        <h6 class="text-primary">Paciente</h6>
+        <div class="fw-semibold fs-5"><i class="fa-solid fa-paw me-1"></i>{{ c.mascota.nombreMascota }}</div>
+        <div>{{ c.mascota.raza.especie }} · {{ c.mascota.raza.nombre }}</div>
+        <div>Edad: {{ c.mascota.edad ?? '-' }} años · Sexo: {{ c.mascota.sexo ?? '-' }} · Peso: {{ c.mascota.pesoKg ?? '-' }} kg</div>
+      </div>
+      <div class="col-md-6">
+        <h6 class="text-primary">Propietario</h6>
+        <div class="fw-semibold">{{ c.cliente.nombres }} {{ c.cliente.apellidos }}</div>
+        <div>{{ c.cliente.tipoDocumento }} {{ c.cliente.numeroDocumento }}</div>
+        <div><i class="bi bi-telephone me-1"></i>{{ c.cliente.telefono ?? '-' }}</div>
+      </div>
+      <div class="col-md-6"><h6 class="text-primary">Horario</h6>
+        {{ c.fechaHora | date:'EEEE dd/MM/yyyy' }}<br><strong>{{ c.fechaHora | date:'HH:mm' }} - {{ c.fechaHoraFin | date:'HH:mm' }}</strong></div>
+      <div class="col-md-6"><h6 class="text-primary">Estado</h6><app-estado [valor]="c.estado" />
+        <div class="mt-1">{{ c.tarifa?.nombre ?? 'Consulta' }}</div></div>
+      <div class="col-12"><h6 class="text-primary">Motivo de la consulta</h6><p class="mb-0">{{ c.motivo }}</p>
+        @if (c.motivoCancelacion) { <p class="text-danger small mb-0">Cancelada: {{ c.motivoCancelacion }}</p> }</div>
+    </div>
+  }
+  <div pie class="w-100 d-flex flex-wrap gap-2">
+    @if (seleccionada; as c) {
+      <button class="btn btn-outline-secondary" (click)="historialMascota(c)"><i class="bi bi-clock-history me-1"></i>Historial mascota</button>
+      @if (editable(c)) {
+        <button class="btn btn-outline-primary" (click)="editar(c)"><i class="bi bi-pencil me-1"></i>Editar</button>
+        @if (c.estado !== 'CONFIRMADA') { <button class="btn btn-outline-success" (click)="cambiar(c,'CONFIRMADA')">Confirmar</button> }
+        <button class="btn btn-outline-danger" (click)="cancelar(c)">Cancelar cita</button>
+        <button class="btn btn-primary ms-auto" (click)="atender(c)"><i class="fa-solid fa-stethoscope me-1"></i>Iniciar atención</button>
+      }
+      @if (c.estado === 'EN_ATENCION' || c.estado === 'ATENDIDA') {
+        <button class="btn btn-primary ms-auto" (click)="atender(c)"><i class="fa-solid fa-notes-medical me-1"></i>{{ c.estado === 'EN_ATENCION' ? 'Continuar atención' : 'Ver atención' }}</button>
+      }
+    }
+  </div>
+</app-modal>
+
+<app-modal [abierto]="verHistMascota" titulo="Historial de citas de la mascota" (cerrar)="verHistMascota=false">
+  <table class="table table-sm"><thead><tr><th>Fecha</th><th>Veterinario</th><th>Motivo</th><th>Estado</th></tr></thead>
+    <tbody>@for (x of citasMascota; track x.id) { <tr><td>{{ x.fechaHora | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ x.medico.nombres }} {{ x.medico.apellidos }}</td>
+      <td>{{ x.motivo }}</td><td><app-estado [valor]="x.estado" /></td></tr> }</tbody></table>
+  <div pie><button class="btn btn-light" (click)="verHistMascota=false">Cerrar</button></div>
+</app-modal>

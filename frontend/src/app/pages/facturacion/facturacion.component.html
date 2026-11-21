@@ -1,0 +1,110 @@
+<h4 class="titulo-pagina mb-3">Facturación y pagos</h4>
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link" [class.active]="tab==='p'" (click)="tab='p'">Atenciones por facturar <span class="badge bg-warning text-dark">{{ pendientes.length }}</span></a></li>
+  <li class="nav-item"><a class="nav-link" [class.active]="tab==='f'" (click)="tab='f'">Facturas</a></li>
+</ul>
+
+@if (tab === 'p') {
+  <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>Cita</th><th>Fecha atención</th><th>Mascota</th><th>Propietario</th><th>Veterinario</th><th>Servicio</th><th></th></tr></thead>
+    <tbody>@for (c of pendientes; track c.id) {
+      <tr><td>#{{ c.id }}</td><td>{{ c.fechaHora | date:'dd/MM/yyyy HH:mm' }}</td><td class="fw-semibold">{{ c.mascota.nombreMascota }}</td>
+        <td>{{ c.cliente.nombres }} {{ c.cliente.apellidos }}</td><td>{{ c.medico.nombres }} {{ c.medico.apellidos }}</td><td>{{ c.tarifa?.nombre ?? '-' }}</td>
+        <td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-danger me-1" (click)="prefactura(c.id)" title="Prefactura"><i class="fa-solid fa-file-pdf"></i></button>
+          <button class="btn btn-sm btn-primary" (click)="abrirGenerar(c)"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Facturar</button></td></tr>
+    } @empty { <tr><td colspan="7" class="text-center text-muted py-4">No hay atenciones pendientes de facturar.</td></tr> }</tbody>
+  </table></div></div>
+}
+
+@if (tab === 'f') {
+  <div class="card mb-2"><div class="card-body row g-2 align-items-end">
+    <div class="col-md-2"><label class="form-label">Desde</label><input type="date" class="form-control" [(ngModel)]="desde"></div>
+    <div class="col-md-2"><label class="form-label">Hasta</label><input type="date" class="form-control" [(ngModel)]="hasta"></div>
+    <div class="col-md-2"><label class="form-label">Estado</label><select class="form-select" [(ngModel)]="estado"><option value="">Todos</option>
+      <option value="PENDIENTE">Pendiente de pago</option><option value="PAGO_PARCIAL">Pago parcial</option><option value="PAGADA">Pagada</option><option value="ANULADA">Anulada</option></select></div>
+    <div class="col-md-1"><button class="btn btn-outline-primary w-100" (click)="cargarFacturas()"><i class="bi bi-search"></i></button></div>
+    <div class="col-md-3 ms-auto"><input class="form-control" placeholder="Número, propietario, mascota" [(ngModel)]="filtro" (ngModelChange)="tabla.reiniciar()"></div>
+  </div></div>
+  <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th appOrden="numero" [tabla]="tabla">Número</th><th appOrden="fecha" [tabla]="tabla">Fecha</th><th appOrden="prop" [tabla]="tabla">Propietario</th><th appOrden="mascota" [tabla]="tabla">Mascota</th><th appOrden="medico" [tabla]="tabla">Veterinario</th><th appOrden="estado" [tabla]="tabla">Estado</th><th class="text-end" appOrden="total" [tabla]="tabla">Total</th><th class="text-end" appOrden="pagado" [tabla]="tabla">Pagado</th><th class="text-end" appOrden="saldo" [tabla]="tabla">Saldo</th><th></th></tr></thead>
+    <tbody>@for (f of tabla.ver(facturasFiltradas()); track f.id) {
+      <tr><td class="fw-semibold">{{ f.numero }}</td><td>{{ f.fechaGeneracion | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ f.cliente.nombres }} {{ f.cliente.apellidos }}</td>
+        <td>{{ f.mascota.nombreMascota }}</td><td>{{ f.medico.nombres }} {{ f.medico.apellidos }}</td><td><app-estado [valor]="f.estado" /></td>
+        <td class="text-end">{{ f.total | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td class="text-end">{{ f.totalPagado | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+        <td class="text-end fw-semibold">{{ f.saldo | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+        <td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" (click)="ver(f.id)"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-sm btn-outline-danger" (click)="pdf(f.id)"><i class="fa-solid fa-file-pdf"></i></button></td></tr>
+    } @empty { <tr><td colspan="10" class="text-center text-muted py-4">Sin facturas.</td></tr> }</tbody>
+  </table></div>
+<app-paginador [tabla]="tabla" /></div>
+}
+
+<app-modal [abierto]="!!citaFacturar" [titulo]="'Generar factura · cita #' + (citaFacturar?.id ?? '')" tamano="xl" (cerrar)="citaFacturar=null">
+  @if (vista) {
+    <div class="row small mb-2"><div class="col-md-4"><strong>Propietario:</strong> {{ vista.cliente.nombres }} {{ vista.cliente.apellidos }}</div>
+      <div class="col-md-4"><strong>Mascota:</strong> {{ vista.mascota.nombreMascota }}</div><div class="col-md-4"><strong>Especialidad:</strong> {{ vista.especializacion }}</div></div>
+    <table class="table table-sm"><thead><tr><th>Tipo</th><th>Descripción</th><th class="text-end">Cant.</th><th class="text-end">Precio</th><th class="text-end">Descuento</th><th class="text-end">Base</th><th>Impuesto</th><th class="text-end">Valor imp.</th><th class="text-end">Total</th></tr></thead>
+      <tbody>@for (d of vista.detalles; track $index) { <tr><td>{{ d.tipoItem }}</td><td>{{ d.descripcion }}</td><td class="text-end">{{ d.cantidad }}</td>
+        <td class="text-end">{{ d.precioUnitario | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td class="text-end">{{ d.valorDescuento | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+        <td class="text-end">{{ d.subtotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td>{{ d.impuestoCodigo }} {{ d.impuestoPorcentaje }}%</td>
+        <td class="text-end">{{ d.valorImpuesto | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td class="text-end">{{ d.total | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr> }</tbody>
+      <tfoot class="fw-semibold"><tr><td colspan="8" class="text-end">Subtotal</td><td class="text-end">{{ vista.subtotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr>
+        <tr><td colspan="8" class="text-end">Descuentos</td><td class="text-end">-{{ vista.totalDescuento | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr>
+        <tr><td colspan="8" class="text-end">Impuestos</td><td class="text-end">{{ vista.totalImpuestos | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr>
+        <tr class="table-primary"><td colspan="8" class="text-end">TOTAL A PAGAR</td><td class="text-end">{{ vista.total | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr></tfoot>
+    </table>
+    <p class="small text-muted">Se incluyen los medicamentos efectivamente dispensados. Los dispensados después pueden agregarse a la factura mientras esté pendiente.</p>
+    <div class="row g-2">
+      <div class="col-md-3"><label class="form-label">Descuento (%) @if (!esAdmin) { <small class="text-muted">(sólo administrador)</small> }</label>
+        <div class="input-group"><input type="number" min="0" max="100" class="form-control" [(ngModel)]="descuento" [disabled]="!esAdmin">
+          <button class="btn btn-outline-secondary" (click)="calcular()" [disabled]="!esAdmin">Aplicar</button></div></div>
+      <div class="col-md-9"><label class="form-label">Observaciones</label><input class="form-control" [(ngModel)]="observaciones" maxlength="1000"></div>
+    </div>
+  }
+  <div pie><button class="btn btn-light" (click)="citaFacturar=null">Cancelar</button><button class="btn btn-primary" (click)="generar()" [disabled]="!vista">Generar factura</button></div>
+</app-modal>
+
+<app-modal [abierto]="!!factura" [titulo]="'Factura ' + (factura?.numero ?? '')" tamano="xl" (cerrar)="factura=null">
+  @if (factura; as f) {
+    <div class="d-flex flex-wrap gap-3 mb-2 small">
+      <div><strong>Estado:</strong> <app-estado [valor]="f.estado" /></div>
+      <div><strong>Fecha:</strong> {{ f.fechaGeneracion | date:'dd/MM/yyyy HH:mm' }}</div>
+      <div><strong>Propietario:</strong> {{ f.cliente.nombres }} {{ f.cliente.apellidos }}</div>
+      <div><strong>Mascota:</strong> {{ f.mascota.nombreMascota }}</div>
+      <div><strong>Veterinario:</strong> {{ f.medico.nombres }} {{ f.medico.apellidos }} ({{ f.especializacion }})</div>
+    </div>
+    @if (f.estado === 'ANULADA') { <div class="alert alert-secondary py-2">Anulada el {{ f.fechaAnulacion | date:'dd/MM/yyyy HH:mm' }} por {{ f.usuarioAnulacion?.nombreCompleto }}: {{ f.motivoAnulacion }}</div> }
+    <table class="table table-sm"><thead><tr><th>Descripción</th><th class="text-end">Cant.</th><th class="text-end">Precio</th><th class="text-end">Desc.</th><th>Imp.</th><th class="text-end">Total</th></tr></thead>
+      <tbody>@for (d of f.detalles; track d.id) { <tr><td>{{ d.descripcion }}</td><td class="text-end">{{ d.cantidad }}</td><td class="text-end">{{ d.precioUnitario | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+        <td class="text-end">{{ d.valorDescuento | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td>{{ d.impuestoCodigo }}</td><td class="text-end">{{ d.total | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr> }</tbody>
+      <tfoot class="fw-semibold"><tr><td colspan="5" class="text-end">Total</td><td class="text-end">{{ f.total | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr>
+        <tr><td colspan="5" class="text-end">Pagado</td><td class="text-end">{{ f.totalPagado | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr>
+        <tr class="table-warning"><td colspan="5" class="text-end">Saldo</td><td class="text-end">{{ f.saldo | currency:'COP':'symbol-narrow':'1.0-0' }}</td></tr></tfoot></table>
+
+    <h6>Pagos</h6>
+    <table class="table table-sm"><thead><tr><th>Fecha</th><th>Método</th><th>Referencia</th><th class="text-end">Valor</th><th>Registró</th><th>Estado</th><th></th></tr></thead>
+      <tbody>@for (p of f.pagos; track p.id) { <tr [class.text-decoration-line-through]="p.anulado"><td>{{ p.fechaPago | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ p.metodoPago }}</td><td>{{ p.referencia }}</td>
+        <td class="text-end">{{ p.valor | currency:'COP':'symbol-narrow':'1.0-0' }}</td><td>{{ p.usuario.nombreCompleto }}</td><td>{{ p.anulado ? 'Anulado: ' + p.motivoAnulacion : 'Aplicado' }}</td>
+        <td>@if (esAdmin && !p.anulado && f.estado !== 'ANULADA') { <button class="btn btn-sm btn-outline-danger" (click)="anularPago(p)">Anular</button> }</td></tr> }
+        @empty { <tr><td colspan="7" class="text-muted">Sin pagos.</td></tr> }</tbody></table>
+    @if (f.estado === 'PENDIENTE' || f.estado === 'PAGO_PARCIAL') {
+      <div class="row g-2 align-items-end border rounded p-2 mb-3 bg-light">
+        <div class="col-md-3"><label class="form-label">Valor</label><input type="number" min="1" [max]="f.saldo" class="form-control" [(ngModel)]="pago.valor"></div>
+        <div class="col-md-3"><label class="form-label">Método</label><select class="form-select" [(ngModel)]="pago.metodoPago">@for (m of metodos; track m) { <option [value]="m">{{ m }}</option> }</select></div>
+        <div class="col-md-3"><label class="form-label">Referencia</label><input class="form-control" [(ngModel)]="pago.referencia" [disabled]="pago.metodoPago==='EFECTIVO'"></div>
+        <div class="col-md-3"><button class="btn btn-success w-100" (click)="registrarPago()"><i class="bi bi-cash-coin me-1"></i>Registrar pago</button></div>
+      </div>
+    }
+    <h6>Trazabilidad</h6>
+    <ul class="list-group small">@for (h of historial; track h.id) { <li class="list-group-item">{{ h.fecha | date:'dd/MM/yyyy HH:mm' }} · <strong>{{ h.accion }}</strong>
+      {{ h.estadoAnterior ? h.estadoAnterior + ' → ' : '' }}{{ h.estadoNuevo }} · {{ h.detalle }} · <em>{{ h.usuario.nombreCompleto }}</em></li> }</ul>
+  }
+  <div pie class="w-100 d-flex flex-wrap gap-2">
+    @if (factura; as f) {
+      <button class="btn btn-outline-danger" (click)="pdf(f.id)"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+      @if (f.estado === 'PENDIENTE' || f.estado === 'PAGO_PARCIAL') { <button class="btn btn-outline-primary" (click)="agregarDispensados()">Agregar productos dispensados</button> }
+      @if (esAdmin && f.estado !== 'ANULADA') { <button class="btn btn-outline-secondary" (click)="anular()">Anular factura</button> }
+    }
+    <button class="btn btn-light ms-auto" (click)="factura=null">Cerrar</button>
+  </div>
+</app-modal>

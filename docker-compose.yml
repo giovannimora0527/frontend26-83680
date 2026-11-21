@@ -1,0 +1,59 @@
+# Clínica Veterinaria Uniminuto - despliegue completo
+#   docker compose up -d --build
+#   Aplicación:  http://localhost:8081
+#   Swagger UI:  http://localhost:8080/clinica/v1/swagger-ui.html
+services:
+  db:
+    image: mysql:8.0
+    container_name: clinica-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_clinica_2026
+      MYSQL_DATABASE: clinica
+      MYSQL_USER: clinica
+      MYSQL_PASSWORD: clinica_2026
+      TZ: America/Bogota
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_0900_ai_ci
+      --default-time-zone=-05:00
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_clinica_2026"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  backend:
+    build: ./backend
+    container_name: clinica-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://db:3306/clinica?serverTimezone=America/Bogota&useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      DB_USER: clinica
+      DB_PASSWORD: clinica_2026
+      TZ: America/Bogota
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    container_name: clinica-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"
+
+volumes:
+  db_data:
