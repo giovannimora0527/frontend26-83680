@@ -118,4 +118,39 @@ export class FormulaMedicaService {
       `${formulaId}/historial`
     );
   }
+
+  listarPendientesDespacho(buscar?: string, fecha?: string): Observable<FormulaMedica[]> {
+    let params = new HttpParams();
+    if (buscar?.trim()) params = params.set('buscar', buscar.trim());
+    if (fecha?.trim()) params = params.set('fecha', fecha.trim());
+    return this.backendService.get<FormulaMedica[]>(
+      environment.apiUrlAuth,
+      this.api,
+      'pendientes-despacho',
+      params
+    );
+  }
+
+  prepararDespacho(formulaId: number, usuario?: string): Observable<MiRespuesta> {
+    let params = new HttpParams();
+    if (usuario?.trim()) params = params.set('usuario', usuario.trim());
+    return this.backendService.patch<MiRespuesta>(
+      environment.apiUrlAuth,
+      this.api,
+      `${formulaId}/preparar`,
+      {},
+      params
+    );
+  }
+
+  despachar(formulaId: number, cantidad: number, observacion?: string): Observable<MiRespuesta> {
+    let params = new HttpParams().set('cantidad', cantidad);
+    if (observacion?.trim()) params = params.set('observacion', observacion.trim());
+    return this.backendService.post<MiRespuesta>(
+      environment.apiUrlAuth,
+      this.api,
+      `${formulaId}/despachar?${params.toString()}`,
+      {}
+    );
+  }
 }

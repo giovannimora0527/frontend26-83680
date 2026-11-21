@@ -24,6 +24,10 @@ export class ClienteService {
     return this.backendService.get<Cliente[]>(environment.apiUrlAuth, this.api, 'listar');
   }
 
+  listarTodos(): Observable<Cliente[]> {
+    return this.backendService.get<Cliente[]>(environment.apiUrlAuth, this.api, 'listar-todos');
+  }
+
   /**
    * Consulta un cliente por su identificador.
    * @param clienteId Identificador del cliente.
@@ -32,5 +36,13 @@ export class ClienteService {
   consultar(clienteId: number): Observable<Cliente> {
     const params = new HttpParams().set('clienteId', clienteId);
     return this.backendService.get<Cliente>(environment.apiUrlAuth, this.api, 'consultar', params);
+  }
+
+  guardar(cliente: Cliente): Observable<unknown> {
+    return this.backendService.post(environment.apiUrlAuth, this.api, 'guardar', cliente);
+  }
+
+  actualizar(cliente: Cliente): Observable<unknown> {
+    return this.backendService.post(environment.apiUrlAuth, this.api, 'actualizar', cliente);
   }
 }

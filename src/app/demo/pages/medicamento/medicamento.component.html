@@ -11,7 +11,7 @@
           />
         </div>
         <div class="col-md-3 text-end">
-          <button
+          <button *ngIf="puedeAdministrarInventario"
             class="btn btn-md btn-outline-primary d-inline-flex align-items-center justify-content-center"
             (click)="nuevoMedicamento('C')"
             title="Agregar medicamento"
@@ -25,14 +25,14 @@
 
     <div class="card-body">
       <div class="row mb-3 g-2 align-items-end">
-        <div class="col-md-8">
+        <div class="col-md-8" *ngIf="puedeAdministrarInventario">
           <label class="form-label">Carga masiva de inventario</label>
           <input type="file" class="form-control" accept=".csv,.xlsx" (change)="onArchivoSeleccionado($event)" />
         </div>
-        <div class="col-md-4 text-end">
+        <div class="col-md-4 text-end" *ngIf="puedeAdministrarInventario">
           <button type="button" class="btn btn-outline-success" [disabled]="!archivoSeleccionado || cargandoArchivo" (click)="importarArchivo()">
             <span *ngIf="cargandoArchivo" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            {{ cargandoArchivo ? 'Importando...' : 'Importar archivo' }}
+            {{ cargandoArchivo ? 'Validando...' : 'Validar y previsualizar' }}
           </button>
         </div>
       </div>
@@ -42,6 +42,25 @@
         <ul class="mb-0">
           <li *ngFor="let error of erroresCarga">Fila {{ error.fila }}: {{ error.mensaje }}</li>
         </ul>
+      </div>
+      <div *ngIf="resultadoVistaPrevia as vista" class="card border-primary mb-3">
+        <div class="card-body">
+          <h6>Vista previa de carga</h6>
+          <p class="mb-2">Filas: {{ vista.totalRegistros }} | Válidas: {{ vista.registrosValidos }} | Con errores: {{ vista.registrosInvalidos }}</p>
+          <div class="table-responsive" *ngIf="vista.importados?.length">
+            <table class="table table-sm table-bordered">
+              <thead><tr><th>Nombre</th><th>Código</th><th>Lote</th><th>Cantidad</th><th>Vencimiento</th></tr></thead>
+              <tbody><tr *ngFor="let med of vista.importados">
+                <td>{{ med.nombre }}</td><td>{{ med.codigo }}</td><td>{{ med.lote }}</td>
+                <td>{{ med.cantidadDisponible }}</td><td>{{ med.fechaVence | date:'yyyy-MM-dd' }}</td>
+              </tr></tbody>
+            </table>
+          </div>
+          <button class="btn btn-success" type="button" [disabled]="cargandoArchivo || !vista.registrosValidos"
+            (click)="confirmarImportacion()">
+            {{ cargandoArchivo ? 'Importando...' : 'Confirmar importación de registros válidos' }}
+          </button>
+        </div>
       </div>
 
       <div class="table-responsive">
@@ -84,13 +103,52 @@
                 <span [class]="claseEstadoInventario(med)">{{ estadoInventario(med) }}</span>
               </td>
               <td>
-                <button class="btn btn-outline-info btn-sm" (click)="abrirEdicion(med)">
+                <button class="btn btn-outline-secondary btn-sm me-1" (click)="gestionarLotes(med)">
+                  <i class="fa fa-boxes-stacked"></i> Lotes
+                </button>
+                <button *ngIf="puedeAdministrarInventario" class="btn btn-outline-info btn-sm" (click)="abrirEdicion(med)">
                   <i class="fa fa-edit"></i> Editar
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="modal fade" id="modalLotesMedicamento" tabindex="-1" aria-labelledby="modalLotesMedicamentoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content" *ngIf="medicamentoLotes as medicamento">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalLotesMedicamentoLabel">Lotes de {{ medicamento.nombre }}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+              <div class="table-responsive mb-4">
+                <table class="table table-sm table-striped">
+                  <thead><tr><th>Lote</th><th>Disponible</th><th>Compra</th><th>Vencimiento</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let lote of lotes">
+                      <td>{{ lote.codigoLote }}</td><td>{{ lote.cantidadDisponible }}</td>
+                      <td>{{ lote.precioCompra | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                      <td>{{ lote.fechaVencimiento | date:'yyyy-MM-dd' }}</td>
+                      <td>{{ loteVencido(lote.fechaVencimiento) ? 'Vencido' : 'Vigente' }}</td>
+                    </tr>
+                    <tr *ngIf="lotes.length === 0"><td colspan="5" class="text-center">No hay lotes registrados.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <form *ngIf="puedeAdministrarInventario" class="row g-2" (ngSubmit)="guardarLote()">
+                <div class="col-md-4"><label class="form-label">Código de lote</label><input class="form-control" name="codigoLote" [(ngModel)]="formularioLote.codigoLote" required maxlength="50"></div>
+                <div class="col-md-2"><label class="form-label">Cantidad</label><input class="form-control" type="number" name="cantidad" [(ngModel)]="formularioLote.cantidadDisponible" required min="1"></div>
+                <div class="col-md-3"><label class="form-label">Precio de compra</label><input class="form-control" type="number" name="precioCompra" [(ngModel)]="formularioLote.precioCompra" required min="0.01" step="0.01"></div>
+                <div class="col-md-3"><label class="form-label">Vencimiento</label><input class="form-control" type="date" name="fechaVencimiento" [(ngModel)]="formularioLote.fechaVencimiento" required></div>
+                <div class="col-md-6"><label class="form-label">Fecha de compra</label><input class="form-control" type="date" name="fechaCompra" [(ngModel)]="formularioLote.fechaCompra" required></div>
+                <div class="col-md-6"><label class="form-label">Fecha de ingreso</label><input class="form-control" type="date" name="fechaIngreso" [(ngModel)]="formularioLote.fechaIngreso" required></div>
+                <div class="col-12"><button class="btn btn-primary" type="submit" [disabled]="guardandoLote">{{ guardandoLote ? 'Registrando...' : 'Registrar lote' }}</button></div>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
 
       <nav *ngIf="totalPaginas > 1" aria-label="Paginación de medicamentos">

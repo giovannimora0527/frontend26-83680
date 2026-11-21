@@ -4,7 +4,7 @@ export class Cliente {
     numeroDocumento?: string;
     nombres?: string;
     apellidos?: string;
-    fechaNacimiento?: Date;
+    fechaNacimiento?: string;
     genero?: string;
     telefono?: string;
     direccion?: string;

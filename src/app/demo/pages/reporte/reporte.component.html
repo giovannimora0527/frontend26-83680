@@ -13,18 +13,8 @@
           </small>
         </div>
 
-        <!-- Selector de Rol para demostración y control de permisos (Sección 4.4) -->
         <div class="col-xl-3">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-dark text-white fw-semibold">
-              <i class="fa {{ infoRolActual.icono }} me-1"></i>Rol Activo
-            </span>
-            <select class="form-select form-select-sm fw-semibold" [ngModel]="rolActual" (ngModelChange)="cambiarRol($event)">
-              <option *ngFor="let r of rolesDisponibles" [ngValue]="r.codigo">
-                {{ r.etiqueta }} ({{ r.codigo }})
-              </option>
-            </select>
-          </div>
+          <span class="badge bg-dark"><i class="fa {{ infoRolActual.icono }} me-1"></i>Sesión: {{ infoRolActual.etiqueta }}</span>
         </div>
 
         <!-- Selector de Tipo de Reporte con restricción por permisos de rol -->

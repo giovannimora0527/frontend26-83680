@@ -20,6 +20,7 @@ import { MascotaService } from '../mascota/service/mascota.service';
 import { MedicamentoService } from '../medicamento/service/medicamento.service';
 import { MedicoService } from '../medico/service/medico.service';
 import { FormulaMedicaService } from './service/formula-medica.service';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-formula-medica',
@@ -87,12 +88,13 @@ export class FormulaMedicaComponent {
     private readonly citaService: CitaService,
     private readonly medicoService: MedicoService,
     private readonly medicamentoService: MedicamentoService,
+    private readonly authService: AuthService,
     private readonly formBuilder: FormBuilder
   ) {
     this.inicializarFormulario();
     this.inicializarFormularioDispensar();
     this.listar();
-    this.cargarCombos();
+    if (this.puedeFormular) this.cargarCombos();
   }
 
   inicializarFormulario() {
@@ -129,9 +131,16 @@ export class FormulaMedicaComponent {
   inicializarFormularioDispensar() {
     this.formDispensar = this.formBuilder.group({
       cantidad: [1, [Validators.required, Validators.min(1)]],
-      usuario: ['', [Validators.required, Validators.maxLength(100)]],
       observacion: ['', [Validators.maxLength(300)]]
     });
+  }
+
+  get puedeDespachar(): boolean {
+    return ['ADMINISTRADOR', 'DESPACHO_MEDICO'].includes(this.authService.role());
+  }
+
+  get puedeFormular(): boolean {
+    return ['ADMINISTRADOR', 'VETERINARIO'].includes(this.authService.role());
   }
 
   get f(): { [key: string]: AbstractControl } {
@@ -357,7 +366,10 @@ export class FormulaMedicaComponent {
 
   listar() {
     this.cargando = true;
-    this.formulaService.listar().subscribe({
+    const request = this.puedeDespachar && !this.puedeFormular
+      ? this.formulaService.listarPendientesDespacho()
+      : this.formulaService.listar();
+    request.subscribe({
       next: (data) => {
         this.listFormulas = data ?? [];
         this.paginaActual = 1;
@@ -558,12 +570,8 @@ export class FormulaMedicaComponent {
       next: (data) => {
         this.formulaDispensar = data;
         const pendiente = this.saldoPendiente(data);
-        const usuarioDefecto = data.medico
-          ? `Dr(a). ${nombreCompleto(data.medico)}`
-          : 'Despacho Farmacia';
         this.formDispensar.reset({
           cantidad: pendiente > 0 ? pendiente : 1,
-          usuario: usuarioDefecto,
           observacion: ''
         });
         const el = document.getElementById('modalDispensarFormula');
@@ -580,13 +588,25 @@ export class FormulaMedicaComponent {
     this.modalDispensarInstance?.hide();
   }
 
+  prepararDespacho(formula: FormulaMedica): void {
+    if (!formula.id) return;
+    this.formulaService.prepararDespacho(formula.id).subscribe({
+      next: (respuesta) => {
+        mostrarExito(respuesta.message);
+        this.listar();
+      },
+      error: (error: HttpErrorResponse) => mostrarError(error)
+    });
+  }
+
   confirmarDispensacion() {
     if (!this.formulaDispensar?.id) {
       return;
     }
+
     if (this.formDispensar.invalid) {
       this.formDispensar.markAllAsTouched();
-      mostrarAdvertencia('Datos incompletos', 'Indique la cantidad a dispensar y el usuario responsable.');
+      mostrarAdvertencia('Datos incompletos', 'Indique la cantidad a dispensar.');
       return;
     }
 
@@ -611,11 +631,10 @@ export class FormulaMedicaComponent {
     }
 
     this.dispensando = true;
-    this.formulaService.dispensar(
+    this.formulaService.despachar(
       this.formulaDispensar.id,
       cantidad,
-      val.observacion,
-      val.usuario
+      val.observacion
     ).subscribe({
       next: (res) => {
         this.dispensando = false;

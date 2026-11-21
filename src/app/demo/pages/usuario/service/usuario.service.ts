@@ -10,15 +10,17 @@ import { environment } from 'src/environments/environment';
 export class UsuarioService {
   private api = `usuario`;
 
-  constructor(private backendService: BackendService) { 
-    this.testService();
-  }
-
-  testService() {
-    this.backendService.get(environment.apiUrlAuth, this.api, "test");
-  }
+  constructor(private readonly backendService: BackendService) {}
 
   getUsuarios(): Observable<Usuario[]> {
-    return this.backendService.get(environment.apiUrlAuth, this.api, "listar");
+    return this.backendService.get<Usuario[]>(environment.apiUrlAuth, this.api, "listar");
+  }
+
+  crear(usuario: { username: string; password: string; rol: string; activo: boolean; clienteId?: number; medicoId?: number }): Observable<Usuario> {
+    return this.backendService.post<Usuario>(environment.apiUrlAuth, this.api, 'guardar', usuario);
+  }
+
+  actualizar(id: number, usuario: { username: string; password?: string; rol: string; activo: boolean; clienteId?: number; medicoId?: number }): Observable<Usuario> {
+    return this.backendService.put<Usuario>(environment.apiUrlAuth, this.api, String(id), usuario);
   }
 }

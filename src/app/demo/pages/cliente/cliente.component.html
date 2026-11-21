@@ -1,0 +1,47 @@
+<div class="container-fluid">
+  <h4 class="mb-3">Gestión de propietarios</h4>
+  <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+  <div class="card mb-4">
+    <div class="card-header">{{ editando ? 'Editar propietario' : 'Registrar propietario' }}</div>
+    <div class="card-body">
+      <form class="row g-3" (ngSubmit)="guardar()">
+        <div class="col-md-3">
+          <label class="form-label">Tipo de documento</label>
+          <select class="form-select" name="tipoDocumento" [(ngModel)]="formulario.tipoDocumento" required>
+            <option value="">Seleccione</option><option value="CC">CC</option><option value="CE">CE</option>
+            <option value="TI">TI</option><option value="PAS">Pasaporte</option><option value="NIT">NIT</option>
+          </select>
+        </div>
+        <div class="col-md-3"><label class="form-label">Número</label><input class="form-control" name="numeroDocumento" [(ngModel)]="formulario.numeroDocumento" required></div>
+        <div class="col-md-3"><label class="form-label">Nombres</label><input class="form-control" name="nombres" [(ngModel)]="formulario.nombres" required></div>
+        <div class="col-md-3"><label class="form-label">Apellidos</label><input class="form-control" name="apellidos" [(ngModel)]="formulario.apellidos" required></div>
+        <div class="col-md-3"><label class="form-label">Fecha de nacimiento</label><input type="date" class="form-control" name="fechaNacimiento" [(ngModel)]="formulario.fechaNacimiento" required></div>
+        <div class="col-md-3"><label class="form-label">Teléfono</label><input class="form-control" name="telefono" [(ngModel)]="formulario.telefono"></div>
+        <div class="col-md-3"><label class="form-label">Género</label><select class="form-select" name="genero" [(ngModel)]="formulario.genero"><option value="">No especificado</option><option value="F">Femenino</option><option value="M">Masculino</option></select></div>
+        <div class="col-md-9"><label class="form-label">Dirección</label><input class="form-control" name="direccion" [(ngModel)]="formulario.direccion"></div>
+        <div class="col-md-3 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" id="clienteActivo" type="checkbox" name="activo" [(ngModel)]="formulario.activo"><label class="form-check-label" for="clienteActivo">Activo</label></div></div>
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary" type="submit" [disabled]="guardando">{{ guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Registrar') }}</button>
+          <button class="btn btn-outline-secondary" type="button" (click)="limpiar()">Limpiar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead><tr><th>Documento</th><th>Propietario</th><th>Teléfono</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let cliente of clientes">
+            <td>{{ cliente.tipoDocumento }} {{ cliente.numeroDocumento }}</td>
+            <td>{{ cliente.nombres }} {{ cliente.apellidos }}</td>
+            <td>{{ cliente.telefono || '—' }}</td>
+            <td>{{ cliente.activo ? 'Activo' : 'Inactivo' }}</td>
+            <td><button class="btn btn-sm btn-outline-primary" type="button" (click)="editar(cliente)">Editar</button></td>
+          </tr>
+          <tr *ngIf="clientes.length === 0"><td colspan="5" class="text-center">No hay propietarios registrados.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

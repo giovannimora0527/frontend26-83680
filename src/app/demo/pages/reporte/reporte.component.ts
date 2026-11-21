@@ -19,6 +19,7 @@ import { fechaHoy, nombreCompleto, normalizarTexto } from 'src/app/utils/tabla-u
 import { MedicamentoService } from '../medicamento/service/medicamento.service';
 import { MedicoService } from '../medico/service/medico.service';
 import { ParametrosExportacionReporte, ReporteService } from './service/reporte.service';
+import { AuthService } from 'src/app/services/auth.service';
 
 export type ModuloReporte = 'FINANCIERO' | 'INVENTARIO' | 'MEDICO';
 export type AgrupacionTemporal = 'DIA' | 'MES' | 'ANIO';
@@ -31,8 +32,6 @@ export type RolUsuarioReporte = 'ADMINISTRADOR' | 'SECRETARIA' | 'VETERINARIO' |
   styleUrl: './reporte.component.scss'
 })
 export class ReporteComponent {
-  private static readonly STORAGE_ROL_KEY = 'rol_activo_clinica';
-
   // Roles y matriz de permisos sobre reportes (Secciones 4.4 y 5.1)
   readonly rolesDisponibles: Array<{
     codigo: RolUsuarioReporte;
@@ -71,7 +70,7 @@ export class ReporteComponent {
     }
   ];
 
-  rolActual: RolUsuarioReporte = 'ADMINISTRADOR';
+  rolActual!: RolUsuarioReporte;
 
   // Pestaña activa: 4.1 FINANCIERO, 4.2 INVENTARIO, 4.3 MEDICO
   moduloActivo: ModuloReporte = 'FINANCIERO';
@@ -115,25 +114,16 @@ export class ReporteComponent {
   constructor(
     private readonly reporteService: ReporteService,
     private readonly medicoService: MedicoService,
-    private readonly medicamentoService: MedicamentoService
+    private readonly medicamentoService: MedicamentoService,
+    private readonly authService: AuthService
   ) {
-    this.inicializarRolGuardado();
-    this.cargarCatalogos();
-    this.consultarTodosLosReportes();
-  }
-
-  private inicializarRolGuardado() {
-    const guardado = localStorage.getItem(ReporteComponent.STORAGE_ROL_KEY) as RolUsuarioReporte | null;
-    if (guardado && this.rolesDisponibles.some((r) => r.codigo === guardado)) {
-      this.rolActual = guardado;
+    const rol = this.authService.role();
+    if (!this.rolesDisponibles.some((opcion) => opcion.codigo === rol)) {
+      throw new Error(`El perfil autenticado no tiene acceso a reportes: ${rol}`);
     }
+    this.rolActual = rol as RolUsuarioReporte;
     this.ajustarModuloActivoSegunRol();
-  }
-
-  cambiarRol(nuevoRol: RolUsuarioReporte) {
-    this.rolActual = nuevoRol;
-    localStorage.setItem(ReporteComponent.STORAGE_ROL_KEY, nuevoRol);
-    this.ajustarModuloActivoSegunRol();
+    this.cargarCatalogos();
     this.consultarTodosLosReportes();
   }
 

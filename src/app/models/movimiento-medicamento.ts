@@ -10,6 +10,7 @@ export class MovimientoMedicamento {
   referenciaTipo?: string;
   referenciaId?: number;
   usuarioRegistro?: string;
+  codigoLote?: string;
   fechaRegistro?: Date | string;
   observacion?: string;
 }

@@ -1,0 +1,16 @@
+<div class="container-fluid">
+  <h4 class="mb-3">Mis mascotas</h4>
+  <div *ngIf="error" class="alert alert-warning" role="alert">{{ error }}</div>
+  <div class="row g-3">
+    <div class="col-md-6 col-xl-4" *ngFor="let mascota of mascotas">
+      <article class="card h-100"><div class="card-body">
+        <h5 class="card-title">{{ mascota.nombreMascota }}</h5>
+        <p class="mb-1">Raza: {{ mascota.raza?.nombre ?? 'No especificada' }}</p>
+        <p class="mb-0">Edad: {{ mascota.edad ?? '—' }}</p>
+      </div></article>
+    </div>
+    <div *ngIf="!error && mascotas.length === 0" class="col-12">
+      <div class="alert alert-info">No hay mascotas registradas para tu cuenta.</div>
+    </div>
+  </div>
+</div>

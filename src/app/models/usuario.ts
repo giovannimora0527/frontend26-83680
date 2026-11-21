@@ -6,4 +6,6 @@ export class Usuario {
     email?: string;
     fechaCreacion?: Date;
     activo?: boolean;
+    clienteId?: number;
+    medicoId?: number;
 }

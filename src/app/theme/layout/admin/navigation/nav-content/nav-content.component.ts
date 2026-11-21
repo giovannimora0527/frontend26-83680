@@ -30,7 +30,14 @@ export class NavContentComponent {
 
   // constructor
   constructor() {
-    this.navigations = NavigationItems;
+    const rol = (localStorage.getItem('rol') || '').toUpperCase();
+    this.navigations = NavigationItems.map((grupo) => ({
+      ...grupo,
+      children: grupo.children?.filter((item) => {
+        if (!item.roles) return true;
+        return item.roles.includes(rol);
+      })
+    }));
   }
 
   fireOutClick() {

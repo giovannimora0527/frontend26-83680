@@ -7,6 +7,8 @@ import { Medicamento } from 'src/app/models/medicamento';
 import { MiRespuesta } from 'src/app/models/mi-respuesta';
 import { mostrarAdvertencia, mostrarError, mostrarExito } from 'src/app/utils/mensajes-utils';
 import { MedicamentoService } from './service/medicamento.service';
+import { LoteMedicamento } from 'src/app/models/lote-medicamento';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-medicamento',
@@ -29,14 +31,25 @@ export class MedicamentoComponent implements OnInit {
   cargandoArchivo = false;
   archivoSeleccionado: File | null = null;
   erroresCarga: Array<{ fila: number; mensaje: string }> = [];
+  resultadoVistaPrevia: { totalRegistros?: number; registrosValidos?: number; registrosInvalidos?: number; importados?: Medicamento[] } | null = null;
+  lotesModalInstance: Modal | null = null;
+  medicamentoLotes: Medicamento | null = null;
+  lotes: LoteMedicamento[] = [];
+  guardandoLote = false;
+  formularioLote: LoteMedicamento = this.nuevoLote();
 
   medicamentoSelected: Medicamento | null = null;
   form!: FormGroup;
 
   constructor(
     private readonly medicamentoService: MedicamentoService,
+    private readonly authService: AuthService,
     private readonly formBuilder: FormBuilder
   ) {}
+
+  get puedeAdministrarInventario(): boolean {
+    return this.authService.role() === 'ADMINISTRADOR';
+  }
 
   ngOnInit(): void {
     this.inicializarFormulario();
@@ -115,6 +128,58 @@ export class MedicamentoComponent implements OnInit {
         mostrarError(error);
       }
     });
+  }
+
+  gestionarLotes(medicamento: Medicamento): void {
+    if (!medicamento.id) return;
+    this.medicamentoLotes = medicamento;
+    this.formularioLote = this.nuevoLote();
+    this.medicamentoService.listarLotes(medicamento.id).subscribe({
+      next: (lotes) => {
+        this.lotes = lotes;
+        const element = document.getElementById('modalLotesMedicamento');
+        if (element) {
+          this.lotesModalInstance ??= new Modal(element);
+          this.lotesModalInstance.show();
+        }
+      },
+      error: (error: HttpErrorResponse) => mostrarError(error)
+    });
+  }
+
+  guardarLote(): void {
+    const medicamento = this.medicamentoLotes;
+    if (!medicamento?.id || this.guardandoLote) return;
+    this.guardandoLote = true;
+    this.medicamentoService.registrarLote(medicamento.id, this.formularioLote).subscribe({
+      next: (respuesta) => {
+        this.guardandoLote = false;
+        this.formularioLote = this.nuevoLote();
+        mostrarExito(respuesta.message ?? 'Lote registrado correctamente');
+        this.listar();
+        this.gestionarLotes(medicamento);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.guardandoLote = false;
+        mostrarError(error);
+      }
+    });
+  }
+
+  private nuevoLote(): LoteMedicamento {
+    const hoy = new Date().toISOString().slice(0, 10);
+    return {
+      codigoLote: '',
+      cantidadDisponible: 1,
+      precioCompra: 0,
+      fechaCompra: hoy,
+      fechaIngreso: hoy,
+      fechaVencimiento: ''
+    };
+  }
+
+  loteVencido(fechaVencimiento: string): boolean {
+    return fechaVencimiento < new Date().toISOString().slice(0, 10);
   }
 
   actualizarBusqueda(event: Event) {
@@ -229,6 +294,7 @@ export class MedicamentoComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     this.archivoSeleccionado = input.files && input.files.length > 0 ? input.files[0] : null;
     this.erroresCarga = [];
+    this.resultadoVistaPrevia = null;
   }
 
   importarArchivo() {
@@ -241,19 +307,32 @@ export class MedicamentoComponent implements OnInit {
     formData.append('archivo', this.archivoSeleccionado);
     this.cargandoArchivo = true;
 
-    this.medicamentoService.importarMasivo(formData).subscribe({
+    this.medicamentoService.importarMasivo(formData, false).subscribe({
       next: (respuesta) => {
         this.cargandoArchivo = false;
         this.erroresCarga = respuesta.errores ?? [];
+        this.resultadoVistaPrevia = respuesta;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.cargandoArchivo = false;
+        mostrarError(error);
+      }
+    });
+  }
 
-        if ((respuesta.errores ?? []).length > 0) {
-          mostrarAdvertencia('Carga con errores', `Se detectaron ${respuesta.errores?.length ?? 0} errores. Revise la información del archivo.`);
-          return;
-        }
-
+  confirmarImportacion(): void {
+    if (!this.archivoSeleccionado || !this.resultadoVistaPrevia?.registrosValidos) return;
+    const formData = new FormData();
+    formData.append('archivo', this.archivoSeleccionado);
+    this.cargandoArchivo = true;
+    this.medicamentoService.importarMasivo(formData, true).subscribe({
+      next: (respuesta) => {
+        this.cargandoArchivo = false;
+        this.erroresCarga = respuesta.errores ?? [];
         this.archivoSeleccionado = null;
+        this.resultadoVistaPrevia = null;
         this.listar();
-        mostrarExito(`Se importaron ${respuesta.importados?.length ?? respuesta.registrosValidos ?? 0} medicamentos correctamente.`);
+        mostrarExito(`Se importaron ${respuesta.importados?.length ?? 0} medicamentos válidos.`);
       },
       error: (error: HttpErrorResponse) => {
         this.cargandoArchivo = false;

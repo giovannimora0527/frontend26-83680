@@ -67,7 +67,7 @@
             type="text" [value]="terminoBusqueda" (input)="actualizarBusqueda($event)" />
         </div>
         <div class="col-md-4 text-end">
-          <button class="btn btn-primary d-inline-flex align-items-center justify-content-center"
+          <button *ngIf="puedeFormular" class="btn btn-primary d-inline-flex align-items-center justify-content-center"
             (click)="nuevaFormula('C')" title="Generar nueva fórmula médica">
             <i class="fa fa-plus me-1" aria-hidden="true"></i> Nueva Fórmula Médica
           </button>
@@ -208,17 +208,22 @@
                   <i class="fa fa-eye"></i>
                 </button>
                 <button class="btn btn-sm btn-success ms-1"
-                  *ngIf="formula.activo && saldoPendiente(formula) > 0"
+                  *ngIf="puedeDespachar && formula.activo && saldoPendiente(formula) > 0 && formula.estado?.toUpperCase() === 'EN_PREPARACION'"
                   (click)="abrirModalDispensar(formula)"
                   title="Confirmar dispensación y descontar inventario">
                   <i class="fa fa-hand-holding-medical"></i>&nbsp;Dispensar
                 </button>
-                <button class="btn btn-sm btn-outline-info ms-1" (click)="abrirEdicion(formula)"
+                <button class="btn btn-sm btn-outline-warning ms-1"
+                  *ngIf="puedeDespachar && formula.activo && saldoPendiente(formula) > 0 && formula.estado?.toUpperCase() !== 'EN_PREPARACION'"
+                  (click)="prepararDespacho(formula)" title="Marcar la fórmula para preparación">
+                  <i class="fa fa-box-open"></i>&nbsp;Preparar
+                </button>
+                <button *ngIf="puedeFormular" class="btn btn-sm btn-outline-info ms-1" (click)="abrirEdicion(formula)"
                   [disabled]="!formula.activo || formula.estado === 'ENTREGADA'"
                   title="Editar prescripción">
                   <i class="fa fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger ms-1" (click)="inactivarFormula(formula)"
+                <button *ngIf="puedeFormular" class="btn btn-sm btn-outline-danger ms-1" (click)="inactivarFormula(formula)"
                   [disabled]="!formula.activo || (formula.cantidadEntregada ?? 0) > 0"
                   title="Inactivar fórmula (solo si no tiene entregas)">
                   <i class="fa fa-ban"></i>
@@ -447,7 +452,8 @@
       <div class="modal-body">
         <div class="p-2 rounded border bg-light small mb-3">
           <div><strong>Paciente:</strong> {{ fDisp.mascota?.nombreMascota }} (Propietario: {{ nombreCompleto(fDisp.mascota?.cliente) }})</div>
-          <div><strong>Medicamento:</strong> {{ fDisp.medicamento?.nombre }} ({{ fDisp.medicamento?.presentacion || 'Und' }} — Lote: {{ fDisp.medicamento?.lote || 'N/A' }})</div>
+          <div><strong>Medicamento:</strong> {{ fDisp.medicamento?.nombre }} ({{ fDisp.medicamento?.presentacion || 'Und' }})</div>
+          <div class="text-primary"><strong>Despacho:</strong> El sistema seleccionará automáticamente los lotes vigentes por fecha de vencimiento (FEFO).</div>
           <div><strong>Prescripción:</strong> {{ fDisp.dosis }} | {{ fDisp.frecuencia }} por {{ fDisp.duracionDias }} día(s)</div>
           <hr class="my-2" />
           <div class="row text-center">
@@ -480,12 +486,6 @@
               Stock tras dispensar:
               <strong>{{ (fDisp.medicamento?.cantidadDisponible ?? 0) - (fd['cantidad'].value || 0) }} unidad(es)</strong>
             </small>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Usuario responsable de la dispensación *</label>
-            <input type="text" class="form-control" formControlName="usuario"
-              placeholder="Nombre del veterinario o responsable de farmacia"
-              [class.is-invalid]="fd['usuario'].touched && fd['usuario'].invalid" />
           </div>
           <div class="mb-2">
             <label class="form-label fw-semibold">Observación de entrega</label>
@@ -597,6 +597,7 @@
                 <th>Fecha y Hora</th>
                 <th class="text-center">Tipo</th>
                 <th class="text-center">Cantidad Descontada</th>
+                <th>Lote FEFO</th>
                 <th>Usuario Responsable</th>
                 <th>Referencia / Motivo</th>
               </tr>
@@ -606,6 +607,7 @@
                 <td>{{ mov.fechaRegistro | date:'yyyy-MM-dd HH:mm' }}</td>
                 <td class="text-center"><span class="badge bg-danger">{{ mov.tipo }}</span></td>
                 <td class="text-center fw-bold">-{{ mov.cantidad }} und.</td>
+                <td>{{ mov.codigoLote || '—' }}</td>
                 <td>{{ mov.usuarioRegistro || 'DESPACHO' }}</td>
                 <td>{{ mov.motivo }} ({{ mov.referenciaTipo }} #{{ mov.referenciaId }})</td>
               </tr>

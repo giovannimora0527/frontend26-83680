@@ -9,6 +9,7 @@ export interface NavigationItem {
   classes?: string;
   exactMatch?: boolean;
   external?: boolean;
+  roles?: string[];
   target?: boolean;
   breadcrumbs?: boolean;
 
@@ -28,7 +29,26 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/usuarios',
         icon: 'feather icon-user',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA', 'VETERINARIO', 'DESPACHO_MEDICO']
+      },
+      {
+        id: 'clientes',
+        title: 'Gestión de Propietarios',
+        type: 'item',
+        url: '/inicio/clientes',
+        icon: 'feather icon-users',
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA']
+      },
+      {
+        id: 'mis-mascotas',
+        title: 'Mis Mascotas',
+        type: 'item',
+        url: '/inicio/mis-mascotas',
+        icon: 'feather icon-heart',
+        classes: 'nav-item',
+        roles: ['CLIENTE']
       },
       {
         id: 'mascotas',
@@ -36,7 +56,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/mascotas',
         icon: 'feather icon-heart',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA', 'VETERINARIO']
       },
       /* ---------- Nuevos menus aqui -------------  */ 
       {
@@ -45,7 +66,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/medicos',
         icon: 'feather icon-users',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA']
       },
       {
         id: 'medicamentos',
@@ -53,7 +75,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/medicamentos',
         icon: 'feather icon-package',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO', 'DESPACHO_MEDICO']
       },
       {
         id: 'citas',
@@ -61,7 +84,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/citas',
         icon: 'feather icon-calendar',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA', 'VETERINARIO']
       },
       {
         id: 'formulas-medicas',
@@ -69,7 +93,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/formulas-medicas',
         icon: 'feather icon-file-text',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO', 'DESPACHO_MEDICO']
       },
       {
         id: 'historias-medicas',
@@ -77,7 +102,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/historias-medicas',
         icon: 'feather icon-clipboard',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO']
       },
       {
         id: 'anotaciones-historia',
@@ -85,7 +111,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/anotaciones-historia',
         icon: 'feather icon-edit',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO']
       },
       {
         id: 'facturacion',
@@ -93,7 +120,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/facturacion',
         icon: 'feather icon-credit-card',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA']
       },
       {
         id: 'reportes',
@@ -101,7 +129,8 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         url: '/inicio/reportes',
         icon: 'feather icon-bar-chart-2',
-        classes: 'nav-item'
+        classes: 'nav-item',
+        roles: ['ADMINISTRADOR', 'ADMIN']
       },
     ]
   },  

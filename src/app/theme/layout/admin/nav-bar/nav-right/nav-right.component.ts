@@ -3,6 +3,8 @@ import { Component, inject } from '@angular/core';
 
 // bootstrap import
 import { NgbDropdownConfig } from '@ng-bootstrap/ng-bootstrap';
+import { Router } from '@angular/router';
+import { AuthService } from 'src/app/services/auth.service';
 
 // project import
 import { SharedModule } from 'src/app/theme/shared/shared.module';
@@ -15,12 +17,13 @@ import { SharedModule } from 'src/app/theme/shared/shared.module';
   providers: [NgbDropdownConfig]
 })
 export class NavRightComponent {
-  // public props
-
-  // constructor
-  constructor() {
+  constructor(private readonly router: Router, private readonly authService: AuthService) {
     const config = inject(NgbDropdownConfig);
-
     config.placement = 'bottom-right';
+  }
+
+  cerrarSesion(): void {
+    this.authService.logout();
+    void this.router.navigate(['/login']);
   }
 }

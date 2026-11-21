@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Medicamento } from 'src/app/models/medicamento';
 import { MiRespuesta } from 'src/app/models/mi-respuesta';
+import { LoteMedicamento } from 'src/app/models/lote-medicamento';
 import { BackendService } from 'src/app/services/backend.service';
 import { environment } from 'src/environments/environment';
 
@@ -10,6 +11,7 @@ import { environment } from 'src/environments/environment';
 })
 export class MedicamentoService {
   private api = 'medicamento';
+  private readonly cargaMasivaEndpoint = 'carga-masiva';
 
   constructor(private readonly backendService: BackendService) { }
 
@@ -25,7 +27,16 @@ export class MedicamentoService {
     return this.backendService.put<MiRespuesta>(environment.apiUrlAuth, this.api, 'actualizar', medicamento);
   }
 
-  importarMasivo(formData: FormData): Observable<{ registrosValidos?: number; registrosInvalidos?: number; errores?: Array<{ fila: number; mensaje: string }>; importados?: Medicamento[] }> {
-    return this.backendService.postFile<{ registrosValidos?: number; registrosInvalidos?: number; errores?: Array<{ fila: number; mensaje: string }>; importados?: Medicamento[] }>(environment.apiUrlAuth, this.api, 'carga-masiva', formData);
+  importarMasivo(formData: FormData, confirmar = false): Observable<{ totalRegistros?: number; registrosValidos?: number; registrosInvalidos?: number; errores?: Array<{ fila: number; mensaje: string }>; importados?: Medicamento[] }> {
+    const endpoint = confirmar ? `${this.cargaMasivaEndpoint}?confirmar=true` : this.cargaMasivaEndpoint;
+    return this.backendService.postFile<{ totalRegistros?: number; registrosValidos?: number; registrosInvalidos?: number; errores?: Array<{ fila: number; mensaje: string }>; importados?: Medicamento[] }>(environment.apiUrlAuth, this.api, endpoint, formData);
+  }
+
+  listarLotes(medicamentoId: number): Observable<LoteMedicamento[]> {
+    return this.backendService.get<LoteMedicamento[]>(environment.apiUrlAuth, this.api, `${medicamentoId}/lotes`);
+  }
+
+  registrarLote(medicamentoId: number, lote: LoteMedicamento): Observable<MiRespuesta> {
+    return this.backendService.post<MiRespuesta>(environment.apiUrlAuth, this.api, `${medicamentoId}/lotes`, lote);
   }
 }

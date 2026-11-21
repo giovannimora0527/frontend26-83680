@@ -11,8 +11,13 @@ import { HistoriaMedicaComponent } from './demo/pages/historia-medica/historia-m
 import { AnotacionHistoriaComponent } from './demo/pages/anotacion-historia/anotacion-historia.component';
 import { FacturaComponent } from './demo/pages/factura/factura.component';
 import { ReporteComponent } from './demo/pages/reporte/reporte.component';
+import { LoginComponent } from './demo/pages/login/login.component';
+import { roleGuard } from './guards/role.guard';
+import { ClienteComponent } from './demo/pages/cliente/cliente.component';
+import { MisMascotasComponent } from './demo/pages/mis-mascotas/mis-mascotas.component';
 
 export const routes: Routes = [
+  { path: 'login', component: LoginComponent, data: { title: 'Iniciar sesión' } },
   {
     path: '',
     redirectTo: 'inicio',
@@ -21,22 +26,25 @@ export const routes: Routes = [
   {
     path: 'inicio',
     component: AdminComponent,
+    canActivate: [roleGuard],
     data: { title: 'Inicio' },
     children: [      
-      { path: 'usuarios', component: UsuarioComponent, data: { title: 'Usuarios' }},
-      { path: 'mascotas', component: MascotaComponent, data: { title: 'Mascotas' }},
-      { path: 'medicos', component: MedicoComponent, data: { title: 'Medicos' }},
-      { path: 'medicamentos', component: MedicamentoComponent, data: { title: 'Medicamentos' }},
-      { path: 'citas', component: CitaComponent, data: { title: 'Citas' }},
-      { path: 'formulas-medicas', component: FormulaMedicaComponent, data: { title: 'Formulas Medicas' }},
-      { path: 'historias-medicas', component: HistoriaMedicaComponent, data: { title: 'Historias Medicas' }},
-      { path: 'anotaciones-historia', component: AnotacionHistoriaComponent, data: { title: 'Anotaciones de Historia' }},
-      { path: 'facturacion', component: FacturaComponent, data: { title: 'Facturacion y Pagos' }},
-      { path: 'reportes', component: ReporteComponent, data: { title: 'Reportes Administrativos y Contables' }}
+      { path: 'usuarios', component: UsuarioComponent, canActivate: [roleGuard], data: { title: 'Usuarios', roles: ['ADMINISTRADOR', 'ADMIN'] }},
+      { path: 'clientes', component: ClienteComponent, canActivate: [roleGuard], data: { title: 'Propietarios', roles: ['ADMINISTRADOR', 'SECRETARIA'] }},
+      { path: 'mis-mascotas', component: MisMascotasComponent, canActivate: [roleGuard], data: { title: 'Mis mascotas', roles: ['CLIENTE'] }},
+      { path: 'mascotas', component: MascotaComponent, canActivate: [roleGuard], data: { title: 'Mascotas', roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA', 'VETERINARIO'] }},
+      { path: 'medicos', component: MedicoComponent, canActivate: [roleGuard], data: { title: 'Medicos', roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA'] }},
+      { path: 'medicamentos', component: MedicamentoComponent, canActivate: [roleGuard], data: { title: 'Medicamentos', roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO', 'DESPACHO_MEDICO'] }},
+      { path: 'citas', component: CitaComponent, canActivate: [roleGuard], data: { title: 'Citas', roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA', 'VETERINARIO'] }},
+      { path: 'formulas-medicas', component: FormulaMedicaComponent, canActivate: [roleGuard], data: { title: 'Formulas Medicas', roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO', 'DESPACHO_MEDICO'] }},
+      { path: 'historias-medicas', component: HistoriaMedicaComponent, canActivate: [roleGuard], data: { title: 'Historias Medicas', roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO'] }},
+      { path: 'anotaciones-historia', component: AnotacionHistoriaComponent, canActivate: [roleGuard], data: { title: 'Anotaciones de Historia', roles: ['ADMINISTRADOR', 'ADMIN', 'VETERINARIO'] }},
+      { path: 'facturacion', component: FacturaComponent, canActivate: [roleGuard], data: { title: 'Facturacion y Pagos', roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA'] }},
+      { path: 'reportes', component: ReporteComponent, canActivate: [roleGuard], data: { title: 'Reportes Administrativos y Contables', roles: ['ADMINISTRADOR', 'ADMIN', 'SECRETARIA', 'VETERINARIO', 'DESPACHO_MEDICO'] }}
       /* Inserte nuevos menus aqui */    
     ]
   },
-  { path: '**', redirectTo: 'inicio' }
+  { path: '**', redirectTo: 'login' }
 ];
 
 @NgModule({
