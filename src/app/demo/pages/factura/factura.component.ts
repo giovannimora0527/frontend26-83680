@@ -173,7 +173,7 @@ export class FacturaComponent {
 
   verPdf(facturaId: number) {
     this.facturaService.pdf(facturaId).subscribe({
-      next: (pdf) => abrirPdf(pdf),
+      next: (pdf) => abrirPdf(pdf, `factura_${facturaId}.pdf`),
       error: () => Swal.fire('Error', 'No se pudo generar el PDF', 'error')
     });
   }

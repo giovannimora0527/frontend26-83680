@@ -142,7 +142,7 @@ export class AtencionComponent {
   /** Abre la prefactura en PDF. */
   prefactura() {
     this.atencionService.prefactura(this.citaId).subscribe({
-      next: (pdf) => abrirPdf(pdf),
+      next: (pdf) => abrirPdf(pdf, `prefactura_cita_${this.citaId}.pdf`),
       error: () => Swal.fire('Error', 'No se pudo generar la prefactura', 'error')
     });
   }
@@ -150,7 +150,7 @@ export class AtencionComponent {
   /** Abre la formula en PDF. */
   formulaPdf(formulaId: number) {
     this.atencionService.formulaPdf(formulaId).subscribe({
-      next: (pdf) => abrirPdf(pdf),
+      next: (pdf) => abrirPdf(pdf, `formula_${formulaId}.pdf`),
       error: () => Swal.fire('Error', 'No se pudo generar la fórmula', 'error')
     });
   }

@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import Swal from 'sweetalert2';
 
 /**
  * Funciones de ayuda que se reutilizan en varias pantallas.
@@ -101,19 +102,31 @@ export function guardarArchivo(archivo: Blob, nombre: string) {
 }
 
 /**
- * Abre un PDF descargado en una pestaña nueva (para verlo o imprimirlo).
+ * Muestra un PDF dentro de la pagina (visor del navegador) con opcion de descargarlo.
+ * No usa ventanas emergentes, porque el navegador las bloquea cuando se abren
+ * despues de esperar la respuesta del servidor.
  * @param archivo contenido del PDF.
+ * @param nombre nombre del archivo al descargar.
  */
-export function abrirPdf(archivo: Blob) {
+export function abrirPdf(archivo: Blob, nombre = 'documento.pdf') {
   const url = URL.createObjectURL(new Blob([archivo], { type: 'application/pdf' }));
-  // Si el navegador bloquea la ventana emergente, se descarga el archivo
-  if (!window.open(url, '_blank')) {
-    const enlace = document.createElement('a');
-    enlace.href = url;
-    enlace.download = 'documento.pdf';
-    enlace.click();
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  Swal.fire({
+    html: `<iframe src="${url}" title="Documento PDF" style="width:100%;height:75vh;border:0"></iframe>`,
+    width: '85%',
+    padding: '0.5rem',
+    showCloseButton: true,
+    confirmButtonText: 'Descargar',
+    showCancelButton: true,
+    cancelButtonText: 'Cerrar'
+  }).then((r) => {
+    if (r.isConfirmed) {
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = nombre;
+      enlace.click();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
 }
 
 /**

@@ -197,7 +197,7 @@ export class DespachoComponent {
 
   comprobante(despachoId: number) {
     this.despachoService.comprobante(despachoId).subscribe({
-      next: (pdf) => abrirPdf(pdf),
+      next: (pdf) => abrirPdf(pdf, `comprobante_despacho_${despachoId}.pdf`),
       error: () => Swal.fire('Error', 'No se pudo generar el comprobante', 'error')
     });
   }

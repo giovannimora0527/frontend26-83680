@@ -110,7 +110,7 @@ export class FormulaComponent {
 
   pdf(f: FormulaMedica) {
     this.formulaService.pdf(f.id!).subscribe({
-      next: (b) => abrirPdf(b),
+      next: (b) => abrirPdf(b, `formula_${f.id}.pdf`),
       error: () => Swal.fire('Error', 'No se pudo generar el PDF', 'error')
     });
   }
