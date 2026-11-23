@@ -38,9 +38,9 @@ export class ReporteComponent {
     return this.tipos.filter((t) => t.categoria === categoria);
   }
 
-  /** Solo los reportes de ventas e ingresos se agrupan por periodo. */
+  /** Solo el reporte de ingresos por periodo se agrupa por dia, mes o año. */
   get usaAgrupacion(): boolean {
-    return ['VENTAS_PERIODO', 'INGRESOS_PERIODO'].includes(this.filtro.tipo);
+    return this.filtro.tipo === 'ingresos-periodo';
   }
 
   private valido(): boolean {
