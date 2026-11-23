@@ -59,6 +59,10 @@
                                     ngbTooltip="Ver detalle" container="body" aria-label="Ver">
                                     <i class="feather icon-eye"></i>
                                 </button>
+                                <button class="btn-icono" type="button" (click)="verHorarios(medico)"
+                                    ngbTooltip="Horarios de atención" container="body" aria-label="Horarios">
+                                    <i class="feather icon-clock"></i>
+                                </button>
                                 <button class="btn-icono" type="button" (click)="abrirEdicion(medico)"
                                     ngbTooltip="Editar" container="body" aria-label="Editar">
                                     <i class="feather icon-edit-2"></i>
@@ -169,6 +173,40 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal horarios de disponibilidad -->
+<div class="modal fade" id="modalHorarios" tabindex="-1" aria-labelledby="modalHorariosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalHorariosLabel">Horarios · {{ medicoHorario?.nombres }} {{ medicoHorario?.apellidos }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Solo se pueden agendar citas dentro de estos horarios.</p>
+                <div class="row g-2 small text-muted mb-1" *ngIf="horarios.length">
+                    <div class="col-4">Día</div><div class="col-3">Desde</div><div class="col-3">Hasta</div>
+                </div>
+                <div class="row g-2 align-items-center mb-2" *ngFor="let h of horarios; let i = index">
+                    <div class="col-4">
+                        <select class="form-select form-select-sm" [(ngModel)]="h.diaSemana" [attr.aria-label]="'Día ' + i">
+                            <option *ngFor="let d of dias; let n = index" [ngValue]="n" [hidden]="n === 0">{{ d }}</option>
+                        </select>
+                    </div>
+                    <div class="col-3"><input type="time" class="form-control form-control-sm" [(ngModel)]="h.horaInicio" aria-label="Desde"></div>
+                    <div class="col-3"><input type="time" class="form-control form-control-sm" [(ngModel)]="h.horaFin" aria-label="Hasta"></div>
+                    <div class="col-2"><button class="btn-icono peligro" type="button" (click)="quitarHorario(i)" aria-label="Quitar"><i class="feather icon-x"></i></button></div>
+                </div>
+                <div *ngIf="!horarios.length" class="vet-vacio">Sin horarios: el médico no podrá recibir citas.</div>
+                <button class="vet-link px-0" type="button" (click)="agregarHorario()"><i class="feather icon-plus"></i> Agregar franja</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn-vet" (click)="guardarHorarios()">Guardar horarios</button>
+            </div>
         </div>
     </div>
 </div>

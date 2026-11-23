@@ -1,0 +1,59 @@
+<div class="container-fluid">
+    <div class="vet-card">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-4">
+                <label class="form-label" for="rTipo">Reporte</label>
+                <select id="rTipo" class="form-select" [(ngModel)]="filtro.tipo" (ngModelChange)="reporte = null">
+                    <optgroup *ngFor="let c of categorias" [label]="c">
+                        <option *ngFor="let t of tiposDe(c)" [value]="t.codigo">{{ t.nombre }}</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="col-6 col-lg-2">
+                <label class="form-label" for="rDesde">Desde</label>
+                <input id="rDesde" type="date" class="form-control" [(ngModel)]="filtro.desde">
+            </div>
+            <div class="col-6 col-lg-2">
+                <label class="form-label" for="rHasta">Hasta</label>
+                <input id="rHasta" type="date" class="form-control" [(ngModel)]="filtro.hasta">
+            </div>
+            <div class="col-6 col-lg-2" *ngIf="usaAgrupacion">
+                <label class="form-label" for="rAgr">Agrupar por</label>
+                <select id="rAgr" class="form-select" [(ngModel)]="filtro.agrupacion">
+                    <option value="DIA">Día</option><option value="MES">Mes</option><option value="ANIO">Año</option>
+                </select>
+            </div>
+            <div class="col-6 col-lg-2">
+                <label class="form-label" for="rFiltro">Filtro (texto)</label>
+                <input id="rFiltro" class="form-control" placeholder="Médico, producto..." [(ngModel)]="filtro.filtro">
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <button class="btn-vet" type="button" (click)="consultar()" [disabled]="cargando">
+                <span *ngIf="cargando" class="spinner-border spinner-border-sm"></span>
+                <i class="feather icon-eye" *ngIf="!cargando"></i> Vista previa</button>
+            <button class="btn btn-outline-success" type="button" (click)="excel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+            <button class="btn btn-outline-danger" type="button" (click)="pdf()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        </div>
+    </div>
+
+    <div class="vet-card" *ngIf="reporte">
+        <h2 class="h5 mb-0">{{ reporte.titulo }}</h2>
+        <p class="small text-muted">{{ reporte.subtitulo }}</p>
+        <div class="table-responsive" style="max-height: 520px;">
+            <table class="vet-table">
+                <thead><tr><th *ngFor="let c of reporte.columnas">{{ c }}</th></tr></thead>
+                <tbody>
+                    <tr *ngIf="!reporte.filas.length"><td [attr.colspan]="reporte.columnas.length" class="vet-vacio">Sin datos para los filtros seleccionados</td></tr>
+                    <tr *ngFor="let f of reporte.filas">
+                        <td *ngFor="let v of f" [class.text-end]="esNumero(v)">{{ esNumero(v) ? (v | number:'1.0-2') : v }}</td>
+                    </tr>
+                    <tr *ngIf="reporte.totales?.length" class="fw-bold">
+                        <td *ngFor="let v of reporte.totales" [class.text-end]="esNumero(v)">{{ esNumero(v) ? (v | number:'1.0-2') : v }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="small text-muted mt-2">{{ reporte.filas.length }} fila(s)</div>
+    </div>
+</div>

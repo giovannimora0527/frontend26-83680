@@ -1,0 +1,151 @@
+<div class="container-fluid">
+    <ul class="nav nav-pills vet-tabs mb-3">
+        <li class="nav-item"><button class="nav-link" [class.active]="pestana === 'tarifas'" (click)="pestana = 'tarifas'">
+            <i class="feather icon-dollar-sign"></i> Tarifas y servicios</button></li>
+        <li class="nav-item"><button class="nav-link" [class.active]="pestana === 'especialidades'" (click)="pestana = 'especialidades'">
+            <i class="fa-solid fa-user-graduate"></i> Especialidades</button></li>
+    </ul>
+
+    <div class="vet-card">
+        <div class="vet-toolbar">
+            <div class="vet-search">
+                <i class="feather icon-search"></i>
+                <input class="form-control" placeholder="Buscar por código o nombre" [(ngModel)]="buscar" aria-label="Buscar">
+            </div>
+            <button *ngIf="pestana === 'tarifas'" class="btn-vet" type="button" (click)="nuevaTarifa()"><i class="feather icon-plus"></i> Nueva tarifa</button>
+            <button *ngIf="pestana === 'especialidades'" class="btn-vet" type="button" (click)="nuevaEspecialidad()"><i class="feather icon-plus"></i> Nueva especialidad</button>
+        </div>
+
+        <ng-container *ngIf="pestana === 'tarifas'">
+            <div class="vet-filtros">
+                <select class="form-select" [(ngModel)]="filtroTipo" aria-label="Tipo">
+                    <option value="">Todos los tipos</option><option value="CONSULTA">Consultas</option>
+                    <option value="PROCEDIMIENTO">Procedimientos</option><option value="SERVICIO">Servicios</option>
+                </select>
+                <span class="small text-muted ms-auto">Los cambios de valor no afectan facturas ya generadas.</span>
+            </div>
+            <div class="table-responsive">
+                <table class="vet-table">
+                    <thead><tr><th>Código</th><th>Servicio</th><th>Tipo</th><th>Especialidad</th><th>Valor</th><th>IVA</th><th>Total</th><th>Estado</th><th class="text-center">Acciones</th></tr></thead>
+                    <tbody>
+                        <tr *ngFor="let t of tarifasFiltradas" [style.opacity]="t.activo ? 1 : 0.5">
+                            <td class="font-monospace">{{ t.codigo }}</td><td class="fw-semibold">{{ t.nombre }}</td>
+                            <td><span class="estado-pill estado-confirmada">{{ t.tipo | lowercase }}</span></td>
+                            <td>{{ t.especializacion?.nombre || 'General' }}</td>
+                            <td>{{ pesos(t.valor) }}</td><td>{{ t.ivaPorcentaje }}%</td><td class="fw-semibold">{{ pesos(total(t)) }}</td>
+                            <td><span class="estado-pill" [ngClass]="t.activo ? 'estado-activa' : 'estado-inactiva'">{{ t.activo ? 'activa' : 'inactiva' }}</span></td>
+                            <td class="text-center text-nowrap">
+                                <button class="btn-icono" type="button" (click)="verLog(t)" ngbTooltip="Historial de cambios" container="body" aria-label="Log"><i class="feather icon-clock"></i></button>
+                                <button class="btn-icono" type="button" (click)="editarTarifa(t)" ngbTooltip="Editar" container="body" aria-label="Editar"><i class="feather icon-edit-2"></i></button>
+                                <button class="btn-icono" [class.peligro]="t.activo" type="button" (click)="estadoTarifa(t)" [ngbTooltip]="t.activo ? 'Inactivar' : 'Activar'" container="body" aria-label="Estado">
+                                    <i class="feather" [ngClass]="t.activo ? 'icon-toggle-right' : 'icon-toggle-left'"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </ng-container>
+
+        <ng-container *ngIf="pestana === 'especialidades'">
+            <table class="vet-table">
+                <thead><tr><th>Código</th><th>Especialidad</th><th>Descripción</th><th>Estado</th><th class="text-center">Acciones</th></tr></thead>
+                <tbody>
+                    <tr *ngFor="let e of especialidadesFiltradas" [style.opacity]="e.activo ? 1 : 0.5">
+                        <td class="font-monospace">{{ e.codigoEspecializacion }}</td><td class="fw-semibold">{{ e.nombre }}</td>
+                        <td class="small text-truncate" style="max-width: 380px;">{{ e.descripcion || '-' }}</td>
+                        <td><span class="estado-pill" [ngClass]="e.activo ? 'estado-activa' : 'estado-inactiva'">{{ e.activo ? 'activa' : 'inactiva' }}</span></td>
+                        <td class="text-center text-nowrap">
+                            <button class="btn-icono" type="button" (click)="editarEspecialidad(e)" aria-label="Editar"><i class="feather icon-edit-2"></i></button>
+                            <button class="btn-icono" [class.peligro]="e.activo" type="button" (click)="estadoEspecialidad(e)" aria-label="Estado">
+                                <i class="feather" [ngClass]="e.activo ? 'icon-toggle-right' : 'icon-toggle-left'"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </ng-container>
+    </div>
+</div>
+
+<!-- Modal tarifa -->
+<div class="modal fade" id="modalTarifa" tabindex="-1" aria-labelledby="modalTarifaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalTarifaLabel">{{ tarifaEditando ? 'Editar tarifa' : 'Nueva tarifa' }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form [formGroup]="formTarifa" (ngSubmit)="guardarTarifa()">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-5"><label class="form-label">Código *</label><input class="form-control text-uppercase" formControlName="codigo"></div>
+                        <div class="col-7"><label class="form-label">Tipo *</label>
+                            <select class="form-select" formControlName="tipo"><option value="CONSULTA">Consulta</option><option value="PROCEDIMIENTO">Procedimiento</option><option value="SERVICIO">Servicio</option></select></div>
+                        <div class="col-12"><label class="form-label">Nombre del servicio *</label><input class="form-control" formControlName="nombre"></div>
+                        <div class="col-12"><label class="form-label">Especialidad</label>
+                            <select class="form-select" formControlName="especializacionId">
+                                <option [ngValue]="null">General (todas)</option>
+                                <option *ngFor="let e of especialidades" [ngValue]="e.id">{{ e.nombre }}</option>
+                            </select></div>
+                        <div class="col-6"><label class="form-label">Valor (sin IVA) *</label><input type="number" min="1" class="form-control" formControlName="valor"></div>
+                        <div class="col-6"><label class="form-label">IVA % *</label><input type="number" min="0" max="100" class="form-control" formControlName="ivaPorcentaje"></div>
+                    </div>
+                    <div class="text-danger small mt-2" *ngIf="formTarifa.touched && formTarifa.invalid">Revise los campos obligatorios.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn-vet" [disabled]="enviando">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal especialidad -->
+<div class="modal fade" id="modalEspecialidad" tabindex="-1" aria-labelledby="modalEspecialidadLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalEspecialidadLabel">{{ especialidadEditando ? 'Editar especialidad' : 'Nueva especialidad' }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form [formGroup]="formEspecialidad" (ngSubmit)="guardarEspecialidad()">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-4"><label class="form-label">Código *</label><input class="form-control text-uppercase" formControlName="codigoEspecializacion"></div>
+                        <div class="col-8"><label class="form-label">Nombre *</label><input class="form-control" formControlName="nombre"></div>
+                        <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" rows="2" formControlName="descripcion"></textarea></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn-vet" [disabled]="enviando">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal log de tarifa -->
+<div class="modal fade" id="modalLogTarifa" tabindex="-1" aria-labelledby="modalLogTarifaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalLogTarifaLabel">Historial de cambios · {{ tarifaLog?.nombre }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <table class="vet-table">
+                    <thead><tr><th>Fecha</th><th>Acción</th><th>Valor anterior</th><th>Valor nuevo</th><th>IVA anterior</th><th>IVA nuevo</th><th>Usuario</th></tr></thead>
+                    <tbody>
+                        <tr *ngIf="!logs.length"><td colspan="7" class="vet-vacio">Sin cambios registrados</td></tr>
+                        <tr *ngFor="let l of logs">
+                            <td>{{ l.fecha | date:'dd MMM yyyy HH:mm' }}</td><td>{{ l.accion | lowercase }}</td>
+                            <td>{{ l.valorAnterior != null ? pesos(l.valorAnterior) : '-' }}</td><td>{{ l.valorNuevo != null ? pesos(l.valorNuevo) : '-' }}</td>
+                            <td>{{ l.ivaAnterior ?? '-' }}{{ l.ivaAnterior != null ? '%' : '' }}</td><td>{{ l.ivaNuevo ?? '-' }}{{ l.ivaNuevo != null ? '%' : '' }}</td><td>{{ l.usuario }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -12,6 +12,14 @@ export class Cita {
     medicoNombre?: string;
     /** Fecha y hora en formato ISO: 2026-10-20T08:30:00 */
     fechaHora?: string;
+    /** Fecha y hora de fin. */
+    fechaHoraFin?: string;
     estado?: string;
     motivo?: string;
+    mascotaEspecie?: string;
+    mascotaRaza?: string;
+    mascotaEdad?: number;
+    clienteTelefono?: string;
+    clienteDocumento?: string;
+    atendidaConHistoria?: boolean;
 }

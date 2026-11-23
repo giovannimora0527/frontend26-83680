@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { HttpParams } from '@angular/common/http';
+import { Horario } from 'src/app/models/clinica';
 import { Observable } from 'rxjs';
 import { Medico, MedicoRq } from 'src/app/models/medico';
 import { Especializacion } from 'src/app/models/especializacion';
@@ -51,5 +53,24 @@ export class MedicoService {
    */
   listarEspecializaciones(): Observable<Especializacion[]> {
     return this.backendService.get(environment.apiUrlAuth, 'especializacion', 'listar');
+  }
+
+  /**
+   * Horarios de disponibilidad de un medico.
+   * @param medicoId id del medico.
+   * @returns horarios.
+   */
+  listarHorarios(medicoId: number): Observable<Horario[]> {
+    return this.backendService.get(environment.apiUrlAuth, this.api, 'horarios', new HttpParams().set('medicoId', medicoId));
+  }
+
+  /**
+   * Reemplaza los horarios de un medico (PUT).
+   * @param medicoId id del medico.
+   * @param horarios horarios nuevos.
+   * @returns respuesta del backend.
+   */
+  guardarHorarios(medicoId: number, horarios: Horario[]): Observable<MiRespuesta> {
+    return this.backendService.put(environment.apiUrlAuth, this.api, 'horarios', horarios, new HttpParams().set('medicoId', medicoId));
   }
 }

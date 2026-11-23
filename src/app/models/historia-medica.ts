@@ -15,6 +15,10 @@ export class HistoriaMedica {
     motivo?: string;
     diagnostico?: string;
     observaciones?: string;
+    sintomas?: string;
+    recomendaciones?: string;
+    /** Servicio prestado. */
+    servicio?: string;
     /** Estado de la cita asociada. */
     estado?: string;
 }

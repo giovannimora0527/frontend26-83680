@@ -9,6 +9,7 @@ import { Modal } from 'bootstrap';
 import { Medico, MedicoRq } from 'src/app/models/medico';
 import { Especializacion } from 'src/app/models/especializacion';
 import { MedicoService } from './service/medico.service';
+import { Horario } from 'src/app/models/clinica';
 import { PaginacionComponent } from 'src/app/shared/paginacion/paginacion.component';
 import { compararValores, normalizarTexto, obtenerMensajeError } from 'src/app/utils/utilidades';
 
@@ -279,5 +280,48 @@ export class MedicoComponent {
       this.modalFormulario ??= new Modal(modalElement);
       this.modalFormulario.show();
     }
+  }
+
+  // ------------------------------------------------------------------ horarios de disponibilidad
+
+  readonly dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  medicoHorario: Medico | null = null;
+  horarios: Horario[] = [];
+  modalHorarios: Modal | null = null;
+
+  /** Abre el modal con los horarios del medico. */
+  verHorarios(medico: Medico) {
+    this.medicoHorario = medico;
+    this.medicoService.listarHorarios(medico.id).subscribe({
+      next: (h) => {
+        this.horarios = h.map((x) => ({ ...x, horaInicio: x.horaInicio.substring(0, 5), horaFin: x.horaFin.substring(0, 5) }));
+        const el = document.getElementById('modalHorarios');
+        if (el) {
+          this.modalHorarios ??= new Modal(el);
+          this.modalHorarios.show();
+        }
+      },
+      error: (e: HttpErrorResponse) => Swal.fire('Error', obtenerMensajeError(e), 'error')
+    });
+  }
+
+  agregarHorario() {
+    this.horarios.push({ diaSemana: 1, horaInicio: '08:00', horaFin: '17:00' });
+  }
+
+  quitarHorario(i: number) {
+    this.horarios.splice(i, 1);
+  }
+
+  guardarHorarios() {
+    if (this.horarios.some((h) => !h.horaInicio || !h.horaFin || h.horaInicio >= h.horaFin)) {
+      Swal.fire('Horario no válido', 'La hora de inicio debe ser menor que la de fin', 'warning');
+      return;
+    }
+    const datos = this.horarios.map((h) => ({ diaSemana: Number(h.diaSemana), horaInicio: h.horaInicio + ':00', horaFin: h.horaFin + ':00' }));
+    this.medicoService.guardarHorarios(this.medicoHorario!.id, datos).subscribe({
+      next: (r) => { this.modalHorarios?.hide(); Swal.fire('Listo', r.message, 'success'); },
+      error: (e: HttpErrorResponse) => Swal.fire('No se pudo guardar', obtenerMensajeError(e), 'error')
+    });
   }
 }

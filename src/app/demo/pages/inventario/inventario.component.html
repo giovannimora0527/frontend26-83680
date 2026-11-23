@@ -1,0 +1,335 @@
+<div class="container-fluid">
+    <!-- Pestañas -->
+    <ul class="nav nav-pills vet-tabs mb-3">
+        <li class="nav-item"><button class="nav-link" [class.active]="pestana === 'inventario'" (click)="pestana = 'inventario'">
+            <i class="feather icon-package"></i> Inventario</button></li>
+        <li class="nav-item" *ngIf="puedeEditar"><button class="nav-link" [class.active]="pestana === 'carga'" (click)="pestana = 'carga'">
+            <i class="feather icon-upload"></i> Carga masiva</button></li>
+        <li class="nav-item"><button class="nav-link" [class.active]="pestana === 'logs'" (click)="verLogs()">
+            <i class="feather icon-list"></i> Log de cargas</button></li>
+    </ul>
+
+    <!-- ============ INVENTARIO ============ -->
+    <ng-container *ngIf="pestana === 'inventario'">
+        <div class="resumen-grid mb-3">
+            <button class="resumen-item" [class.activo]="filtroAlerta === ''" (click)="filtrarAlerta('')">
+                <span>Productos</span><strong>{{ resumen.total }}</strong></button>
+            <button class="resumen-item rojo" [class.activo]="filtroAlerta === 'AGOTADO'" (click)="filtrarAlerta('AGOTADO')">
+                <span>Agotados</span><strong>{{ resumen.agotados }}</strong></button>
+            <button class="resumen-item ambar" [class.activo]="filtroAlerta === 'STOCK_BAJO'" (click)="filtrarAlerta('STOCK_BAJO')">
+                <span>Stock bajo</span><strong>{{ resumen.bajos }}</strong></button>
+            <button class="resumen-item azul" [class.activo]="filtroAlerta === 'POR_VENCER'" (click)="filtrarAlerta('POR_VENCER')">
+                <span>Próximos a vencer</span><strong>{{ resumen.porVencer }}</strong></button>
+            <button class="resumen-item rojo" [class.activo]="filtroAlerta === 'VENCIDO'" (click)="filtrarAlerta('VENCIDO')">
+                <span>Con lotes vencidos</span><strong>{{ resumen.vencidos }}</strong></button>
+        </div>
+
+        <div class="vet-card">
+            <div class="vet-toolbar">
+                <div class="vet-search">
+                    <i class="feather icon-search"></i>
+                    <input class="form-control" placeholder="Buscar por código, nombre, presentación o Invima" [(ngModel)]="buscar"
+                        (ngModelChange)="pagina = 1" aria-label="Buscar producto">
+                </div>
+                <button *ngIf="puedeEditar" class="btn-vet" type="button" (click)="nuevoProducto()">
+                    <i class="feather icon-plus"></i> Nuevo producto</button>
+            </div>
+            <div class="vet-filtros">
+                <select class="form-select" [(ngModel)]="filtroTipo" (ngModelChange)="pagina = 1" aria-label="Tipo">
+                    <option value="">Medicamentos y utensilios</option>
+                    <option value="MEDICAMENTO">Solo medicamentos</option>
+                    <option value="UTENSILIO">Solo utensilios</option>
+                </select>
+                <span class="small text-muted ms-auto" *ngIf="!puedeEditar">Modo consulta: su perfil no puede modificar el inventario.</span>
+            </div>
+            <div class="table-responsive">
+                <table class="vet-table">
+                    <thead>
+                        <tr>
+                            <th><button class="orden" (click)="ordenar('codigo')">Código<i class="fa" [ngClass]="icono('codigo')"></i></button></th>
+                            <th><button class="orden" (click)="ordenar('nombre')">Producto<i class="fa" [ngClass]="icono('nombre')"></i></button></th>
+                            <th><button class="orden" (click)="ordenar('tipo')">Tipo<i class="fa" [ngClass]="icono('tipo')"></i></button></th>
+                            <th><button class="orden" (click)="ordenar('stock')">Disponible<i class="fa" [ngClass]="icono('stock')"></i></button></th>
+                            <th><button class="orden" (click)="ordenar('compra')">P. compra<i class="fa" [ngClass]="icono('compra')"></i></button></th>
+                            <th><button class="orden" (click)="ordenar('venta')">P. venta<i class="fa" [ngClass]="icono('venta')"></i></button></th>
+                            <th><button class="orden" (click)="ordenar('vence')">Vence<i class="fa" [ngClass]="icono('vence')"></i></button></th>
+                            <th>Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngIf="cargando"><td colspan="9" class="vet-vacio"><div class="spinner-border spinner-border-sm text-success"></div> Cargando...</td></tr>
+                        <tr *ngIf="!cargando && !filtrados.length"><td colspan="9" class="vet-vacio">No hay productos con esos filtros</td></tr>
+                        <tr *ngFor="let p of paginados" [style.opacity]="p.activo === false ? 0.5 : 1">
+                            <td class="font-monospace">{{ p.codigo }}</td>
+                            <td>
+                                <span class="fw-semibold">{{ p.nombre }}</span>
+                                <span class="vet-sub">{{ p.presentacion || '' }}{{ p.registroInvima ? ' · ' + p.registroInvima : '' }}</span>
+                            </td>
+                            <td><span class="estado-pill" [ngClass]="p.tipo === 'MEDICAMENTO' ? 'estado-confirmada' : 'estado-pendiente'">{{ p.tipo | lowercase }}</span></td>
+                            <td>
+                                <b>{{ p.stockDisponible }}</b>
+                                <span class="vet-sub">mín. {{ p.stockMinimo }}{{ p.stockTotal !== p.stockDisponible ? ' · ' + ((p.stockTotal || 0) - (p.stockDisponible || 0)) + ' vencidas' : '' }}</span>
+                            </td>
+                            <td>{{ p.precioCompra != null ? pesos(p.precioCompra) : '-' }}</td>
+                            <td>{{ pesos(p.precioVenta) }}<span class="vet-sub" *ngIf="p.ivaPorcentaje > 0">+ IVA {{ p.ivaPorcentaje }}%</span></td>
+                            <td>{{ p.proximoVencimiento ? (p.proximoVencimiento | date:'dd MMM yyyy') : '-' }}</td>
+                            <td>
+                                <span *ngIf="!p.alertas?.length" class="estado-pill estado-activa">ok</span>
+                                <span *ngFor="let a of p.alertas" class="estado-pill me-1" [ngClass]="claseAlerta[a]">{{ nombresAlerta[a] }}</span>
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <button class="btn-icono" type="button" (click)="verDetalle(p)" ngbTooltip="Lotes y movimientos" container="body" aria-label="Ver">
+                                    <i class="feather icon-eye"></i></button>
+                                <ng-container *ngIf="puedeEditar">
+                                    <button class="btn-icono" type="button" (click)="nuevoLote(p)" ngbTooltip="Ingresar lote" container="body" aria-label="Ingresar lote">
+                                        <i class="feather icon-plus-square"></i></button>
+                                    <button class="btn-icono" type="button" (click)="editarProducto(p)" ngbTooltip="Editar" container="body" aria-label="Editar">
+                                        <i class="feather icon-edit-2"></i></button>
+                                </ng-container>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="vet-pie">
+                <span>{{ filtrados.length }} producto(s)</span>
+                <app-paginacion [paginaActual]="pagina" [totalPaginas]="totalPaginas" (cambiarPagina)="pagina = $event"></app-paginacion>
+            </div>
+        </div>
+    </ng-container>
+
+    <!-- ============ CARGA MASIVA ============ -->
+    <div class="vet-card" *ngIf="pestana === 'carga'">
+        <h2 class="h5">Carga masiva de medicamentos y productos</h2>
+        <p class="small text-muted">
+            Suba un archivo .csv o .xlsx con los encabezados de la plantilla. Primero verá una vista previa con los errores por fila;
+            solo se importan las filas válidas y cada fila se guarda por separado (un error no afecta a las demás).
+            Si el código ya existe, la fila agrega un lote nuevo a ese producto.
+        </p>
+        <div class="vet-filtros">
+            <button class="vet-link px-0" type="button" (click)="descargarPlantilla()"><i class="feather icon-download"></i> Descargar plantilla CSV</button>
+        </div>
+        <div class="vet-toolbar">
+            <input type="file" class="form-control" accept=".csv,.xlsx" (change)="elegirArchivo($event)" aria-label="Archivo" style="max-width: 420px;">
+            <button class="btn btn-outline-light" type="button" (click)="previsualizar()" [disabled]="procesando || !archivo">
+                <i class="feather icon-eye"></i> Vista previa</button>
+            <button class="btn-vet" type="button" (click)="confirmarCarga()"
+                [disabled]="procesando || !vistaPrevia || !vistaPrevia.filasValidas || !!resultadoCarga">
+                <span *ngIf="procesando" class="spinner-border spinner-border-sm"></span>
+                <i class="feather icon-upload" *ngIf="!procesando"></i> Confirmar importación</button>
+        </div>
+
+        <ng-container *ngIf="vistaPrevia">
+            <div class="resumen-grid mb-3">
+                <div class="resumen-item"><span>Archivo</span><strong class="fs-6">{{ vistaPrevia.nombreArchivo }}</strong></div>
+                <div class="resumen-item"><span>Filas leídas</span><strong>{{ vistaPrevia.totalFilas }}</strong></div>
+                <div class="resumen-item verde"><span>{{ resultadoCarga ? 'Importadas' : 'Válidas' }}</span><strong>{{ resultadoCarga ? resultadoCarga.filasImportadas : vistaPrevia.filasValidas }}</strong></div>
+                <div class="resumen-item rojo"><span>Con errores</span><strong>{{ vistaPrevia.filasError }}</strong></div>
+            </div>
+            <div class="alert alert-success py-2 small" *ngIf="resultadoCarga">
+                Carga registrada en el log #{{ resultadoCarga.logId }} con su fecha y usuario.
+            </div>
+            <div class="vet-filtros">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="soloErr" [(ngModel)]="soloErrores">
+                    <label class="form-check-label small" for="soloErr">Ver solo filas con errores</label>
+                </div>
+                <button class="vet-link ms-auto" type="button" (click)="descargarErrores()" *ngIf="vistaPrevia.filasError">
+                    <i class="feather icon-file-text"></i> Descargar informe de errores</button>
+            </div>
+            <div class="table-responsive tabla-alta">
+                <table class="vet-table">
+                    <thead><tr><th>Fila</th><th>Código</th><th>Nombre</th><th>Tipo</th><th>Lote</th><th>Cant.</th><th>P. compra</th><th>P. venta</th><th>Vence</th><th>Resultado</th></tr></thead>
+                    <tbody>
+                        <tr *ngFor="let f of filasVista" [class.fila-error]="!f.valida">
+                            <td>{{ f.fila }}</td><td class="font-monospace">{{ f.codigo }}</td><td>{{ f.nombre }}</td><td>{{ f.tipo }}</td>
+                            <td>{{ f.numeroLote }}</td><td>{{ f.cantidad }}</td><td>{{ f.precioCompra }}</td><td>{{ f.precioVenta }}</td><td>{{ f.fechaVence || '-' }}</td>
+                            <td>
+                                <span *ngIf="f.valida" class="estado-pill estado-activa">{{ f.productoNuevo ? 'nuevo producto' : 'nuevo lote' }}</span>
+                                <span *ngIf="!f.valida" class="text-danger small">{{ f.errores.join('; ') }}</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </ng-container>
+    </div>
+
+    <!-- ============ LOG DE CARGAS ============ -->
+    <div class="vet-card" *ngIf="pestana === 'logs'">
+        <h2 class="h5">Log de cargas masivas</h2>
+        <table class="vet-table">
+            <thead><tr><th>#</th><th>Fecha</th><th>Archivo</th><th>Filas</th><th>Importadas</th><th>Rechazadas</th><th>Detalle de errores</th></tr></thead>
+            <tbody>
+                <tr *ngIf="!logs.length"><td colspan="7" class="vet-vacio">Aún no hay cargas</td></tr>
+                <tr *ngFor="let l of logs">
+                    <td>{{ l.id }}</td><td>{{ l.fecha | date:'dd MMM yyyy HH:mm' }}</td><td>{{ l.nombreArchivo }}</td>
+                    <td>{{ l.totalFilas }}</td><td class="text-success">{{ l.filasOk }}</td><td class="text-danger">{{ l.filasError }}</td>
+                    <td><pre class="log-detalle mb-0">{{ l.detalle || '-' }}</pre></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal producto -->
+<div class="modal fade" id="modalProducto" tabindex="-1" aria-labelledby="modalProductoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalProductoLabel">{{ productoEditando ? 'Editar producto' : 'Nuevo producto' }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form [formGroup]="formProducto" (ngSubmit)="guardarProducto()">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label" for="pCodigo">Código (8) *</label>
+                            <input id="pCodigo" class="form-control text-uppercase font-monospace" maxlength="8" formControlName="codigo">
+                            <small class="text-danger" *ngIf="formProducto.get('codigo')?.touched && formProducto.get('codigo')?.invalid">8 letras o números</small>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="pNombre">Nombre *</label>
+                            <input id="pNombre" class="form-control" formControlName="nombre">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="pTipo">Tipo *</label>
+                            <select id="pTipo" class="form-select" formControlName="tipo">
+                                <option value="MEDICAMENTO">Medicamento</option>
+                                <option value="UTENSILIO">Utensilio / insumo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="pInvima">Registro Invima {{ formProducto.get('tipo')?.value === 'MEDICAMENTO' ? '*' : '(opcional)' }}</label>
+                            <input id="pInvima" class="form-control" formControlName="registroInvima">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="pPresentacion">Presentación</label>
+                            <input id="pPresentacion" class="form-control" formControlName="presentacion">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="pProx">Próximo pedido</label>
+                            <input id="pProx" type="date" class="form-control" formControlName="fechaProximoPedido">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="pVenta">Precio venta público *</label>
+                            <input id="pVenta" type="number" min="1" class="form-control" formControlName="precioVenta">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="pIva">IVA %</label>
+                            <input id="pIva" type="number" min="0" max="100" class="form-control" formControlName="ivaPorcentaje">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="pMin">Stock mínimo *</label>
+                            <input id="pMin" type="number" min="0" class="form-control" formControlName="stockMinimo">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="pDesc">Descripción</label>
+                            <input id="pDesc" class="form-control" formControlName="descripcion">
+                        </div>
+                        <div class="col-12" *ngIf="productoEditando">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="pActivo" formControlName="activo">
+                                <label class="form-check-label" for="pActivo">Producto activo</label>
+                            </div>
+                            <small class="text-muted">Las cantidades solo cambian ingresando lotes o despachando (no se editan a mano).</small>
+                        </div>
+                        <ng-container *ngIf="!productoEditando">
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="pConLote" formControlName="conLote">
+                                    <label class="form-check-label" for="pConLote">Ingresar el primer lote ahora</label>
+                                </div>
+                            </div>
+                            <ng-container *ngIf="formProducto.get('conLote')?.value">
+                                <div class="col-md-3"><label class="form-label">N.° lote</label><input class="form-control" formControlName="numeroLote"></div>
+                                <div class="col-md-2"><label class="form-label">Cantidad</label><input type="number" min="1" class="form-control" formControlName="cantidad"></div>
+                                <div class="col-md-3"><label class="form-label">Precio compra</label><input type="number" min="1" class="form-control" formControlName="precioCompra"></div>
+                                <div class="col-md-2"><label class="form-label">Compra</label><input type="date" class="form-control" formControlName="fechaCompra" [max]="hoy"></div>
+                                <div class="col-md-2"><label class="form-label">Vence</label><input type="date" class="form-control" formControlName="fechaVence" [min]="hoy"></div>
+                            </ng-container>
+                        </ng-container>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn-vet" [disabled]="enviando">{{ enviando ? 'Guardando...' : 'Guardar' }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal lote -->
+<div class="modal fade" id="modalLote" tabindex="-1" aria-labelledby="modalLoteLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalLoteLabel">Ingresar lote · {{ productoLote?.nombre }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form [formGroup]="formLote" (ngSubmit)="guardarLote()">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6"><label class="form-label">N.° lote *</label><input class="form-control" formControlName="numeroLote"></div>
+                        <div class="col-6"><label class="form-label">Cantidad *</label><input type="number" min="1" class="form-control" formControlName="cantidad"></div>
+                        <div class="col-6"><label class="form-label">Precio de compra *</label><input type="number" min="1" class="form-control" formControlName="precioCompra"></div>
+                        <div class="col-6"><label class="form-label">Fecha de compra *</label><input type="date" class="form-control" formControlName="fechaCompra" [max]="hoy"></div>
+                        <div class="col-6">
+                            <label class="form-label">Vencimiento {{ productoLote?.tipo === 'MEDICAMENTO' ? '*' : '(opcional)' }}</label>
+                            <input type="date" class="form-control" formControlName="fechaVence" [min]="hoy">
+                        </div>
+                    </div>
+                    <div class="text-danger small mt-2" *ngIf="formLote.touched && formLote.invalid">Complete los campos obligatorios.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn-vet" [disabled]="enviando">Ingresar al inventario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal detalle: lotes y movimientos -->
+<div class="modal fade" id="modalDetalleProducto" tabindex="-1" aria-labelledby="modalDetalleProductoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalDetalleProductoLabel">{{ detalle?.codigo }} · {{ detalle?.nombre }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" *ngIf="detalle">
+                <h2 class="h6">Lotes</h2>
+                <table class="vet-table mb-4">
+                    <thead><tr><th>Lote</th><th>Compra</th><th>Ingreso</th><th>Vence</th><th>P. compra</th><th>Inicial</th><th>Disponible</th><th>Estado</th></tr></thead>
+                    <tbody>
+                        <tr *ngIf="!detalle.lotes?.length"><td colspan="8" class="vet-vacio">Sin lotes</td></tr>
+                        <tr *ngFor="let l of detalle.lotes">
+                            <td class="font-monospace">{{ l.numeroLote }}</td><td>{{ l.fechaCompra }}</td><td>{{ l.fechaIngreso | date:'dd MMM yyyy' }}</td>
+                            <td>{{ l.fechaVence || 'No vence' }}</td><td>{{ pesos(l.precioCompra) }}</td><td>{{ l.cantidadInicial }}</td><td><b>{{ l.cantidadDisponible }}</b></td>
+                            <td><span class="estado-pill" [ngClass]="l.estado === 'VIGENTE' ? 'estado-activa' : l.estado === 'POR_VENCER' ? 'estado-programada' : 'estado-cancelada'">{{ l.estado | lowercase }}</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h2 class="h6">Historial de entradas y salidas</h2>
+                <div class="table-responsive tabla-alta">
+                    <table class="vet-table">
+                        <thead><tr><th>Fecha</th><th>Tipo</th><th>Lote</th><th>Cantidad</th><th>Saldo lote</th><th>Usuario</th><th>Fórmula</th><th>Observación</th></tr></thead>
+                        <tbody>
+                            <tr *ngIf="!movimientos.length"><td colspan="8" class="vet-vacio">Sin movimientos</td></tr>
+                            <tr *ngFor="let m of movimientos">
+                                <td>{{ m.fecha | date:'dd MMM yyyy HH:mm' }}</td>
+                                <td><span class="estado-pill" [ngClass]="m.tipo === 'SALIDA' ? 'estado-cancelada' : 'estado-activa'">{{ m.tipo | lowercase }}</span></td>
+                                <td class="font-monospace">{{ m.numeroLote }}</td>
+                                <td>{{ m.tipo === 'SALIDA' ? '-' : '+' }}{{ m.cantidad }}</td><td>{{ m.saldoLote }}</td>
+                                <td>{{ m.usuario }}</td><td>{{ m.formulaId ? '#' + m.formulaId : '' }}</td><td class="small">{{ m.observacion }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,29 @@
+.totales {
+	max-width: 360px;
+	margin-left: auto;
+}
+
+.totales > div {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.25rem 0;
+	border-bottom: 1px solid #232831;
+	gap: 0.5rem;
+}
+
+.totales span {
+	color: #8b95a3;
+}
+
+.totales .total b {
+	color: #34d399;
+	font-size: 1.1rem;
+}
+
+.pago-box {
+	padding: 1rem;
+	border: 1px solid #2a2f38;
+	border-radius: 10px;
+	background: #14171c;
+}

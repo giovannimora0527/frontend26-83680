@@ -7,7 +7,7 @@ import { BackendService } from 'src/app/services/backend.service';
 import { environment } from 'src/environments/environment';
 
 /**
- * Servicio para consumir los endpoints de fórmulas médicas.
+ * Servicio de consulta de fórmulas médicas (se crean desde la atención de la cita).
  */
 @Injectable({
   providedIn: 'root'
@@ -27,31 +27,13 @@ export class FormulaService {
   }
 
   /**
-   * Consulta el detalle de una fórmula.
+   * Consulta el detalle de una fórmula con sus medicamentos.
    * @param formulaId id de la fórmula.
    * @returns la fórmula.
    */
   consultarFormula(formulaId: number): Observable<FormulaMedica> {
     const params = new HttpParams().set('formulaId', formulaId);
     return this.backendService.get(environment.apiUrlAuth, this.api, 'consultar', params);
-  }
-
-  /**
-   * Crea una fórmula (POST).
-   * @param formula datos de la fórmula.
-   * @returns respuesta del backend.
-   */
-  crearFormula(formula: FormulaMedica): Observable<MiRespuesta> {
-    return this.backendService.post(environment.apiUrlAuth, this.api, 'guardar', formula);
-  }
-
-  /**
-   * Actualiza una fórmula (PUT).
-   * @param formula datos de la fórmula con su formulaId.
-   * @returns respuesta del backend.
-   */
-  actualizarFormula(formula: FormulaMedica): Observable<MiRespuesta> {
-    return this.backendService.put(environment.apiUrlAuth, this.api, 'actualizar', formula);
   }
 
   /**
@@ -62,5 +44,15 @@ export class FormulaService {
   inactivarFormula(formulaId: number): Observable<MiRespuesta> {
     const params = new HttpParams().set('formulaId', formulaId);
     return this.backendService.patch(environment.apiUrlAuth, this.api, 'inactivar', {}, params);
+  }
+
+  /**
+   * Descarga la fórmula en PDF.
+   * @param formulaId id de la fórmula.
+   * @returns archivo PDF.
+   */
+  pdf(formulaId: number): Observable<Blob> {
+    const params = new HttpParams().set('formulaId', formulaId);
+    return this.backendService.descargar(environment.apiUrlAuth, this.api, 'pdf', params);
   }
 }

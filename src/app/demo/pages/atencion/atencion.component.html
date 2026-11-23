@@ -1,0 +1,159 @@
+<div class="container-fluid">
+    <a routerLink="/inicio/agenda" class="vet-link px-0 mb-2 d-inline-block"><i class="feather icon-arrow-left"></i> Volver a mi agenda</a>
+
+    <div *ngIf="cargando" class="vet-card vet-vacio"><div class="spinner-border spinner-border-sm text-success"></div> Cargando la cita...</div>
+
+    <div class="row g-3" *ngIf="!cargando && info">
+        <!-- Paciente y antecedentes -->
+        <div class="col-lg-4">
+            <div class="vet-card mb-3">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="vet-avatar">{{ info.cita.mascotaNombre?.charAt(0) }}</span>
+                    <div>
+                        <div class="fw-semibold">{{ info.cita.mascotaNombre }}</div>
+                        <span class="vet-sub">{{ info.cita.mascotaEspecie }} · {{ info.cita.mascotaRaza }} · {{ info.cita.mascotaEdad }} año(s)</span>
+                    </div>
+                    <span class="estado-pill ms-auto" [ngClass]="claseEstado(info.cita.estado)">{{ info.cita.estado }}</span>
+                </div>
+                <dl class="row vet-detalle mb-0">
+                    <dt class="col-5">Propietario</dt><dd class="col-7">{{ info.cita.clienteNombre }}</dd>
+                    <dt class="col-5">Teléfono</dt><dd class="col-7">{{ info.cita.clienteTelefono || '-' }}</dd>
+                    <dt class="col-5">Cita</dt><dd class="col-7">{{ info.cita.fechaHora | date:'dd MMM yyyy HH:mm' }}</dd>
+                    <dt class="col-5">Especialidad</dt><dd class="col-7">{{ info.especialidad || '-' }}</dd>
+                </dl>
+            </div>
+            <div class="vet-card">
+                <h2 class="h6 mb-3"><i class="feather icon-book-open text-success"></i> Antecedentes médicos</h2>
+                <div *ngIf="!info.antecedentes.length" class="text-muted small">Sin consultas anteriores.</div>
+                <div *ngFor="let h of info.antecedentes" class="antecedente">
+                    <div class="d-flex justify-content-between">
+                        <b>{{ h.fechaHora | date:'dd MMM yyyy' }}</b>
+                        <small class="text-muted">{{ h.medicoNombre || '' }}</small>
+                    </div>
+                    <div class="small"><span class="text-muted">Motivo:</span> {{ h.motivo }}</div>
+                    <div class="small"><span class="text-muted">Diagnóstico:</span> {{ h.diagnostico || '-' }}</div>
+                    <div class="small" *ngIf="h.recomendaciones"><span class="text-muted">Recomendaciones:</span> {{ h.recomendaciones }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Atencion ya registrada -->
+        <div class="col-lg-8" *ngIf="info.historia">
+            <div class="vet-card">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                    <h2 class="h5 mb-0">Atención registrada</h2>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-light btn-sm" type="button" (click)="prefactura()"><i class="feather icon-file"></i> Prefactura PDF</button>
+                        <button *ngIf="info.formula" class="btn-vet" type="button" (click)="formulaPdf(info.formula.id!)">
+                            <i class="feather icon-printer"></i> Fórmula PDF</button>
+                    </div>
+                </div>
+                <dl class="row vet-detalle">
+                    <dt class="col-3">Servicio</dt><dd class="col-9">{{ info.historia.servicio || '-' }}</dd>
+                    <dt class="col-3">Motivo</dt><dd class="col-9">{{ info.historia.motivo }}</dd>
+                    <dt class="col-3">Síntomas</dt><dd class="col-9">{{ info.historia.sintomas || '-' }}</dd>
+                    <dt class="col-3">Diagnóstico</dt><dd class="col-9">{{ info.historia.diagnostico }}</dd>
+                    <dt class="col-3">Observaciones</dt><dd class="col-9">{{ info.historia.observaciones || '-' }}</dd>
+                    <dt class="col-3">Recomendaciones</dt><dd class="col-9">{{ info.historia.recomendaciones || '-' }}</dd>
+                </dl>
+                <ng-container *ngIf="info.formula">
+                    <h3 class="h6">Fórmula #{{ info.formula.id }} · <span class="estado-pill estado-programada">{{ info.formula.estadoDespacho }}</span></h3>
+                    <table class="vet-table">
+                        <thead><tr><th>Medicamento</th><th>Dosis</th><th>Frecuencia</th><th>Días</th><th>Cant.</th><th>Vía</th><th>Entregado</th></tr></thead>
+                        <tbody>
+                            <tr *ngFor="let d of info.formula.detalles">
+                                <td>{{ d.medicamentoNombre }}</td><td>{{ d.dosis }}</td><td>{{ d.frecuencia }}</td>
+                                <td>{{ d.duracionDias }}</td><td>{{ d.cantidad }}</td><td>{{ d.viaAdministracion }}</td><td>{{ d.cantidadEntregada }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </ng-container>
+            </div>
+        </div>
+
+        <!-- Formulario de atencion -->
+        <div class="col-lg-8" *ngIf="!info.historia">
+            <form class="vet-card" [formGroup]="form" (ngSubmit)="finalizar()">
+                <h2 class="h5 mb-3">Atención de la consulta</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="servicio">Servicio o consulta prestada *</label>
+                        <select id="servicio" class="form-select" formControlName="tarifaId">
+                            <option [ngValue]="null" disabled>Seleccione</option>
+                            <option *ngFor="let s of info.servicios" [ngValue]="s.id">{{ s.nombre }} · {{ pesos(s.valor) }}{{ s.ivaPorcentaje > 0 ? ' + IVA ' + s.ivaPorcentaje + '%' : '' }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="motivo">Motivo de consulta *</label>
+                        <input id="motivo" class="form-control" formControlName="motivo">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="sintomas">Síntomas identificados *</label>
+                        <textarea id="sintomas" class="form-control" rows="2" formControlName="sintomas"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="diagnostico">Diagnóstico *</label>
+                        <textarea id="diagnostico" class="form-control" rows="2" formControlName="diagnostico"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="observaciones">Observaciones médicas</label>
+                        <textarea id="observaciones" class="form-control" rows="2" formControlName="observaciones"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="recomendaciones">Recomendaciones</label>
+                        <textarea id="recomendaciones" class="form-control" rows="2" formControlName="recomendaciones"></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                    <h3 class="h6 mb-0"><i class="feather icon-clipboard text-success"></i> Fórmula médica</h3>
+                    <button type="button" class="btn btn-outline-light btn-sm" (click)="agregarMedicamento()">
+                        <i class="feather icon-plus"></i> Agregar medicamento</button>
+                </div>
+                <p class="small text-muted" *ngIf="!lineas.length">Sin medicamentos. Si no formula nada, solo se registra la consulta.</p>
+                <div formArrayName="medicamentos">
+                    <div class="linea-formula" *ngFor="let linea of lineas.controls; let i = index" [formGroupName]="i">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label small" [for]="'med' + i">Medicamento *</label>
+                                <select [id]="'med' + i" class="form-select form-select-sm" formControlName="medicamentoId">
+                                    <option [ngValue]="null" disabled>Seleccione</option>
+                                    <option *ngFor="let m of medicamentos" [ngValue]="m.id">{{ m.nombre }} ({{ m.stockDisponible }} disp.)</option>
+                                </select>
+                                <small *ngIf="producto(i) as p" [class.text-danger]="(linea.get('cantidad')?.value || 0) > (p.stockDisponible || 0)"
+                                    [class.text-muted]="(linea.get('cantidad')?.value || 0) <= (p.stockDisponible || 0)">
+                                    Disponible en inventario: {{ p.stockDisponible }} · {{ pesos(p.precioVenta) }} c/u
+                                    <span *ngIf="(linea.get('cantidad')?.value || 0) > (p.stockDisponible || 0)"> — no alcanza, el despacho será parcial</span>
+                                </small>
+                            </div>
+                            <div class="col-md-3"><label class="form-label small">Dosis *</label><input class="form-control form-control-sm" formControlName="dosis" placeholder="1 tableta"></div>
+                            <div class="col-md-3"><label class="form-label small">Frecuencia *</label><input class="form-control form-control-sm" formControlName="frecuencia" placeholder="cada 8 h"></div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="button" class="btn-icono peligro" (click)="quitarMedicamento(i)" aria-label="Quitar"><i class="feather icon-trash-2"></i></button>
+                            </div>
+                            <div class="col-md-2"><label class="form-label small">Días *</label><input type="number" min="1" class="form-control form-control-sm" formControlName="duracionDias"></div>
+                            <div class="col-md-2"><label class="form-label small">Cant. *</label><input type="number" min="1" class="form-control form-control-sm" formControlName="cantidad"></div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Vía *</label>
+                                <select class="form-select form-select-sm" formControlName="viaAdministracion">
+                                    <option *ngFor="let v of vias" [value]="v">{{ v }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5"><label class="form-label small">Indicaciones especiales</label><input class="form-control form-control-sm" formControlName="indicaciones"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2" *ngIf="lineas.length">
+                    <label class="form-label" for="indicacionesFormula">Indicaciones generales de la fórmula</label>
+                    <input id="indicacionesFormula" class="form-control" formControlName="indicacionesFormula">
+                </div>
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn-vet" [disabled]="enviando">
+                        <span *ngIf="enviando" class="spinner-border spinner-border-sm"></span>
+                        <i class="feather icon-check-circle" *ngIf="!enviando"></i> Finalizar atención
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

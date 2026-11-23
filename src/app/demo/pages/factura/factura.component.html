@@ -1,0 +1,193 @@
+<div class="container-fluid">
+    <ul class="nav nav-pills vet-tabs mb-3">
+        <li class="nav-item"><button class="nav-link" [class.active]="pestana === 'por-facturar'" (click)="pestana = 'por-facturar'; cargarPorFacturar()">
+            <i class="feather icon-file-plus"></i> Atenciones por facturar</button></li>
+        <li class="nav-item"><button class="nav-link" [class.active]="pestana === 'facturas'" (click)="pestana = 'facturas'; cargarFacturas()">
+            <i class="feather icon-file-text"></i> Facturas e historial</button></li>
+    </ul>
+
+    <!-- ============ POR FACTURAR ============ -->
+    <div class="vet-card" *ngIf="pestana === 'por-facturar'">
+        <p class="small text-muted">Citas atendidas que aún no tienen factura. Solo se cobran los medicamentos que el despacho ya entregó.</p>
+        <table class="vet-table">
+            <thead><tr><th>Cita</th><th>Fecha</th><th>Mascota</th><th>Propietario</th><th>Médico</th><th>Motivo</th><th class="text-center">Acción</th></tr></thead>
+            <tbody>
+                <tr *ngIf="cargando"><td colspan="7" class="vet-vacio"><div class="spinner-border spinner-border-sm text-success"></div> Cargando...</td></tr>
+                <tr *ngIf="!cargando && !citas.length"><td colspan="7" class="vet-vacio">No hay atenciones pendientes por facturar</td></tr>
+                <tr *ngFor="let c of citas">
+                    <td>#{{ c.id }}</td><td>{{ c.fechaHora | date:'dd MMM yyyy HH:mm' }}</td><td class="fw-semibold">{{ c.mascotaNombre }}</td>
+                    <td>{{ c.clienteNombre }}</td><td>{{ c.medicoNombre }}</td><td class="small">{{ c.motivo }}</td>
+                    <td class="text-center"><button class="btn-vet" style="height: 34px;" type="button" (click)="verPrevia(c)">
+                        <i class="feather icon-file-plus"></i> Facturar</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============ FACTURAS ============ -->
+    <ng-container *ngIf="pestana === 'facturas'">
+        <div class="resumen-grid mb-3">
+            <div class="resumen-item"><span>Facturas</span><strong>{{ facturas.length }}</strong></div>
+            <div class="resumen-item azul"><span>Total facturado</span><strong>{{ pesos(totalesFacturas.total) }}</strong></div>
+            <div class="resumen-item verde"><span>Pagado</span><strong>{{ pesos(totalesFacturas.pagado) }}</strong></div>
+            <div class="resumen-item ambar"><span>Saldo pendiente</span><strong>{{ pesos(totalesFacturas.saldo) }}</strong></div>
+        </div>
+        <div class="vet-card">
+            <div class="vet-filtros">
+                <select class="form-select" [(ngModel)]="filtroCliente" (ngModelChange)="cambioCliente()" aria-label="Propietario">
+                    <option [ngValue]="null">Todos los propietarios</option>
+                    <option *ngFor="let c of clientes" [ngValue]="c.clienteId">{{ c.nombres }} {{ c.apellidos }}</option>
+                </select>
+                <select class="form-select" [(ngModel)]="filtroMascota" (ngModelChange)="cargarFacturas()" [disabled]="!filtroCliente" aria-label="Mascota">
+                    <option [ngValue]="null">Todas las mascotas</option>
+                    <option *ngFor="let m of mascotas" [ngValue]="m.mascotaId">{{ m.nombreMascota }}</option>
+                </select>
+                <select class="form-select" [(ngModel)]="filtroEstado" (ngModelChange)="cargarFacturas()" aria-label="Estado">
+                    <option value="">Todos los estados</option>
+                    <option value="PENDIENTE">Pendiente de pago</option>
+                    <option value="PAGO_PARCIAL">Pago parcial</option>
+                    <option value="PAGADA">Pagada</option>
+                    <option value="ANULADA">Anulada</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table class="vet-table">
+                    <thead><tr><th>Número</th><th>Fecha</th><th>Propietario</th><th>Mascota</th><th>Médico</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th class="text-center">Acciones</th></tr></thead>
+                    <tbody>
+                        <tr *ngIf="!cargando && !facturas.length"><td colspan="10" class="vet-vacio">Sin facturas</td></tr>
+                        <tr *ngFor="let f of facturas" [style.opacity]="f.estado === 'ANULADA' ? 0.55 : 1">
+                            <td class="fw-semibold font-monospace">{{ f.numero }}</td><td>{{ f.fecha | date:'dd MMM yyyy' }}</td>
+                            <td>{{ f.clienteNombre }}</td><td>{{ f.mascotaNombre }}</td><td>{{ f.medicoNombre }}</td>
+                            <td>{{ pesos(f.total) }}</td><td>{{ pesos(f.totalPagado) }}</td><td>{{ pesos(f.saldo) }}</td>
+                            <td><span class="estado-pill" [ngClass]="claseEstado[f.estado]">{{ nombresEstado[f.estado] }}</span></td>
+                            <td class="text-center text-nowrap">
+                                <button class="btn-icono" type="button" (click)="verDetalle(f)" ngbTooltip="Detalle y pagos" container="body" aria-label="Ver"><i class="feather icon-eye"></i></button>
+                                <button class="btn-icono" type="button" (click)="verPdf(f.id!)" ngbTooltip="PDF" container="body" aria-label="PDF"><i class="feather icon-printer"></i></button>
+                                <button *ngIf="esAdmin && f.estado !== 'ANULADA'" class="btn-icono peligro" type="button" (click)="anular(f)"
+                                    ngbTooltip="Anular" container="body" aria-label="Anular"><i class="feather icon-slash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </ng-container>
+</div>
+
+<!-- Modal vista previa -->
+<div class="modal fade" id="modalPrevia" tabindex="-1" aria-labelledby="modalPreviaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" *ngIf="previa">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalPreviaLabel">Vista previa · Cita #{{ previa.citaId }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row vet-detalle">
+                    <dt class="col-md-2">Propietario</dt><dd class="col-md-4">{{ previa.clienteNombre }}</dd>
+                    <dt class="col-md-2">Mascota</dt><dd class="col-md-4">{{ previa.mascotaNombre }}</dd>
+                    <dt class="col-md-2">Médico</dt><dd class="col-md-4">{{ previa.medicoNombre }}</dd>
+                    <dt class="col-md-2">Especialidad</dt><dd class="col-md-4">{{ previa.especialidad || '-' }}</dd>
+                </dl>
+                <table class="vet-table">
+                    <thead><tr><th>Tipo</th><th>Descripción</th><th>Cant.</th><th>Valor unit.</th><th>IVA</th><th>Total</th></tr></thead>
+                    <tbody>
+                        <tr *ngFor="let l of previa.lineas">
+                            <td><span class="estado-pill" [ngClass]="l.tipo === 'SERVICIO' ? 'estado-confirmada' : 'estado-activa'">{{ l.tipo | lowercase }}</span></td>
+                            <td>{{ l.descripcion }}</td><td>{{ l.cantidad }}</td><td>{{ pesos(l.precioUnitario) }}</td>
+                            <td>{{ l.ivaPorcentaje }}% · {{ pesos(l.ivaValor) }}</td><td>{{ pesos(l.total) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="totales mt-3">
+                    <div><span>Subtotal</span><b>{{ pesos(previa.subtotal) }}</b></div>
+                    <div><span>IVA</span><b>{{ pesos(previa.iva) }}</b></div>
+                    <div>
+                        <span>Descuento {{ esAdmin ? '' : '(solo administrador)' }}</span>
+                        <input type="number" min="0" class="form-control form-control-sm" style="max-width: 140px;" [(ngModel)]="descuento"
+                            [disabled]="!esAdmin" aria-label="Descuento">
+                    </div>
+                    <div class="total"><span>Total a pagar</span><b>{{ pesos(previa.subtotal + previa.iva - (descuento || 0)) }}</b></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn-vet" (click)="generar()" [disabled]="enviando"><i class="feather icon-check"></i> Generar factura</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal detalle de factura -->
+<div class="modal fade" id="modalFactura" tabindex="-1" aria-labelledby="modalFacturaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" *ngIf="detalle">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalFacturaLabel">Factura {{ detalle.numero }}
+                    <span class="estado-pill ms-2" [ngClass]="claseEstado[detalle.estado]">{{ nombresEstado[detalle.estado] }}</span></h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <dl class="row vet-detalle">
+                            <dt class="col-4">Propietario</dt><dd class="col-8">{{ detalle.clienteNombre }} · {{ detalle.clienteDocumento }}</dd>
+                            <dt class="col-4">Mascota</dt><dd class="col-8">{{ detalle.mascotaNombre }}</dd>
+                            <dt class="col-4">Médico</dt><dd class="col-8">{{ detalle.medicoNombre }} · {{ detalle.especialidad }}</dd>
+                            <dt class="col-4">Fecha</dt><dd class="col-8">{{ detalle.fecha | date:'dd MMM yyyy HH:mm' }} · {{ detalle.usuario }}</dd>
+                            <ng-container *ngIf="detalle.estado === 'ANULADA'">
+                                <dt class="col-4 text-danger">Anulada</dt><dd class="col-8">{{ detalle.fechaAnulacion | date:'dd MMM yyyy HH:mm' }} · {{ detalle.motivoAnulacion }}</dd>
+                            </ng-container>
+                        </dl>
+                        <table class="vet-table">
+                            <thead><tr><th>Descripción</th><th>Cant.</th><th>Unitario</th><th>IVA</th><th>Total</th></tr></thead>
+                            <tbody>
+                                <tr *ngFor="let l of detalle.lineas"><td>{{ l.descripcion }}</td><td>{{ l.cantidad }}</td><td>{{ pesos(l.precioUnitario) }}</td>
+                                    <td>{{ pesos(l.ivaValor) }}</td><td>{{ pesos(l.total) }}</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="totales mt-3">
+                            <div><span>Subtotal</span><b>{{ pesos(detalle.subtotal) }}</b></div>
+                            <div><span>IVA</span><b>{{ pesos(detalle.iva) }}</b></div>
+                            <div><span>Descuento</span><b>- {{ pesos(detalle.descuento) }}</b></div>
+                            <div class="total"><span>Total</span><b>{{ pesos(detalle.total) }}</b></div>
+                            <div><span>Pagado</span><b>{{ pesos(detalle.totalPagado) }}</b></div>
+                            <div><span>Saldo</span><b>{{ pesos(detalle.saldo) }}</b></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="pago-box" *ngIf="detalle.estado === 'PENDIENTE' || detalle.estado === 'PAGO_PARCIAL'">
+                            <h2 class="h6">Registrar pago</h2>
+                            <div class="row g-2">
+                                <div class="col-6"><label class="form-label small">Valor</label>
+                                    <input type="number" min="1" class="form-control" [(ngModel)]="pago.valor"></div>
+                                <div class="col-6"><label class="form-label small">Método</label>
+                                    <select class="form-select" [(ngModel)]="pago.metodo">
+                                        <option value="EFECTIVO">Efectivo</option><option value="TARJETA">Tarjeta</option><option value="TRANSFERENCIA">Transferencia</option>
+                                    </select></div>
+                                <div class="col-12" *ngIf="pago.metodo !== 'EFECTIVO'"><label class="form-label small">Referencia / voucher</label>
+                                    <input class="form-control" [(ngModel)]="pago.referencia"></div>
+                                <div class="col-12 text-end"><button class="btn-vet" type="button" (click)="registrarPago()" [disabled]="enviando">
+                                    <i class="feather icon-dollar-sign"></i> Registrar pago</button></div>
+                            </div>
+                        </div>
+                        <h2 class="h6 mt-3">Pagos</h2>
+                        <ul class="small ps-3">
+                            <li *ngFor="let p of detalle.pagos">{{ p.fecha | date:'dd MMM HH:mm' }} · {{ p.metodo | lowercase }} · <b>{{ pesos(p.valor) }}</b>
+                                {{ p.referencia ? '(' + p.referencia + ')' : '' }} · {{ p.usuario }}</li>
+                            <li *ngIf="!detalle.pagos.length" class="text-muted">Sin pagos</li>
+                        </ul>
+                        <h2 class="h6">Trazabilidad</h2>
+                        <ul class="small ps-3 mb-0">
+                            <li *ngFor="let l of detalle.log">{{ l.fecha | date:'dd MMM HH:mm' }} · <b>{{ l.accion }}</b> · {{ l.usuario }}: {{ l.detalle }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button *ngIf="esAdmin && detalle.estado !== 'ANULADA'" class="btn btn-outline-danger btn-sm me-auto" type="button" (click)="anular(detalle)">Anular</button>
+                <button class="btn btn-outline-light" type="button" (click)="verPdf(detalle.id!)"><i class="feather icon-printer"></i> PDF</button>
+            </div>
+        </div>
+    </div>
+</div>

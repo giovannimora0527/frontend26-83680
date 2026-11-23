@@ -1,0 +1,17 @@
+.tabla-alta {
+	max-height: 420px;
+	overflow: auto;
+}
+
+.fila-error td {
+	background: rgba(239, 68, 68, 0.06) !important;
+}
+
+.log-detalle {
+	max-width: 420px;
+	max-height: 90px;
+	overflow: auto;
+	color: #fca5a5;
+	font-size: 0.72rem;
+	white-space: pre-wrap;
+}
