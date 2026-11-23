@@ -1,4 +1,4 @@
-import { HTTP_INTERCEPTORS, provideHttpClient } from "@angular/common/http";
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from "@angular/common/http";
 import { ApplicationConfig, LOCALE_ID } from "@angular/core";
 import { registerLocaleData } from "@angular/common";
 import localeEs from "@angular/common/locales/es";
@@ -24,7 +24,8 @@ export const appConfig: ApplicationConfig = {
         withViewTransitions(),
         withHashLocation()
       ),
-      provideHttpClient(),     
+      // withInterceptorsFromDi: necesario para que se ejecute HeadersInterceptor (registrado abajo)
+      provideHttpClient(withInterceptorsFromDi()),
       provideAnimations(),
       { provide: LOCALE_ID, useValue: 'es' },
       {
