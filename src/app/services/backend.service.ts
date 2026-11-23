@@ -123,4 +123,22 @@ export class BackendService {
       headers: headers,
     });
   }
+
+  // Descarga un archivo (PDF, Excel o CSV) enviando el token.
+  descargar(urlApi: string, endpoint: string, service: string, routerParams?: HttpParams): Observable<Blob> {
+    const tokenRecuperado = localStorage.getItem('token') || '';
+    return this.http.get(`${urlApi}/${endpoint}/${service}`, {
+      params: routerParams,
+      headers: new HttpHeaders({ Authorization: tokenRecuperado ? `Bearer ${tokenRecuperado}` : '' }),
+      responseType: 'blob'
+    });
+  }
+
+  // Sube un archivo (multipart) enviando el token. El navegador pone el Content-Type.
+  subirArchivo<T>(urlApi: string, endpoint: string, service: string, data: FormData): Observable<T> {
+    const tokenRecuperado = localStorage.getItem('token') || '';
+    return this.http.post<T>(`${urlApi}/${endpoint}/${service}`, data, {
+      headers: new HttpHeaders({ Authorization: tokenRecuperado ? `Bearer ${tokenRecuperado}` : '' })
+    });
+  }
 }

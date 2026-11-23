@@ -8,6 +8,8 @@ import { NavBarComponent } from './nav-bar/nav-bar.component';
 import { NavigationComponent } from './navigation/navigation.component';
 import { ConfigurationComponent } from 'src/app/theme/layout/admin/configuration/configuration.component';
 import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs/breadcrumbs.component';
+import { AuthService } from 'src/app/services/auth.service';
+import { MenuItem, Sesion } from 'src/app/models/sesion';
 
 @Component({
   selector: 'app-admin',
@@ -17,6 +19,11 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs/breadc
 })
 export class AdminComponent {
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  /** Modulos del perfil para las tarjetas del inicio. */
+  readonly menus: MenuItem[] = this.auth.menus();
+  readonly sesion: Sesion | null = this.auth.sesion();
 
   // public props
   navCollapsed: any;

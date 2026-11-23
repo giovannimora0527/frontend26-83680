@@ -18,39 +18,15 @@
             @if (isHome) {
               <section class="clinic-home" aria-labelledby="clinic-home-title">
                 <h1 id="clinic-home-title">Clínica Veterinaria</h1>
-                <p>Selecciona un módulo para empezar.</p>
+                <p>Hola {{ sesion?.username }} ({{ sesion?.perfilNombre }}). Selecciona un módulo para empezar.</p>
 
                 <div class="clinic-home__grid">
-                  <a class="clinic-home__item" routerLink="/inicio/citas">
-                    <i class="feather icon-calendar" aria-hidden="true"></i>
-                    <strong>Citas</strong>
-                    <span>Agenda y estado de las citas</span>
-                  </a>
-                  <a class="clinic-home__item" routerLink="/inicio/historias">
-                    <i class="feather icon-file-text" aria-hidden="true"></i>
-                    <strong>Historias clínicas</strong>
-                    <span>Consultas y anotaciones</span>
-                  </a>
-                  <a class="clinic-home__item" routerLink="/inicio/formulas">
-                    <i class="feather icon-clipboard" aria-hidden="true"></i>
-                    <strong>Fórmulas médicas</strong>
-                    <span>Medicamentos recetados</span>
-                  </a>
-                  <a class="clinic-home__item" routerLink="/inicio/clientes">
-                    <i class="feather icon-user" aria-hidden="true"></i>
-                    <strong>Clientes</strong>
-                    <span>Dueños de las mascotas</span>
-                  </a>
-                  <a class="clinic-home__item" routerLink="/inicio/mascotas">
-                    <i class="feather icon-heart" aria-hidden="true"></i>
-                    <strong>Mascotas</strong>
-                    <span>Pacientes registrados</span>
-                  </a>
-                  <a class="clinic-home__item" routerLink="/inicio/medicos">
-                    <i class="feather icon-users" aria-hidden="true"></i>
-                    <strong>Médicos</strong>
-                    <span>Veterinarios de la clínica</span>
-                  </a>
+                  @for (m of menus; track m.code) {
+                    <a class="clinic-home__item" [routerLink]="m.url">
+                      <i [class]="m.icon" aria-hidden="true"></i>
+                      <strong>{{ m.title }}</strong>
+                    </a>
+                  }
                 </div>
               </section>
             }

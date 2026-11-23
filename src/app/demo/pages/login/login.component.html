@@ -1,0 +1,32 @@
+<div class="login-fondo">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <img src="assets/images/logo_mascotas.png" alt="Logo" class="login-logo">
+            <h1 class="h4 mt-3 mb-1">Clínica Veterinaria</h1>
+            <p class="text-muted small mb-0">Ingrese con su usuario para continuar</p>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="ingresar()">
+            <label for="usuario" class="form-label">Usuario</label>
+            <div class="vet-search mb-3">
+                <i class="feather icon-user"></i>
+                <input id="usuario" class="form-control" formControlName="username" autocomplete="username" autofocus>
+            </div>
+            <label for="password" class="form-label">Contraseña</label>
+            <div class="vet-search mb-3 position-relative">
+                <i class="feather icon-lock"></i>
+                <input id="password" class="form-control" [type]="verPassword ? 'text' : 'password'"
+                    formControlName="password" autocomplete="current-password">
+                <button type="button" class="btn-icono ver-pass" (click)="verPassword = !verPassword"
+                    [attr.aria-label]="verPassword ? 'Ocultar contraseña' : 'Ver contraseña'">
+                    <i class="feather" [ngClass]="verPassword ? 'icon-eye-off' : 'icon-eye'"></i>
+                </button>
+            </div>
+            <div class="text-danger small mb-3" *ngIf="form.touched && form.invalid">Ingrese el usuario y la contraseña.</div>
+            <div class="alert alert-danger py-2 small" *ngIf="error">{{ error }}</div>
+            <button type="submit" class="btn-vet w-100 justify-content-center" [disabled]="enviando">
+                <span *ngIf="enviando" class="spinner-border spinner-border-sm"></span>
+                {{ enviando ? 'Ingresando...' : 'Ingresar' }}
+            </button>
+        </form>
+    </div>
+</div>

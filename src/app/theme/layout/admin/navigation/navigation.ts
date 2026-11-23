@@ -73,3 +73,32 @@ export const NavigationItems: NavigationItem[] = [
     ]
   },  
 ];
+
+/**
+ * Arma el menu lateral con los menus que el backend asigno al perfil del usuario
+ * (tablas menu y perfil_menu). Si no hay sesion devuelve el menu vacio.
+ */
+export function construirNavegacion(): NavigationItem[] {
+  let menus: { code: string; title: string; url: string; icon: string }[] = [];
+  try {
+    menus = JSON.parse(localStorage.getItem('sesion') ?? '{}').menus ?? [];
+  } catch {
+    menus = [];
+  }
+  return [
+    {
+      id: 'navigation',
+      title: 'Menú',
+      type: 'group',
+      icon: 'icon-navigation',
+      children: menus.map((m) => ({
+        id: m.code,
+        title: m.title,
+        type: 'item' as const,
+        url: m.url,
+        icon: m.icon,
+        classes: 'nav-item'
+      }))
+    }
+  ];
+}

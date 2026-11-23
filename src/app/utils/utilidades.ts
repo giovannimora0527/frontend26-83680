@@ -85,3 +85,61 @@ export function fechaANumero(fecha?: string): number {
 export function claseEstado(estado?: string): string {
   return estado ? `estado-${estado}` : 'estado-sin-cita';
 }
+
+/**
+ * Guarda en el equipo un archivo descargado del backend.
+ * @param archivo contenido.
+ * @param nombre nombre del archivo.
+ */
+export function guardarArchivo(archivo: Blob, nombre: string) {
+  const url = URL.createObjectURL(archivo);
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombre;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Abre un PDF descargado en una pestaña nueva (para verlo o imprimirlo).
+ * @param archivo contenido del PDF.
+ */
+export function abrirPdf(archivo: Blob) {
+  const url = URL.createObjectURL(new Blob([archivo], { type: 'application/pdf' }));
+  // Si el navegador bloquea la ventana emergente, se descarga el archivo
+  if (!window.open(url, '_blank')) {
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = 'documento.pdf';
+    enlace.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/**
+ * Formatea un numero como pesos.
+ * @param valor valor.
+ * @returns texto $ 12.500.
+ */
+export function pesos(valor?: number | null): string {
+  return '$ ' + Number(valor ?? 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+/**
+ * Convierte una fecha a texto local AAAA-MM-DDTHH:mm:ss (sin zona horaria), como lo espera el backend.
+ * @param fecha fecha.
+ * @returns texto ISO local.
+ */
+export function fechaLocalIso(fecha: Date): string {
+  const d = (n: number) => String(n).padStart(2, '0');
+  return `${fecha.getFullYear()}-${d(fecha.getMonth() + 1)}-${d(fecha.getDate())}T${d(fecha.getHours())}:${d(fecha.getMinutes())}:00`;
+}
+
+/** Colores del calendario segun el estado de la cita. */
+export const COLOR_ESTADO: Record<string, string> = {
+  pendiente: '#64748b',
+  confirmada: '#3b82f6',
+  programada: '#d97706',
+  atendida: '#10b981',
+  cancelada: '#ef4444'
+};

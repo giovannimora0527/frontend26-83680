@@ -3,7 +3,7 @@
 @import 'scss/variables';
 
 /* fonts-icon */
-@import 'scss/fonts/fontawesome/scss/fontawesome';
+/* FontAwesome 6 se carga desde node_modules (angular.json) */
 @import 'scss/fonts/feather/iconfont';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
@@ -356,4 +356,74 @@
 .modal-header,
 .modal-footer {
 	border-color: #2a2f38;
+}
+
+/* Pestañas de los modulos */
+.vet-tabs {
+	padding: 0;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.vet-tabs .nav-link {
+	margin-right: 0.4rem;
+	border: 1px solid #2a2f38;
+	border-radius: 10px;
+	background: #1b1f26;
+	color: #cbd5e1;
+	font-size: 0.85rem;
+}
+
+.vet-tabs .nav-link.active {
+	border-color: var(--esmeralda);
+	background: var(--esmeralda);
+	color: #ffffff;
+}
+
+/* Tarjetas de resumen (contadores) */
+.resumen-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 0.75rem;
+}
+
+.resumen-item {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	padding: 0.85rem 1rem;
+	border: 1px solid #262b34;
+	border-left: 4px solid #64748b;
+	border-radius: 12px;
+	background: #1b1f26;
+	color: #e5e7eb;
+	text-align: left;
+}
+
+.resumen-item span {
+	color: #8b95a3;
+	font-size: 0.78rem;
+}
+
+.resumen-item strong {
+	font-size: 1.4rem;
+}
+
+button.resumen-item:hover,
+.resumen-item.activo {
+	border-color: var(--esmeralda);
+}
+
+.resumen-item.rojo { border-left-color: #ef4444; }
+.resumen-item.ambar { border-left-color: #f59e0b; }
+.resumen-item.azul { border-left-color: #3b82f6; }
+.resumen-item.verde { border-left-color: #10b981; }
+
+.text-uppercase-input {
+	text-transform: uppercase;
+}
+
+/* Las alertas de SweetAlert deben quedar encima de los modales de Bootstrap */
+.swal2-container {
+	z-index: 2000 !important;
 }
