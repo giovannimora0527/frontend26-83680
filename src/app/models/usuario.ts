@@ -1,9 +1,11 @@
 export class Usuario {
-    id?: number;
-    username?: string;
-    password_hash?: string;
-    rol?: string;
-    email?: string;
-    fechaCreacion?: Date;
-    activo?: boolean;
+  id?: number;
+  username?: string;
+  password?: string;
+  rol?: string;
+  perfilId?: number;
+  email?: string;
+  fechaCreacion?: Date;
+  activo?: boolean;
+  medicoId?: number | null;
 }

@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule, formatDate } from '@angular/common';
 import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 
 import { FormulaService } from './service/formula.service';
@@ -68,7 +70,9 @@ export class FormulaMedicaComponent {
       dosis: ['', Validators.required],
       frecuencia: ['', Validators.required],
       duracion: ['', Validators.required],
-      indicaciones: ['']
+      indicaciones: [''],
+      cantidad: [''],
+      viaAdministracion: ['']
     });
   }
 
@@ -266,7 +270,9 @@ export class FormulaMedicaComponent {
       dosis: formula.dosis ?? null,
       duracion: formula.duracion,
       frecuencia: formula.frecuencia,
-      indicaciones: formula.indicaciones ?? ''
+      indicaciones: formula.indicaciones ?? '',
+      cantidad: formula.cantidad ?? '',
+      viaAdministracion: formula.viaAdministracion ?? ''
     });
     this.openModal(this.modoFormulario);
   }
@@ -283,15 +289,17 @@ export class FormulaMedicaComponent {
    
     const valores = this.form.getRawValue();
     const formula: Formula = {
-      id: this.formulaSelected?.id,      
+      id: this.formulaSelected?.id,
       dosis: valores.dosis,
       indicaciones: valores.indicaciones,
       frecuencia: valores.frecuencia,
       duracion: valores.duracion,
       cita: valores.cita,
-      medicamento: valores.medicamento,      
+      medicamento: valores.medicamento,
       citaId: valores.cita?.id,
       medicamentoId: valores.medicamento?.id,
+      cantidad: valores.cantidad,
+      viaAdministracion: valores.viaAdministracion,
     };
 
     this.enviando = true;
@@ -335,6 +343,51 @@ export class FormulaMedicaComponent {
       this.modalInstance.hide();
     }
     this.resetFormulario();
+  }
+
+  generarPDFFormula(formula: Formula) {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.setTextColor(13, 110, 253);
+    doc.text('CLÍNICA VETERINARIA', 105, 18, { align: 'center' });
+    doc.setFontSize(13);
+    doc.setTextColor(0);
+    doc.text('FÓRMULA MÉDICA', 105, 26, { align: 'center' });
+    doc.setDrawColor(200);
+    doc.line(14, 30, 196, 30);
+
+    doc.setFontSize(10);
+    const cita = formula.cita;
+    doc.text(`Fecha: ${new Date(formula.fechaCreacionRegistro ?? '').toLocaleDateString('es-CO')}`, 14, 38);
+    doc.text(`Paciente: ${cita?.mascota?.nombreMascota ?? cita?.mascota?.nombre ?? ''}`, 14, 44);
+    doc.text(`Propietario: ${cita?.cliente?.nombres ?? ''} ${cita?.cliente?.apellidos ?? ''}`, 14, 50);
+    doc.text(`Médico: Dr/a. ${cita?.medico?.nombres ?? ''} ${cita?.medico?.apellidos ?? ''}`, 110, 38);
+    doc.line(14, 54, 196, 54);
+
+    autoTable(doc, {
+      startY: 58,
+      head: [['Medicamento', 'Dosis', 'Frecuencia', 'Duración', 'Vía', 'Cantidad']],
+      body: [[
+        formula.medicamento?.nombre ?? '',
+        formula.dosis ?? '',
+        formula.frecuencia ?? '',
+        formula.duracion ?? '',
+        formula.viaAdministracion ?? '—',
+        formula.cantidad ?? '—'
+      ]],
+      theme: 'striped',
+      headStyles: { fillColor: [13, 110, 253] }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 8;
+    if (formula.indicaciones) {
+      doc.setFontSize(10);
+      doc.text('Indicaciones:', 14, finalY);
+      const lines = doc.splitTextToSize(formula.indicaciones, 180);
+      doc.text(lines, 14, finalY + 6);
+    }
+
+    doc.save(`Formula-${formula.id}-${formula.medicamento?.nombre ?? ''}.pdf`);
   }
 
   openModal(modo: string) {

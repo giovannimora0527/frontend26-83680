@@ -1,1 +1,393 @@
-<p>medicamento works!</p>
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <input class="form-control" placeholder="Buscar por nombre, tipo, código o presentación"
+                        type="search" (input)="actualizarBusqueda($event)" />
+                </div>
+                <div class="col-md-5 text-end d-flex gap-2 justify-content-end">
+                    <ng-container *ngIf="!esDespachoMedico">
+                        <button type="button" class="btn btn-outline-success d-inline-flex align-items-center"
+                            (click)="abrirCargaMasiva()" ngbTooltip="Carga masiva (Excel/CSV)" placement="top" container="body">
+                            <i class="fa fa-upload" aria-hidden="true"></i>&nbsp; Carga masiva
+                        </button>
+                        <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center"
+                            (click)="nuevoMedicamento()" ngbTooltip="Agregar nuevo medicamento" placement="top" container="body">
+                            <i class="fa fa-plus" aria-hidden="true"></i>&nbsp; Nuevo medicamento
+                        </button>
+                    </ng-container>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger" *ngIf="errorMedicamentos" role="alert">
+                {{ errorMedicamentos }}
+                <button type="button" class="btn btn-link p-0 ms-2" (click)="listar()">Reintentar</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>
+                                <button type="button" class="btn btn-link p-0 text-dark text-decoration-none fw-semibold"
+                                    (click)="ordenarPor('nombre')">
+                                    Nombre <i class="fa" [ngClass]="columnaOrden==='nombre' ? (direccionOrden==='asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="btn btn-link p-0 text-dark text-decoration-none fw-semibold"
+                                    (click)="ordenarPor('tipo')">
+                                    Tipo <i class="fa" [ngClass]="columnaOrden==='tipo' ? (direccionOrden==='asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                </button>
+                            </th>
+                            <th>Código</th>
+                            <th>Presentación</th>
+                            <th class="text-center">
+                                <button type="button" class="btn btn-link p-0 text-dark text-decoration-none fw-semibold"
+                                    (click)="ordenarPor('cantidadActual')">
+                                    Cant. <i class="fa" [ngClass]="columnaOrden==='cantidadActual' ? (direccionOrden==='asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                </button>
+                            </th>
+                            <th class="text-end">P. Venta</th>
+                            <th class="text-center">
+                                <button type="button" class="btn btn-link p-0 text-dark text-decoration-none fw-semibold"
+                                    (click)="ordenarPor('fechaVence')">
+                                    F. Vence <i class="fa" [ngClass]="columnaOrden==='fechaVence' ? (direccionOrden==='asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                </button>
+                            </th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngIf="!errorMedicamentos && listMedicamentos.length === 0">
+                            <td colspan="9" class="text-center text-muted py-3">No hay medicamentos registrados</td>
+                        </tr>
+                        <tr *ngIf="listMedicamentos.length > 0 && medicamentosFiltrados.length === 0">
+                            <td colspan="9" class="text-center text-muted py-3">No se encontraron medicamentos</td>
+                        </tr>
+                        <tr *ngFor="let med of medicamentosPaginados">
+                            <td>{{ med.nombre }}</td>
+                            <td>
+                                <span class="badge" [ngClass]="med.tipo === 'MEDICAMENTO' ? 'bg-primary' : 'bg-secondary'">
+                                    {{ med.tipo }}
+                                </span>
+                            </td>
+                            <td><code>{{ med.codigo || '—' }}</code></td>
+                            <td>{{ med.presentacion || '—' }}</td>
+                            <td class="text-center">
+                                <strong>{{ med.cantidadActual ?? 0 }}</strong>
+                                <small class="text-muted"> / mín {{ med.stockMinimo ?? 0 }}</small>
+                            </td>
+                            <td class="text-end">
+                                {{ med.precioVenta != null ? ('$' + (med.precioVenta | number:'1.0-0')) : '—' }}
+                            </td>
+                            <td class="text-center">{{ med.fechaVence | date:'dd/MM/yyyy' }}</td>
+                            <td class="text-center">
+                                <span class="badge" [ngClass]="badgeEstado(estadoStock(med))">
+                                    {{ labelEstado(estadoStock(med)) }}
+                                </span>
+                            </td>
+                            <td class="text-center d-flex gap-1 justify-content-center">
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    (click)="verLotes(med)"
+                                    ngbTooltip="Ver lotes registrados" placement="top" container="body">
+                                    <i class="fa fa-boxes"></i>&nbsp;Lotes
+                                </button>
+                                <button *ngIf="!esDespachoMedico" type="button" class="btn btn-outline-info btn-sm"
+                                    (click)="abrirEdicion(med)"
+                                    ngbTooltip="Editar" placement="top" container="body">
+                                    <i class="fa fa-edit"></i>&nbsp;Editar
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav *ngIf="totalPaginas > 1" aria-label="Paginación">
+                <ul class="pagination justify-content-end mb-0">
+                    <li class="page-item" [class.disabled]="paginaActual === 1">
+                        <button class="page-link" type="button" (click)="cambiarPagina(paginaActual - 1)">Ant.</button>
+                    </li>
+                    <li class="page-item" *ngFor="let p of paginas" [class.active]="p === paginaActual">
+                        <button class="page-link" type="button" (click)="cambiarPagina(p)">{{ p }}</button>
+                    </li>
+                    <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+                        <button class="page-link" type="button" (click)="cambiarPagina(paginaActual + 1)">Sig.</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal crear/editar -->
+<div class="modal fade" id="modalCrearMedicamento" tabindex="-1" aria-labelledby="modalCrearMedicamentoLabel"
+    aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCrearMedicamentoLabel">{{ titleModal }}</h5>
+                <button type="button" class="btn-close" [disabled]="enviando" (click)="closeModal()"></button>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="guardarMedicamento()">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <!-- Tipo -->
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" formControlName="tipo"
+                                [class.is-invalid]="f['tipo'].touched && f['tipo'].invalid">
+                                <option value="MEDICAMENTO">Medicamento</option>
+                                <option value="UTENSILIO">Utensilio / Producto</option>
+                            </select>
+                        </div>
+                        <!-- Nombre -->
+                        <div class="col-md-8">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input class="form-control" type="text" formControlName="nombre" placeholder="Ej: Amoxicilina 500mg"
+                                [class.is-invalid]="f['nombre'].touched && f['nombre'].invalid">
+                            <div class="invalid-feedback">Ingresa el nombre del medicamento.</div>
+                        </div>
+                        <!-- Registro Invima -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Registro Invima
+                                <span class="text-danger" *ngIf="f['tipo'].value === 'MEDICAMENTO'">*</span>
+                            </label>
+                            <input class="form-control" type="text" formControlName="registroInvima"
+                                placeholder="Ej: INVIMA2024M-0001234"
+                                [class.is-invalid]="f['registroInvima'].touched && f['registroInvima'].invalid">
+                            <div class="invalid-feedback">Requerido para medicamentos.</div>
+                        </div>
+                        <!-- Presentación -->
+                        <div class="col-md-4">
+                            <label class="form-label">Presentación</label>
+                            <input class="form-control" type="text" formControlName="presentacion" placeholder="Ej: Tabletas 500mg">
+                        </div>
+                        <!-- Precio compra -->
+                        <div class="col-md-2">
+                            <label class="form-label">Precio compra</label>
+                            <input class="form-control" type="number" min="0" step="0.01" formControlName="precioCompra" placeholder="0">
+                        </div>
+                        <!-- Precio venta -->
+                        <div class="col-md-2">
+                            <label class="form-label">Precio venta</label>
+                            <input class="form-control" type="number" min="0" step="0.01" formControlName="precioVenta" placeholder="0">
+                        </div>
+                        <!-- Cantidad actual -->
+                        <div class="col-md-3">
+                            <label class="form-label">Cantidad actual <span class="text-danger">*</span></label>
+                            <input class="form-control" type="number" min="0" formControlName="cantidadActual"
+                                [class.is-invalid]="f['cantidadActual'].touched && f['cantidadActual'].invalid">
+                            <div class="invalid-feedback">Valor mínimo: 0</div>
+                        </div>
+                        <!-- Stock mínimo -->
+                        <div class="col-md-3">
+                            <label class="form-label">Stock mínimo <span class="text-danger">*</span></label>
+                            <input class="form-control" type="number" min="0" formControlName="stockMinimo"
+                                [class.is-invalid]="f['stockMinimo'].touched && f['stockMinimo'].invalid">
+                            <div class="invalid-feedback">Valor mínimo: 0</div>
+                        </div>
+                        <!-- Fecha compra -->
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha compra <span class="text-danger">*</span></label>
+                            <input class="form-control" type="date" formControlName="fechaCompra"
+                                [class.is-invalid]="f['fechaCompra'].touched && f['fechaCompra'].invalid">
+                            <div class="invalid-feedback">Requerido</div>
+                        </div>
+                        <!-- Fecha vence -->
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha vencimiento <span class="text-danger">*</span></label>
+                            <input class="form-control" type="date" formControlName="fechaVence"
+                                [class.is-invalid]="f['fechaVence'].touched && f['fechaVence'].invalid">
+                            <div class="invalid-feedback">Requerido</div>
+                        </div>
+                        <!-- Fecha próximo pedido -->
+                        <div class="col-md-3">
+                            <label class="form-label">Próximo pedido</label>
+                            <input class="form-control" type="date" formControlName="fechaProximoPedido">
+                        </div>
+                        <!-- Descripción -->
+                        <div class="col-md-12">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" formControlName="descripcion" rows="2" placeholder="Descripción opcional"></textarea>
+                        </div>
+                        <!-- Creado por (solo lectura en edición) -->
+                        <div class="col-md-12" *ngIf="modoFormulario === 'E' && medicamentoSelected?.creadoPor">
+                            <label class="form-label text-muted">Creado por</label>
+                            <input class="form-control form-control-sm" type="text"
+                                [value]="medicamentoSelected!.creadoPor" readonly>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger mt-3 mb-0" *ngIf="respuestaError" role="alert">{{ respuestaError }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" [disabled]="enviando" (click)="closeModal()">Cerrar</button>
+                    <button type="submit" class="btn btn-primary" [disabled]="enviando">
+                        {{ enviando ? 'Guardando...' : titleBoton }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal carga masiva -->
+<div class="modal fade" id="modalCargaMasiva" tabindex="-1" aria-labelledby="modalCargaMasivaLabel"
+    aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCargaMasivaLabel">Carga masiva de medicamentos</h5>
+                <button type="button" class="btn-close" [disabled]="cargandoArchivo || confirmandoCarga"
+                    (click)="closeCargaModal()"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Instrucciones -->
+                <div class="alert alert-info mb-3 d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                        <strong>Formato del archivo:</strong> Excel (.xlsx / .xls) o CSV (;) con columnas en orden:<br>
+                        <code class="d-block mt-1" style="font-size:0.78rem">nombre · tipo · descripcion · presentacion · registroInvima · precioCompra · precioVenta · cantidadActual · stockMinimo · fechaCompra(yyyy-MM-dd) · fechaVence(yyyy-MM-dd) · fechaProximoPedido</code>
+                        <small class="text-muted">La primera fila es el encabezado. <strong>tipo</strong>: MEDICAMENTO o UTENSILIO.</small>
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm text-nowrap" (click)="descargarPlantilla()"
+                        ngbTooltip="Descarga la plantilla CSV con encabezados y ejemplos (abre en Excel)" placement="left" container="body">
+                        <i class="fa fa-download"></i> Plantilla .csv
+                    </button>
+                </div>
+                <!-- Selector de archivo -->
+                <div class="mb-3">
+                    <input type="file" class="form-control" accept=".xlsx,.csv"
+                        (change)="onArchivoSeleccionado($event)" [disabled]="cargandoArchivo || confirmandoCarga">
+                </div>
+                <div class="alert alert-danger" *ngIf="errorCarga" role="alert">{{ errorCarga }}</div>
+                <!-- Botón previsualizar -->
+                <div class="mb-3" *ngIf="archivoCarga && !preview">
+                    <button type="button" class="btn btn-outline-primary" [disabled]="cargandoArchivo"
+                        (click)="previsualizarArchivo()">
+                        {{ cargandoArchivo ? 'Procesando...' : 'Previsualizar archivo' }}
+                    </button>
+                </div>
+                <!-- Resultados previsualización -->
+                <div *ngIf="preview">
+                    <div class="row g-3 mb-3">
+                        <div class="col-auto">
+                            <span class="badge bg-success fs-6">{{ preview.totalValidos }} válidos</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-danger fs-6">{{ preview.totalErrores }} con error</span>
+                        </div>
+                    </div>
+                    <!-- Registros válidos -->
+                    <div *ngIf="preview.registrosValidos.length > 0" class="mb-3">
+                        <h6 class="text-success">Registros válidos (se importarán)</h6>
+                        <div class="table-responsive" style="max-height:220px;overflow-y:auto">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Nombre</th><th>Tipo</th><th>Presentación</th>
+                                        <th>Cant.</th><th>P.Venta</th><th>F.Vence</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let r of preview.registrosValidos">
+                                        <td>{{ r.nombre }}</td>
+                                        <td>{{ r.tipo }}</td>
+                                        <td>{{ r.presentacion || '—' }}</td>
+                                        <td class="text-center">{{ r.cantidadActual ?? 0 }}</td>
+                                        <td class="text-end">{{ r.precioVenta != null ? ('$' + r.precioVenta) : '—' }}</td>
+                                        <td>{{ r.fechaVence }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Registros con error -->
+                    <div *ngIf="preview.registrosConError.length > 0" class="mb-3">
+                        <h6 class="text-danger">Registros con error (no se importarán)</h6>
+                        <div class="table-responsive" style="max-height:180px;overflow-y:auto">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-danger">
+                                    <tr><th>Fila</th><th>Nombre</th><th>Motivo</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let e of preview.registrosConError">
+                                        <td class="text-center">{{ e.fila }}</td>
+                                        <td>{{ e.nombre || '—' }}</td>
+                                        <td>{{ e.motivo }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" [disabled]="cargandoArchivo || confirmandoCarga"
+                    (click)="closeCargaModal()">Cerrar</button>
+                <button type="button" class="btn btn-success"
+                    *ngIf="preview && preview.totalValidos > 0"
+                    [disabled]="confirmandoCarga"
+                    (click)="confirmarImportacion()">
+                    {{ confirmandoCarga ? 'Importando...' : ('Confirmar importación (' + preview!.totalValidos + ')') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal lotes -->
+<div class="modal fade" id="modalLotesMedicamento" tabindex="-1" aria-labelledby="modalLotesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLotesLabel">
+                    Lotes — {{ medicamentoLotes?.nombre }}
+                    <small class="text-muted ms-2">{{ medicamentoLotes?.codigo }}</small>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-3" *ngIf="cargandoLotes">
+                    <div class="spinner-border spinner-border-sm text-primary"></div> Cargando lotes...
+                </div>
+                <div class="alert alert-info" *ngIf="!cargandoLotes && listLotes.length === 0">
+                    No hay lotes registrados para este medicamento.<br>
+                    <small>Los lotes se crean automáticamente al guardar o importar un medicamento con cantidad &gt; 0.</small>
+                </div>
+                <div class="table-responsive" *ngIf="!cargandoLotes && listLotes.length > 0">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>N° Lote</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-end">P. Compra</th>
+                                <th class="text-center">F. Ingreso</th>
+                                <th class="text-center">F. Vencimiento</th>
+                                <th class="text-center">F. Creación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let l of listLotes">
+                                <td><code>{{ l.numeroLote }}</code></td>
+                                <td class="text-center">{{ l.cantidad }}</td>
+                                <td class="text-end">{{ l.precioCompra != null ? ('$' + (l.precioCompra | number:'1.0-0')) : '—' }}</td>
+                                <td class="text-center">{{ l.fechaIngreso | date:'dd/MM/yyyy' }}</td>
+                                <td class="text-center">{{ l.fechaVencimiento | date:'dd/MM/yyyy' }}</td>
+                                <td class="text-center">{{ l.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small" *ngIf="listLotes.length > 0">
+                    {{ listLotes.length }} lote(s) — Stock total: {{ calcularTotalLotes() }} unidades
+                </span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -192,13 +192,13 @@
                                     <dt class="col-sm-4">Última actualización de la fórmula</dt>
                                     <dd class="col-sm-8">{{ ((formula.fechaActualizacionRegistro ?? formula.fecha_actualizacion_registro) | date:'yyyy-MM-dd HH:mm') || 'No informado' }}</dd>
                                     <dt class="col-sm-4">Fecha de compra del medicamento</dt>
-                                    <dd class="col-sm-8">{{ ((formula.medicamento.fechaCompra ?? formula.medicamento.fecha_compra) | date:'yyyy-MM-dd') || 'No informado' }}</dd>
+                                    <dd class="col-sm-8">{{ (formula.medicamento.fechaCompra | date:'yyyy-MM-dd') || 'No informado' }}</dd>
                                     <dt class="col-sm-4">Fecha de vencimiento del medicamento</dt>
-                                    <dd class="col-sm-8">{{ ((formula.medicamento.fechaVence ?? formula.medicamento.fecha_vence) | date:'yyyy-MM-dd') || 'No informado' }}</dd>
+                                    <dd class="col-sm-8">{{ (formula.medicamento.fechaVence | date:'yyyy-MM-dd') || 'No informado' }}</dd>
                                     <dt class="col-sm-4">Registro del medicamento</dt>
-                                    <dd class="col-sm-8">{{ ((formula.medicamento.fechaCreacionRegistro ?? formula.medicamento.fecha_creacion_registro) | date:'yyyy-MM-dd HH:mm') || 'No informado' }}</dd>
+                                    <dd class="col-sm-8">{{ (formula.medicamento.fechaCreacionRegistro | date:'yyyy-MM-dd HH:mm') || 'No informado' }}</dd>
                                     <dt class="col-sm-4">Modificación del medicamento</dt>
-                                    <dd class="col-sm-8">{{ ((formula.medicamento.fechaModificacionRegistro ?? formula.medicamento.fecha_modificacion_registro) | date:'yyyy-MM-dd HH:mm') || 'No informado' }}</dd>
+                                    <dd class="col-sm-8">{{ (formula.medicamento.fechaModificacionRegistro | date:'yyyy-MM-dd HH:mm') || 'No informado' }}</dd>
                                     <dt class="col-sm-4">Cita de la fórmula</dt>
                                     <dd class="col-sm-8">{{ formula.cita.id ?? 'No informado' }} — {{ (formula.cita.fechaHora | date:'yyyy-MM-dd HH:mm') || 'No informado' }}</dd>
                                 </dl>
@@ -414,4 +414,219 @@
             </nav>
         </div>
     </div>
+</div>
+
+<!-- Modal Iniciar Atención desde Cita -->
+<div class="modal fade" id="modalAtencionCita" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h2 class="modal-title fs-5">
+          <i class="fa fa-stethoscope me-2"></i>
+          Atención — {{ citaAtendida?.mascota?.nombreMascota ?? citaAtendida?.mascota?.nombre }}
+          &nbsp;|&nbsp; {{ citaAtendida?.fechaHora | date:'dd/MM/yyyy HH:mm' }}
+        </h2>
+        <button type="button" class="btn-close btn-close-white" [disabled]="guardandoAtencion"
+          (click)="cerrarModalAtencion()"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- 1. Datos de la mascota -->
+        <h3 class="h6 text-success border-bottom pb-1 mb-2">Datos de la mascota</h3>
+        <div class="row g-2 mb-3 p-2 bg-light rounded">
+          <div class="col-md-3">
+            <small class="text-muted d-block">Nombre</small>
+            <strong>{{ citaAtendida?.mascota?.nombreMascota ?? citaAtendida?.mascota?.nombre }}</strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Especie / Raza</small>
+            {{ citaAtendida?.mascota?.raza?.especie ?? '—' }} / {{ citaAtendida?.mascota?.raza?.nombre ?? '—' }}
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Edad</small>
+            {{ citaAtendida?.mascota?.edad ?? '—' }}
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Propietario</small>
+            {{ nombreCompleto(citaAtendida?.cliente ?? citaAtendida?.mascota?.cliente) }}
+          </div>
+        </div>
+
+        <!-- 2. Antecedentes clínicos -->
+        <h3 class="h6 text-success border-bottom pb-1 mb-2">Antecedentes clínicos</h3>
+        <p *ngIf="!historiaParaAtencion?.anotaciones?.length" class="text-muted small mb-3">
+          Sin antecedentes registrados para esta mascota.
+        </p>
+        <div class="accordion mb-3" *ngIf="historiaParaAtencion?.anotaciones?.length">
+          <div class="accordion-item" *ngFor="let ant of historiaParaAtencion!.anotaciones; let ai = index">
+            <h4 class="accordion-header">
+              <button class="accordion-button collapsed py-2 small" type="button"
+                data-bs-toggle="collapse" [attr.data-bs-target]="'#antecedente' + ai">
+                Consulta {{ ai + 1 }} — {{ ant.fecha | date:'dd/MM/yyyy' }}
+                | Dr/a. {{ nombreCompleto(ant.medico) }}
+              </button>
+            </h4>
+            <div [id]="'antecedente' + ai" class="accordion-collapse collapse">
+              <div class="accordion-body py-2 small">
+                <strong>Descripción / Motivo:</strong> {{ ant.descripcion }}<br>
+                <strong>Diagnóstico:</strong> {{ ant.diagnostico ?? '—' }}<br>
+                <strong>Observaciones:</strong> {{ ant.observaciones ?? '—' }}<br>
+                <span *ngIf="ant.formulasMedicas?.length">
+                  <strong>Medicamentos formulados:</strong> {{ ant.formulasMedicas!.length }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- 3. Registro de atención -->
+        <h3 class="h6 text-success border-bottom pb-1 mb-2">Registro de atención</h3>
+        <div *ngIf="errorAtencion" class="alert alert-danger py-2 small">{{ errorAtencion }}</div>
+        <form [formGroup]="formAtencionRapida">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">
+                Tipo de servicio <span class="text-danger">*</span>
+              </label>
+              <select class="form-select" formControlName="tipoServicio"
+                [class.is-invalid]="formAtencionRapida.controls.tipoServicio.touched && formAtencionRapida.controls.tipoServicio.invalid"
+                [disabled]="guardandoAtencion">
+                <option *ngFor="let ts of TIPOS_SERVICIO" [value]="ts">{{ ts }}</option>
+              </select>
+              <div class="invalid-feedback">Campo requerido.</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">
+                Motivo de consulta y síntomas <span class="text-danger">*</span>
+              </label>
+              <textarea class="form-control" rows="3" formControlName="descripcion"
+                placeholder="Describa el motivo de consulta y los síntomas identificados..."
+                [class.is-invalid]="formAtencionRapida.controls.descripcion.touched && formAtencionRapida.controls.descripcion.invalid">
+              </textarea>
+              <div class="invalid-feedback">Campo requerido.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Diagnóstico <span class="text-danger">*</span></label>
+              <textarea class="form-control" rows="3" formControlName="diagnostico"
+                [class.is-invalid]="formAtencionRapida.controls.diagnostico.touched && formAtencionRapida.controls.diagnostico.invalid">
+              </textarea>
+              <div class="invalid-feedback">Campo requerido.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Observaciones y recomendaciones</label>
+              <textarea class="form-control" rows="3" formControlName="observaciones"
+                placeholder="Observaciones médicas y recomendaciones para el propietario...">
+              </textarea>
+            </div>
+          </div>
+        </form>
+
+        <hr>
+
+        <!-- 4. Fórmulas médicas -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 class="h6 text-success mb-0">Fórmulas médicas</h3>
+          <button type="button" class="btn btn-sm btn-outline-success" (click)="agregarFilaFormula()">
+            <i class="fa fa-plus me-1"></i>Agregar medicamento
+          </button>
+        </div>
+        <p *ngIf="formulasEnAtencion.length === 0" class="text-muted small">
+          No hay medicamentos agregados. Haz clic en "Agregar medicamento" para prescribir.
+        </p>
+        <div *ngFor="let fila of formulasEnAtencion; let fi = index"
+          class="border rounded p-3 mb-2 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="small">Medicamento {{ fi + 1 }}</strong>
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="quitarFilaFormula(fi)">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">
+                Medicamento <span class="text-danger">*</span>
+              </label>
+              <select class="form-select form-select-sm"
+                [class.border-danger]="sinStock(fila)"
+                [class.border-warning]="excedeCantidad(fila)"
+                [(ngModel)]="fila.medicamento">
+                <option [ngValue]="null">Selecciona un medicamento...</option>
+                <option *ngFor="let m of listMedicamentosAtencion" [ngValue]="m"
+                  [disabled]="(m.cantidadActual ?? 0) <= 0">
+                  {{ m.nombre }}{{ m.presentacion ? ' (' + m.presentacion + ')' : '' }}
+                  — Stock: {{ m.cantidadActual ?? 0 }}{{ (m.cantidadActual ?? 0) <= 0 ? ' ⚠ Sin stock' : '' }}
+                </option>
+              </select>
+              <div *ngIf="sinStock(fila)" class="alert alert-danger py-1 px-2 mt-1 mb-0 small">
+                <i class="fa fa-ban me-1"></i>
+                <strong>Sin stock.</strong> Este medicamento no puede formularse.
+              </div>
+              <small *ngIf="excedeCantidad(fila)" class="text-warning fw-semibold d-block mt-1">
+                <i class="fa fa-exclamation-triangle me-1"></i>
+                La cantidad solicitada supera el stock disponible ({{ stockDeFila(fila) }}).
+              </small>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Dosis <span class="text-danger">*</span></label>
+              <input class="form-control form-control-sm" [(ngModel)]="fila.dosis" placeholder="Ej: 500mg">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Frecuencia <span class="text-danger">*</span></label>
+              <input class="form-control form-control-sm" [(ngModel)]="fila.frecuencia" placeholder="Ej: cada 8h">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Duración <span class="text-danger">*</span></label>
+              <input class="form-control form-control-sm" [(ngModel)]="fila.duracion" placeholder="Ej: 7 días">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Cantidad</label>
+              <input class="form-control form-control-sm" [(ngModel)]="fila.cantidad"
+                placeholder="Ej: 1 caja, 20 tabletas">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Vía de administración</label>
+              <input class="form-control form-control-sm" [(ngModel)]="fila.viaAdministracion"
+                placeholder="Oral, inyectable, tópica...">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Indicaciones especiales</label>
+              <input class="form-control form-control-sm" [(ngModel)]="fila.indicaciones"
+                placeholder="Indicaciones para el propietario">
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer flex-wrap gap-2 align-items-center">
+        <div class="form-check me-auto">
+          <input class="form-check-input" type="checkbox" id="chkFinalizarCita"
+            [(ngModel)]="finalizarCita" [disabled]="guardandoAtencion">
+          <label class="form-check-label fw-semibold text-success" for="chkFinalizarCita">
+            Marcar cita como finalizada
+          </label>
+        </div>
+        <button type="button" class="btn btn-secondary" [disabled]="guardandoAtencion"
+          (click)="cerrarModalAtencion()">Cerrar</button>
+        <button type="button" class="btn btn-info text-white"
+          [disabled]="formulasEnAtencion.length === 0"
+          (click)="generarFormulaPDF()">
+          <i class="fa fa-file-pdf-o me-1"></i>PDF Fórmula
+        </button>
+        <button type="button" class="btn btn-warning"
+          (click)="generarPrefacturaPDF()">
+          <i class="fa fa-file-pdf-o me-1"></i>Prefactura PDF
+        </button>
+        <button type="button" class="btn btn-success"
+          [disabled]="guardandoAtencion || hayFormulaSinStock"
+          [title]="hayFormulaSinStock ? 'Hay medicamentos sin stock. Retíralos para continuar.' : ''"
+          (click)="guardarAtencionCompleta()">
+          <span *ngIf="guardandoAtencion" class="spinner-border spinner-border-sm me-1"></span>
+          <i class="fa fa-save me-1" *ngIf="!guardandoAtencion"></i>
+          Guardar Atención
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

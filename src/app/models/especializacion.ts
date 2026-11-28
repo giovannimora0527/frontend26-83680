@@ -3,4 +3,5 @@ export class Especializacion {
     nombre?: string;
     descripcion?: string;
     codigoEspecializacion?: string;
+    activa?: boolean;
 }

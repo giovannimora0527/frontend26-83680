@@ -13,4 +13,5 @@ export class AnotacionHistoria {
     medico!: Medico;
     cita?: Cita | null;
     formulasMedicas?: Formula[] | null;
+    tipoServicio?: string | null;
 }

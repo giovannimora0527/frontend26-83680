@@ -1,0 +1,149 @@
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="ti ti-stethoscope me-2"></i>Atención Médica</h4>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <input type="text" class="form-control form-control-sm w-auto"
+          placeholder="Buscar por mascota, médico o cliente..."
+          (input)="actualizarBusqueda($event)" />
+        <small class="text-muted">{{ citasFiltradas.length }} cita(s)</small>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Fecha y Hora</th>
+              <th>Mascota</th>
+              <th>Cliente</th>
+              <th>Médico</th>
+              <th>Motivo</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of citasPaginadas; let i = index">
+              <td>{{ (paginaActual - 1) * registrosPorPagina + i + 1 }}</td>
+              <td>{{ c.fechaHora | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td><strong>{{ c.mascota?.nombreMascota ?? c.mascota?.nombre }}</strong></td>
+              <td>{{ c.cliente?.nombres }} {{ c.cliente?.apellidos }}</td>
+              <td>Dr/a. {{ c.medico?.nombres }} {{ c.medico?.apellidos }}</td>
+              <td>{{ c.motivo ?? '—' }}</td>
+              <td class="text-center">
+                <span [class]="badgeEstado(c.estado)">{{ c.estado }}</span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-primary me-1" ngbTooltip="Atender / Ver atención"
+                  [disabled]="c.estado === 'cancelada'"
+                  (click)="atender(c)">
+                  <i class="ti ti-stethoscope"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="citasPaginadas.length === 0">
+              <td colspan="8" class="text-center text-muted py-4">No hay citas disponibles.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <nav *ngIf="totalPaginas > 1">
+        <ul class="pagination pagination-sm justify-content-center mb-0">
+          <li class="page-item" [class.disabled]="paginaActual === 1">
+            <a class="page-link" (click)="cambiarPagina(paginaActual - 1)">‹</a>
+          </li>
+          <li class="page-item" *ngFor="let p of paginas" [class.active]="p === paginaActual">
+            <a class="page-link" (click)="cambiarPagina(p)">{{ p }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+            <a class="page-link" (click)="cambiarPagina(paginaActual + 1)">›</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Atención Médica -->
+<div class="modal fade" id="modalAtencion" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="ti ti-stethoscope me-2"></i>
+          Atención — {{ citaSeleccionada?.mascota?.nombreMascota ?? citaSeleccionada?.mascota?.nombre }}
+          &nbsp;|&nbsp; {{ citaSeleccionada?.fechaHora | date:'dd/MM/yyyy HH:mm' }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" *ngIf="respuestaError">{{ respuestaError }}</div>
+
+        <!-- Info de la cita -->
+        <div class="row g-2 mb-3 p-2 bg-light rounded">
+          <div class="col-md-4">
+            <small class="text-muted d-block">Mascota</small>
+            <strong>{{ citaSeleccionada?.mascota?.nombreMascota ?? citaSeleccionada?.mascota?.nombre }}</strong>
+          </div>
+          <div class="col-md-4">
+            <small class="text-muted d-block">Propietario</small>
+            <strong>{{ citaSeleccionada?.cliente?.nombres }} {{ citaSeleccionada?.cliente?.apellidos }}</strong>
+          </div>
+          <div class="col-md-4">
+            <small class="text-muted d-block">Médico</small>
+            <strong>Dr/a. {{ citaSeleccionada?.medico?.nombres }} {{ citaSeleccionada?.medico?.apellidos }}</strong>
+          </div>
+        </div>
+
+        <form [formGroup]="form">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Motivo de la consulta <span class="text-danger">*</span></label>
+              <textarea class="form-control" rows="3" formControlName="motivoConsulta"
+                [class.is-invalid]="f['motivoConsulta'].invalid && f['motivoConsulta'].touched"></textarea>
+              <div class="invalid-feedback">Campo requerido.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Síntomas</label>
+              <textarea class="form-control" rows="3" formControlName="sintomas"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Diagnóstico <span class="text-danger">*</span></label>
+              <textarea class="form-control" rows="3" formControlName="diagnostico"
+                [class.is-invalid]="f['diagnostico'].invalid && f['diagnostico'].touched"></textarea>
+              <div class="invalid-feedback">Campo requerido.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Observaciones</label>
+              <textarea class="form-control" rows="3" formControlName="observaciones"></textarea>
+            </div>
+            <div class="col-md-9">
+              <label class="form-label fw-semibold">Recomendaciones</label>
+              <textarea class="form-control" rows="2" formControlName="recomendaciones"></textarea>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Estado</label>
+              <select class="form-select" formControlName="estado">
+                <option value="EN_CURSO">En curso</option>
+                <option value="FINALIZADA">Finalizada</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button class="btn btn-primary" (click)="guardar()" [disabled]="enviando">
+          <span *ngIf="enviando" class="spinner-border spinner-border-sm me-1"></span>
+          <i class="ti ti-device-floppy me-1" *ngIf="!enviando"></i>
+          Guardar Atención
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -6,4 +6,5 @@ export interface AnotacionHistoriaRq {
     descripcion: string;
     diagnostico: string;
     observaciones: string;
+    tipoServicio?: string;
 }

@@ -1,4 +1,5 @@
-import { getJwtMenus } from 'src/app/utils/jwt.util';
+import { getJwtMenus, getJwtPayload } from 'src/app/utils/jwt.util';
+import { rolPuedeAcceder } from 'src/app/constants/role-permissions';
 
 export interface NavigationItem {
   id: string;
@@ -24,7 +25,7 @@ export const NavigationItems: NavigationItem[] = [
     icon: 'icon-navigation',
     children: [
       {
-        id: 'cita',
+        id: 'citas',
         title: 'Gestión de Citas',
         type: 'item',
         url: '/inicio/citas',
@@ -96,6 +97,38 @@ export const NavigationItems: NavigationItem[] = [
         classes: 'nav-item'
       },
       {
+        id: 'razas',
+        title: 'Gestión de Razas',
+        type: 'item',
+        url: '/inicio/razas',
+        icon: 'fa-solid fa-paw',
+        classes: 'nav-item'
+      },
+      {
+        id: 'tarifas',
+        title: 'Gestión de Tarifas',
+        type: 'item',
+        url: '/inicio/tarifas',
+        icon: 'fa-solid fa-dollar-sign',
+        classes: 'nav-item'
+      },
+      {
+        id: 'atencion',
+        title: 'Atención Médica',
+        type: 'item',
+        url: '/inicio/atencion',
+        icon: 'fa-solid fa-stethoscope',
+        classes: 'nav-item'
+      },
+      {
+        id: 'facturas',
+        title: 'Facturación',
+        type: 'item',
+        url: '/inicio/facturas',
+        icon: 'fa-solid fa-file-invoice-dollar',
+        classes: 'nav-item'
+      },
+      {
         id: 'despachos',
         title: 'Despacho de Medicamentos',
         type: 'item',
@@ -108,18 +141,15 @@ export const NavigationItems: NavigationItem[] = [
 ];
 
 export function getNavigationItems(): NavigationItem[] {
-  let allowedCodes: Set<string>;
-  try {
-    allowedCodes = new Set(getJwtMenus().filter((menu) => menu.activo).map((menu) => menu.code));
-  } catch (error) {
-    console.error('No fue posible obtener los menus del token JWT', error);
-    return [];
-  }
+  const payload = getJwtPayload();
+  if (!payload) return [];
+
+  const rol = payload.rol;
 
   const filterItems = (items: NavigationItem[]): NavigationItem[] =>
     items.flatMap((item) => {
       if (item.type === 'item') {
-        return allowedCodes.has(item.id) ? [{ ...item }] : [];
+        return rolPuedeAcceder(rol, item.id) ? [{ ...item }] : [];
       }
 
       const children = filterItems(item.children ?? []);

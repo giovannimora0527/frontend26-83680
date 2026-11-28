@@ -105,10 +105,14 @@
                                 <td class="text-center">{{ formula.cita?.cliente?.nombres }} {{ formula.cita?.cliente?.apellidos }}</td>
                                 <td class="text-center">{{ formula.fechaCreacionRegistro | date:'yyyy-MM-dd HH:mm' }}</td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-outline-info" (click)="abrirEdicion(formula)"
+                                    <button type="button" class="btn btn-outline-info me-1" (click)="abrirEdicion(formula)"
                                         ngbTooltip="Editar fórmula" tooltipClass="tooltip-info" triggers="hover focus"
                                         placement="top" container="body">
-                                        <i class="fa fa-edit" aria-hidden="true"></i>&nbsp;Editar
+                                        <i class="fa fa-edit" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" (click)="generarPDFFormula(formula)"
+                                        ngbTooltip="Descargar PDF" placement="top" container="body">
+                                        <i class="fa fa-file-pdf-o" aria-hidden="true"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -204,6 +208,14 @@
                             <div class="text-danger" *ngIf="f['duracion'].touched && f['duracion'].invalid">
                                 Ingresa la duración.
                             </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="cantidad" class="form-label">Cantidad</label>
+                            <input id="cantidad" class="form-control" formControlName="cantidad" placeholder="Ej: 1 caja, 20 tabletas">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="viaAdministracion" class="form-label">Vía de administración</label>
+                            <input id="viaAdministracion" class="form-control" formControlName="viaAdministracion" placeholder="Ej: oral, tópica, inyectable">
                         </div>
                         <div class="col-12">
                             <label for="indicaciones" class="form-label">Indicaciones</label>

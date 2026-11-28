@@ -1,14 +1,19 @@
 export class Medicamento {
-	id!: number;
-	nombre!: string;
-	descripcion?: string | null;
-	presentacion?: string | null;
-	fechaCompra?: Date | string;
-	fechaVence?: Date | string;
-	fechaCreacionRegistro?: Date | string;
-	fechaModificacionRegistro?: Date | string | null;
-	fecha_compra?: Date;
-	fecha_vence?: Date;
-	fecha_creacion_registro?: Date;
-	fecha_modificacion_registro?: Date | null;
+    id?: number;
+    codigo?: string;
+    nombre!: string;
+    tipo!: string; // MEDICAMENTO | UTENSILIO
+    descripcion?: string | null;
+    presentacion?: string | null;
+    registroInvima?: string | null;
+    precioCompra?: number | null;
+    precioVenta?: number | null;
+    cantidadActual?: number;
+    stockMinimo?: number;
+    fechaCompra?: string;
+    fechaVence?: string;
+    fechaProximoPedido?: string | null;
+    creadoPor?: string | null;
+    fechaCreacionRegistro?: string;
+    fechaModificacionRegistro?: string | null;
 }

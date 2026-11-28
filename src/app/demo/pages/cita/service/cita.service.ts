@@ -25,6 +25,26 @@ export class CitaService {
       return this.backendService.get(environment.apiUrlAuth, this.api, "listar-por-mascota", params);
     }
 
+    listarCitasRango(fechaInicio: string, fechaFin: string): Observable<Cita[]> {
+      const params = new HttpParams()
+        .set('fechaInicio', fechaInicio)
+        .set('fechaFin', fechaFin);
+      return this.backendService.get(environment.apiUrlAuth, this.api, 'listar-rango', params);
+    }
+
+    listarCitasPorMedico(medicoId: number): Observable<Cita[]> {
+      const params = new HttpParams().set('medicoId', medicoId);
+      return this.backendService.get(environment.apiUrlAuth, this.api, 'listar-por-medico', params);
+    }
+
+    listarCitasPorMedicoYRango(medicoId: number, fechaInicio: string, fechaFin: string): Observable<Cita[]> {
+      const params = new HttpParams()
+        .set('medicoId', medicoId)
+        .set('fechaInicio', fechaInicio)
+        .set('fechaFin', fechaFin);
+      return this.backendService.get(environment.apiUrlAuth, this.api, 'listar-por-medico-rango', params);
+    }
+
     guardarCita(cita: Cita): Observable<Cita> {
       return this.backendService.post(environment.apiUrlAuth, this.api, "crear", cita);
     }
@@ -33,5 +53,10 @@ export class CitaService {
       return this.backendService.post(environment.apiUrlAuth, this.api, "actualizar", cita);
     }
 
-  
+    finalizarCita(citaId: number): Observable<{ message: string }> {
+      const params = new HttpParams().set('citaId', citaId);
+      return this.backendService.get(environment.apiUrlAuth, this.api, "finalizar", params);
+    }
+
+
   }

@@ -1,0 +1,513 @@
+<div class="container-fluid">
+
+  <!-- ═══════════════ ENCABEZADO ═══════════════ -->
+  <div class="row mb-3 align-items-center">
+    <div class="col">
+      <h4 class="mb-0 fw-bold"><i class="fa-solid fa-box-open me-2 text-primary"></i>Despacho de Medicamentos</h4>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TABS ═══════════════ -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="tabActual === 'bandeja'" (click)="cambiarTab('bandeja')">
+        <i class="fa-solid fa-clipboard-list me-1"></i>Fórmulas Pendientes
+        <span class="badge bg-primary ms-1" *ngIf="formulas.length">{{ formulas.length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="tabActual === 'historial'" (click)="cambiarTab('historial')">
+        <i class="fa-solid fa-clock-rotate-left me-1"></i>Historial de Despachos
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="tabActual === 'movimientos'" (click)="cambiarTab('movimientos')">
+        <i class="fa-solid fa-arrow-right-arrow-left me-1"></i>Movimientos de Inventario
+      </button>
+    </li>
+  </ul>
+
+  <!-- ═══════════════ TAB: BANDEJA ═══════════════ -->
+  <div *ngIf="tabActual === 'bandeja'">
+    <div class="card">
+      <div class="card-header">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label mb-1 small">N° Fórmula</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Buscar..." [(ngModel)]="filtroNumero" (keyup.enter)="cargarFormulas()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label mb-1 small">Propietario</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Nombre o documento..." [(ngModel)]="filtroPropietario" (keyup.enter)="cargarFormulas()">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label mb-1 small">Mascota</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Nombre..." [(ngModel)]="filtroMascota" (keyup.enter)="cargarFormulas()">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label mb-1 small">Fecha</label>
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroFecha" (change)="cargarFormulas()">
+          </div>
+          <div class="col-md-2 d-flex gap-2">
+            <button class="btn btn-primary btn-sm flex-fill" (click)="cargarFormulas()" ngbTooltip="Buscar">
+              <i class="fa-solid fa-search me-1"></i>Buscar
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" (click)="limpiarFiltros()" ngbTooltip="Limpiar filtros">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+
+        <div class="text-center py-4" *ngIf="cargandoFormulas">
+          <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+        </div>
+
+        <div class="alert alert-danger m-3" *ngIf="errorFormulas">
+          <i class="fa-solid fa-circle-exclamation me-2"></i>{{ errorFormulas }}
+        </div>
+
+        <div class="text-center py-4 text-muted" *ngIf="!cargandoFormulas && !errorFormulas && formulas.length === 0">
+          <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>No hay fórmulas pendientes de despacho.
+        </div>
+
+        <div class="table-responsive" *ngIf="!cargandoFormulas && formulas.length > 0">
+          <table class="table table-striped table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>N° Fórmula</th>
+                <th>Fecha</th>
+                <th>Veterinario</th>
+                <th>Propietario</th>
+                <th>Mascota</th>
+                <th>Medicamento</th>
+                <th>Estado</th>
+                <th class="text-end">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let f of formulasPaginadas">
+                <td><span class="fw-semibold">#{{ f.formulaId }}</span></td>
+                <td>{{ f.fechaFormula | date:'dd/MM/yyyy' }}</td>
+                <td>{{ f.medicoNombre }}</td>
+                <td>
+                  {{ f.propietarioNombre }}
+                  <small class="text-muted d-block">{{ f.propietarioDocumento }}</small>
+                </td>
+                <td>{{ f.mascotaNombre }}</td>
+                <td>
+                  {{ f.medicamentoNombre }}
+                  <small class="text-muted d-block">{{ f.cantidad }} | {{ f.viaAdministracion }}</small>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="badgeEstado(f.estadoDespacho)">
+                    {{ etiquetaEstado(f.estadoDespacho) }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-outline-primary btn-sm"
+                          [disabled]="!puedeDespachar(f)"
+                          (click)="abrirPreparar(f)"
+                          ngbTooltip="Preparar / Despachar">
+                    <i class="fa-solid fa-pills me-1"></i>Dispensar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-end px-3 py-2" *ngIf="totalPaginasFormulas > 1">
+          <nav>
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" [class.disabled]="paginaFormulas === 1">
+                <button class="page-link" (click)="paginaFormulas = paginaFormulas - 1">&#8249;</button>
+              </li>
+              <li class="page-item" *ngFor="let p of paginasFormulas" [class.active]="p === paginaFormulas">
+                <button class="page-link" (click)="paginaFormulas = p">{{ p }}</button>
+              </li>
+              <li class="page-item" [class.disabled]="paginaFormulas === totalPaginasFormulas">
+                <button class="page-link" (click)="paginaFormulas = paginaFormulas + 1">&#8250;</button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: HISTORIAL ═══════════════ -->
+  <div *ngIf="tabActual === 'historial'">
+    <div class="row g-3">
+      <div [class]="despachoSeleccionado ? 'col-lg-7' : 'col-12'">
+        <div class="card">
+          <div class="card-header d-flex align-items-center gap-2">
+            <input type="text" class="form-control form-control-sm" placeholder="Buscar despacho..." [(ngModel)]="busquedaHistorial" style="max-width:280px">
+            <button class="btn btn-outline-primary btn-sm ms-auto" (click)="cargarDespachos()" ngbTooltip="Actualizar">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <div class="text-center py-4" *ngIf="cargandoDespachos">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
+            <div class="text-center py-4 text-muted" *ngIf="!cargandoDespachos && despachos.length === 0">
+              <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Sin despachos registrados.
+            </div>
+            <div class="table-responsive" *ngIf="!cargandoDespachos && despachos.length > 0">
+              <table class="table table-striped table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>#</th>
+                    <th>Fórmula</th>
+                    <th>Responsable</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th class="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let d of despachosPaginados" [class.table-active]="despachoSeleccionado?.id === d.id">
+                    <td class="fw-semibold">{{ d.id }}</td>
+                    <td>#{{ d.formulaMedica?.id }}</td>
+                    <td>{{ d.usuarioDespacho?.username }}</td>
+                    <td>{{ d.fechaCreacion | date:'dd/MM/yy HH:mm' }}</td>
+                    <td><span class="badge" [ngClass]="badgeEstado(d.estado)">{{ etiquetaEstado(d.estado) }}</span></td>
+                    <td class="text-end">
+                      <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn btn-outline-secondary btn-sm" (click)="verDetalle(d)" ngbTooltip="Ver detalle">
+                          <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" (click)="descargarPdf(d.id!)" ngbTooltip="Descargar PDF">
+                          <i class="fa-solid fa-file-pdf"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" [disabled]="!puedeRevertir(d)" (click)="abrirReversion(d)" ngbTooltip="Revertir despacho">
+                          <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="d-flex justify-content-end px-3 py-2" *ngIf="totalPaginasHistorial > 1">
+              <nav>
+                <ul class="pagination pagination-sm mb-0">
+                  <li class="page-item" [class.disabled]="paginaHistorial === 1">
+                    <button class="page-link" (click)="paginaHistorial = paginaHistorial - 1">&#8249;</button>
+                  </li>
+                  <li class="page-item" *ngFor="let p of paginasHistorial" [class.active]="p === paginaHistorial">
+                    <button class="page-link" (click)="paginaHistorial = p">{{ p }}</button>
+                  </li>
+                  <li class="page-item" [class.disabled]="paginaHistorial === totalPaginasHistorial">
+                    <button class="page-link" (click)="paginaHistorial = paginaHistorial + 1">&#8250;</button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5" *ngIf="despachoSeleccionado">
+        <div class="card">
+          <div class="card-header d-flex align-items-center">
+            <span class="fw-semibold">Despacho #{{ despachoSeleccionado.id }} &mdash; Detalle</span>
+            <button class="btn btn-outline-secondary btn-sm ms-auto" (click)="despachoSeleccionado = null" ngbTooltip="Cerrar">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="card-body">
+            <h6 class="text-muted mb-2 small text-uppercase">Medicamentos despachados</h6>
+            <div class="text-muted small" *ngIf="detallesDespacho.length === 0">Sin detalles.</div>
+            <table class="table table-sm align-middle" *ngIf="detallesDespacho.length > 0">
+              <thead class="table-light">
+                <tr><th>Medicamento</th><th>Prescrita</th><th>Entregada</th><th>Lote</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let det of detallesDespacho">
+                  <td>{{ det.medicamento?.nombre }}</td>
+                  <td>{{ det.cantidadPrescrita }}</td>
+                  <td>{{ det.cantidadEntregada }}</td>
+                  <td><small>{{ det.lote?.numeroLote }}</small></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h6 class="text-muted mt-3 mb-2 small text-uppercase">Historial de estados</h6>
+            <div class="text-muted small" *ngIf="historialDespacho.length === 0">Sin historial.</div>
+            <ul class="list-group list-group-flush" *ngIf="historialDespacho.length > 0">
+              <li class="list-group-item px-0 py-1" *ngFor="let h of historialDespacho">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge" [ngClass]="badgeEstado(h.estadoNuevo)">{{ etiquetaEstado(h.estadoNuevo) }}</span>
+                  <small class="text-muted">{{ h.fechaHora | date:'dd/MM/yy HH:mm' }}</small>
+                </div>
+                <small *ngIf="h.motivo" class="text-muted d-block mt-1">{{ h.motivo }}</small>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: MOVIMIENTOS ═══════════════ -->
+  <div *ngIf="tabActual === 'movimientos'">
+    <div class="card">
+      <div class="card-header">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label mb-1 small">ID de Medicamento</label>
+            <input type="number" class="form-control form-control-sm" placeholder="Ingrese el ID del medicamento..." [(ngModel)]="medicamentoBusqueda" (keyup.enter)="buscarMovimientos()">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-primary btn-sm" (click)="buscarMovimientos()">
+              <i class="fa-solid fa-search me-1"></i>Buscar movimientos
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="text-center py-4" *ngIf="cargandoMovimientos">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div class="text-center py-4 text-muted" *ngIf="!cargandoMovimientos && !medicamentoIdMovimientos">
+          <i class="fa-solid fa-magnifying-glass fa-2x mb-2 d-block"></i>Ingresa el ID de un medicamento para ver sus movimientos.
+        </div>
+        <div class="text-center py-4 text-muted" *ngIf="!cargandoMovimientos && medicamentoIdMovimientos && movimientos.length === 0">
+          <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Sin movimientos para este medicamento.
+        </div>
+        <div class="table-responsive" *ngIf="!cargandoMovimientos && movimientos.length > 0">
+          <table class="table table-striped table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Despacho</th>
+                <th>Lote</th>
+                <th>Fecha/Hora</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of movimientos">
+                <td>{{ m.id }}</td>
+                <td>
+                  <span class="badge" [ngClass]="m.tipoMovimiento === 'SALIDA_DESPACHO' ? 'bg-danger' : 'bg-info text-dark'">
+                    {{ m.tipoMovimiento === 'SALIDA_DESPACHO' ? 'Salida' : 'Reversión' }}
+                  </span>
+                </td>
+                <td>{{ m.cantidad }}</td>
+                <td>{{ m.despacho?.id ? '#' + m.despacho.id : '—' }}</td>
+                <td>{{ m.lote?.numeroLote ?? '—' }}</td>
+                <td>{{ m.fechaHora | date:'dd/MM/yy HH:mm' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ MODAL: PREPARAR / CONFIRMAR DESPACHO ═══════════════ -->
+<div class="modal fade" id="modalDespacho" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-pills me-2"></i>Preparar y Confirmar Despacho</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="text-center py-3" *ngIf="cargandoDetalle">
+          <div class="spinner-border text-primary"></div>
+          <p class="mt-2 text-muted small">Cargando lotes disponibles (FEFO)...</p>
+        </div>
+
+        <ng-container *ngIf="!cargandoDetalle && formulaActual">
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-3">
+              <label class="form-label small text-muted mb-0">N° Fórmula</label>
+              <div class="fw-semibold">#{{ formulaActual.formulaId }}</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted mb-0">Fecha</label>
+              <div>{{ formulaActual.fechaFormula | date:'dd/MM/yyyy' }}</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted mb-0">Veterinario</label>
+              <div>{{ formulaActual.medicoNombre }}</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted mb-0">Estado actual</label>
+              <div><span class="badge" [ngClass]="badgeEstado(formulaActual.estadoDespacho)">{{ etiquetaEstado(formulaActual.estadoDespacho) }}</span></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted mb-0">Propietario</label>
+              <div>{{ formulaActual.propietarioNombre }} <small class="text-muted">({{ formulaActual.propietarioDocumento }})</small></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted mb-0">Mascota</label>
+              <div>{{ formulaActual.mascotaNombre }}</div>
+            </div>
+          </div>
+
+          <div class="card mb-3 border-primary border-opacity-50">
+            <div class="card-header bg-primary bg-opacity-10 py-2">
+              <span class="fw-semibold">Medicamento formulado</span>
+            </div>
+            <div class="card-body py-2">
+              <div class="row g-2">
+                <div class="col-md-4"><span class="text-muted small">Medicamento:</span> <strong>{{ formulaActual.medicamentoNombre }}</strong></div>
+                <div class="col-md-2"><span class="text-muted small">Cantidad prescrita:</span> <strong>{{ formulaActual.cantidad }}</strong></div>
+                <div class="col-md-2"><span class="text-muted small">Dosis:</span> {{ formulaActual.dosis }}</div>
+                <div class="col-md-2"><span class="text-muted small">Frecuencia:</span> {{ formulaActual.frecuencia }}</div>
+                <div class="col-md-2"><span class="text-muted small">Duración:</span> {{ formulaActual.duracion }}</div>
+                <div class="col-12" *ngIf="formulaActual.indicaciones">
+                  <span class="text-muted small">Indicaciones:</span> {{ formulaActual.indicaciones }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h6 class="mb-2">Lotes disponibles <small class="text-muted fw-normal">(ordenados por fecha de vencimiento – FEFO)</small></h6>
+
+          <div class="alert alert-warning py-2 mb-2" *ngIf="!formulaActual.lotesDisponibles?.length">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>No hay lotes disponibles para este medicamento.
+          </div>
+
+          <div class="table-responsive mb-3" *ngIf="formulaActual.lotesDisponibles?.length">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:40px"></th>
+                  <th>Lote</th>
+                  <th>Stock disponible</th>
+                  <th>Vence</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let lote of formulaActual.lotesDisponibles"
+                    [class.table-danger]="lote.vencido"
+                    [class.table-warning]="!lote.vencido && lote.proximoAVencer"
+                    [class.table-success]="loteSeleccionado?.loteId === lote.loteId && !lote.vencido">
+                  <td>
+                    <input type="radio" class="form-check-input"
+                           [disabled]="lote.vencido || lote.cantidadDisponible === 0"
+                           [checked]="loteSeleccionado?.loteId === lote.loteId"
+                           (change)="seleccionarLote(lote)">
+                  </td>
+                  <td class="fw-semibold">{{ lote.numeroLote }}</td>
+                  <td>
+                    <span [class.text-danger]="lote.cantidadDisponible === 0">{{ lote.cantidadDisponible }}</span>
+                    <small class="text-muted"> uds</small>
+                  </td>
+                  <td>{{ lote.fechaVencimiento | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="badgeLote(lote)">{{ labelLote(lote) }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-danger py-2 mb-2" *ngIf="loteSeleccionado?.vencido">
+            <i class="fa-solid fa-ban me-2"></i>El lote seleccionado está <strong>vencido</strong>. No puede ser despachado.
+          </div>
+          <div class="alert alert-warning py-2 mb-2" *ngIf="loteSeleccionado && loteSeleccionado.proximoAVencer && !loteSeleccionado.vencido">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>Este lote vence próximamente. Confirme que el tratamiento finaliza antes del vencimiento.
+          </div>
+
+          <div class="row g-3 align-items-end mt-1">
+            <div class="col-md-4">
+              <label class="form-label">Cantidad a entregar</label>
+              <input type="number" class="form-control"
+                     [min]="1" [max]="cantidadMaxEntrega"
+                     [(ngModel)]="cantidadAEntregar"
+                     [disabled]="!loteSeleccionado || loteSeleccionado.vencido || accionDespacho !== 'CONFIRMAR'">
+              <div class="form-text" *ngIf="loteSeleccionado">
+                Máximo: {{ cantidadMaxEntrega }} (prescrita: {{ cantidadPrescritaNum }}, stock lote: {{ loteSeleccionado.cantidadDisponible }})
+              </div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Acción</label>
+              <select class="form-select" [(ngModel)]="accionDespacho">
+                <option value="CONFIRMAR">Confirmar entrega</option>
+                <option value="EN_PREPARACION">Marcar en preparación</option>
+                <option value="PENDIENTE_DISPONIBILIDAD">Pendiente por disponibilidad</option>
+                <option value="CANCELADO">Cancelar fórmula</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-3" *ngIf="accionDespacho === 'CANCELADO'">
+            <label class="form-label">Motivo de cancelación <span class="text-danger">*</span></label>
+            <textarea class="form-control" rows="2" [(ngModel)]="motivoCancelacion" placeholder="Describa el motivo..."></textarea>
+          </div>
+
+          <div class="alert alert-danger mt-3 py-2" *ngIf="errorDespacho">
+            <i class="fa-solid fa-circle-exclamation me-2"></i>{{ errorDespacho }}
+          </div>
+
+          <div class="alert alert-success mt-3 py-2 d-flex align-items-center gap-3" *ngIf="despachoConfirmadoId">
+            <i class="fa-solid fa-circle-check fa-lg"></i>
+            <span>Despacho confirmado exitosamente.</span>
+            <button class="btn btn-success btn-sm ms-auto" (click)="descargarPdf(despachoConfirmadoId!)">
+              <i class="fa-solid fa-file-pdf me-1"></i>Descargar comprobante PDF
+            </button>
+          </div>
+
+        </ng-container>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button class="btn btn-primary" [disabled]="enviandoDespacho || cargandoDetalle || !!despachoConfirmadoId"
+                (click)="confirmarAccion()">
+          <span class="spinner-border spinner-border-sm me-1" *ngIf="enviandoDespacho"></span>
+          <i class="fa-solid fa-check me-1" *ngIf="!enviandoDespacho"></i>
+          {{ accionDespacho === 'CONFIRMAR' ? 'Confirmar entrega' : 'Aplicar cambio' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL: REVERSIÓN ═══════════════ -->
+<div class="modal fade" id="modalReversion" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-rotate-left me-2 text-danger"></i>Revertir Despacho #{{ despachoSeleccionado?.id }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning py-2 mb-3">
+          <i class="fa-solid fa-triangle-exclamation me-2"></i>Esta acción restaurará el stock de los medicamentos y marcará el despacho como <strong>CANCELADO</strong>. Esta operación <strong>no se puede deshacer</strong>.
+        </div>
+        <form [formGroup]="formReversion">
+          <label class="form-label">Motivo de la reversión <span class="text-danger">*</span></label>
+          <textarea class="form-control" rows="3" formControlName="motivo" placeholder="Describa el motivo de la reversión..."
+                    [class.is-invalid]="formReversion.get('motivo')?.invalid && formReversion.get('motivo')?.touched"></textarea>
+          <div class="invalid-feedback">El motivo es obligatorio (mínimo 5 caracteres).</div>
+        </form>
+        <div class="alert alert-danger mt-3 py-2" *ngIf="errorReversion">
+          <i class="fa-solid fa-circle-exclamation me-2"></i>{{ errorReversion }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger" [disabled]="formReversion.invalid || enviandoReversion" (click)="confirmarReversion()">
+          <span class="spinner-border spinner-border-sm me-1" *ngIf="enviandoReversion"></span>
+          <i class="fa-solid fa-rotate-left me-1" *ngIf="!enviandoReversion"></i>
+          Revertir despacho
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

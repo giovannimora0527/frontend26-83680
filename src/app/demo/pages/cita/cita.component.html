@@ -1,16 +1,55 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
-            <div class="row g-3">
-                <div class="col-md-9">
-                    <input class="form-control" placeholder="Buscar cita" aria-label="Buscar cita" type="search"
+            <div class="row g-2 align-items-center">
+                <!-- Búsqueda (solo tabla) -->
+                <div class="col-md-4" *ngIf="vistaActual === 'tabla'">
+                    <input class="form-control" placeholder="Buscar cita" type="search"
                         (input)="actualizarBusqueda($event)" />
                 </div>
-                <div class="col-md-3 text-end">
-                    <button type="button" class="btn btn-outline-primary" (click)="nuevaCita('C')"
-                        ngbTooltip="Agregar nueva cita" tooltipClass="tooltip-info" triggers="hover focus"
-                        placement="top" container="body">
-                        <i class="fa fa-plus" aria-hidden="true"></i>&nbsp; Nueva cita
+                <!-- Filtro médico (solo vistas calendario) -->
+                <div class="col-md-4" *ngIf="vistaActual !== 'tabla'">
+                    <select class="form-select" [(ngModel)]="medicoFiltroId" (change)="onFiltroMedicoChange()"
+                        [ngModelOptions]="{standalone: true}">
+                        <option [ngValue]="null">Todos los médicos</option>
+                        <option *ngFor="let m of listTodosMedicos" [ngValue]="m.id">
+                            {{ m.nombres }} {{ m.apellidos }}
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-8 text-end d-flex gap-2 justify-content-end">
+                    <!-- Toggle vista -->
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm"
+                            [ngClass]="vistaActual === 'tabla' ? 'btn-primary' : 'btn-outline-secondary'"
+                            (click)="cambiarVista('tabla')">
+                            <i class="fa fa-list"></i> Tabla
+                        </button>
+                        <button type="button" class="btn btn-sm"
+                            [ngClass]="vistaActual === 'mes' ? 'btn-primary' : 'btn-outline-secondary'"
+                            (click)="cambiarVista('mes')">
+                            <i class="fa fa-calendar"></i> Mes
+                        </button>
+                        <button type="button" class="btn btn-sm"
+                            [ngClass]="vistaActual === 'semana' ? 'btn-primary' : 'btn-outline-secondary'"
+                            (click)="cambiarVista('semana')">
+                            <i class="fa fa-calendar-week"></i> Semana
+                        </button>
+                        <button type="button" class="btn btn-sm"
+                            [ngClass]="vistaActual === 'dia' ? 'btn-primary' : 'btn-outline-secondary'"
+                            (click)="cambiarVista('dia')">
+                            <i class="fa fa-calendar-day"></i> Día
+                        </button>
+                    </div>
+                    <!-- Exportar -->
+                    <button type="button" class="btn btn-outline-success btn-sm"
+                        (click)="exportarCSV()" ngbTooltip="Exportar lista actual a CSV/Excel" placement="top" container="body">
+                        <i class="fa fa-download"></i> Exportar
+                    </button>
+                    <!-- Nueva cita -->
+                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="nuevaCita('C')"
+                        ngbTooltip="Agregar nueva cita" placement="top" container="body">
+                        <i class="fa fa-plus"></i> Nueva cita
                     </button>
                 </div>
             </div>
@@ -20,7 +59,148 @@
                 {{ errorCitas }}
                 <button type="button" class="btn btn-link" (click)="listarCitas()">Reintentar</button>
             </div>
-            <div class="table-responsive">
+
+            <!-- ══ VISTA MES ══ -->
+            <div *ngIf="vistaActual === 'mes'">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <button class="btn btn-outline-secondary btn-sm" (click)="mesAnterior()">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-semibold">{{ tituloMes }}</h5>
+                        <button class="btn btn-outline-primary btn-sm" (click)="irAHoy()">Hoy</button>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" (click)="mesSiguiente()">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="cal-grid">
+                    <div class="cal-header" *ngFor="let d of DIAS_SEMANA">{{ d }}</div>
+                    <ng-container *ngFor="let semana of semanas">
+                        <div *ngFor="let dia of semana" class="cal-dia"
+                            [class.cal-otro-mes]="!dia.esDelMes"
+                            [class.cal-hoy]="dia.esHoy">
+                            <span class="cal-num">{{ dia.fecha.getDate() }}</span>
+                            <div class="cal-citas">
+                                <span *ngFor="let c of dia.citas"
+                                    class="cal-chip badge"
+                                    [ngClass]="badgeCita(c.estado)"
+                                    (click)="verCitaCalendario(c)"
+                                    style="cursor:pointer; display:block; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%"
+                                    [title]="(c.mascota?.nombreMascota ?? c.mascota?.nombre ?? '') + ' — ' + (c.medico?.nombres ?? '') + ' ' + (c.medico?.apellidos ?? '')">
+                                    {{ (c.fechaHora | date:'HH:mm') }} {{ c.mascota?.nombreMascota ?? c.mascota?.nombre }}
+                                </span>
+                            </div>
+                        </div>
+                    </ng-container>
+                </div>
+                <div class="d-flex gap-3 mt-3 flex-wrap">
+                    <span class="badge bg-primary">Programada</span>
+                    <span class="badge bg-success">Confirmada</span>
+                    <span class="badge bg-danger">Cancelada</span>
+                    <span class="badge bg-secondary">Otro</span>
+                    <span class="ms-auto text-muted small">Total: {{ listEspecializaciones.length }} cita(s)</span>
+                </div>
+            </div>
+
+            <!-- ══ VISTA SEMANA ══ -->
+            <div *ngIf="vistaActual === 'semana'">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <button class="btn btn-outline-secondary btn-sm" (click)="semanaAnterior()">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-semibold">{{ tituloSemana }}</h5>
+                        <button class="btn btn-outline-primary btn-sm" (click)="irAHoy()">Hoy</button>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" (click)="semanaSiguiente()">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="cal-time-grid">
+                    <!-- Cabecera columnas -->
+                    <div class="cal-time-header">
+                        <div class="cal-time-gutter"></div>
+                        <div *ngFor="let col of semanaGrid; let i = index"
+                            class="cal-time-col-header"
+                            [class.cal-hoy]="col.dia.esHoy">
+                            <span class="cal-dow">{{ DIAS_SEMANA[i] }}</span>
+                            <span class="cal-day-num" [class.cal-hoy-num]="col.dia.esHoy">{{ col.dia.fecha.getDate() }}</span>
+                        </div>
+                    </div>
+                    <!-- Filas por hora -->
+                    <div *ngFor="let hora of HORAS; let hi = index" class="cal-time-row">
+                        <div class="cal-time-gutter">{{ hora < 10 ? '0' + hora : hora }}:00</div>
+                        <div *ngFor="let col of semanaGrid" class="cal-time-slot" [class.cal-hoy]="col.dia.esHoy">
+                            <span *ngFor="let c of col.horas[hi]"
+                                class="cal-chip badge"
+                                [ngClass]="badgeCita(c.estado)"
+                                (click)="verCitaCalendario(c)"
+                                style="cursor:pointer; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%"
+                                [title]="(c.fechaHora | date:'HH:mm') + ' — ' + (c.mascota?.nombreMascota ?? c.mascota?.nombre ?? '') + ' — Dr/a. ' + (c.medico?.nombres ?? '') + ' ' + (c.medico?.apellidos ?? '')">
+                                <strong>{{ c.fechaHora | date:'HH:mm' }}</strong> {{ c.mascota?.nombreMascota ?? c.mascota?.nombre }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 mt-3 flex-wrap">
+                    <span class="badge bg-primary">Programada</span>
+                    <span class="badge bg-success">Confirmada</span>
+                    <span class="badge bg-danger">Cancelada</span>
+                    <span class="badge bg-secondary">Otro</span>
+                    <span class="ms-auto text-muted small">Total: {{ listEspecializaciones.length }} cita(s)</span>
+                </div>
+            </div>
+
+            <!-- ══ VISTA DÍA ══ -->
+            <div *ngIf="vistaActual === 'dia'">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <button class="btn btn-outline-secondary btn-sm" (click)="diaAnterior()">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-semibold">{{ tituloDia }}</h5>
+                        <button class="btn btn-outline-primary btn-sm" (click)="irAHoy()">Hoy</button>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" (click)="diaSiguiente()">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="cal-dia-view">
+                    <div *ngFor="let hora of HORAS; let hi = index" class="cal-dia-row"
+                        [class.cal-dia-row-con-citas]="diaGrid[hi]?.length > 0">
+                        <div class="cal-time-label">{{ hora < 10 ? '0' + hora : hora }}:00</div>
+                        <div class="cal-dia-slot">
+                            <ng-container *ngIf="diaGrid[hi]?.length > 0; else sinCitas">
+                                <span *ngFor="let c of diaGrid[hi]"
+                                    class="cal-chip-dia badge"
+                                    [ngClass]="badgeCita(c.estado)"
+                                    (click)="verCitaCalendario(c)"
+                                    style="cursor:pointer"
+                                    [title]="c.motivo ?? ''">
+                                    <strong>{{ c.fechaHora | date:'HH:mm' }}</strong>
+                                    &mdash; {{ c.mascota?.nombreMascota ?? c.mascota?.nombre }}
+                                    &mdash; Dr/a. {{ c.medico?.nombres }} {{ c.medico?.apellidos }}
+                                    <span class="ms-1 opacity-75 d-block" *ngIf="c.motivo">{{ c.motivo }}</span>
+                                </span>
+                            </ng-container>
+                            <ng-template #sinCitas>
+                                <span class="text-muted" style="font-size:0.72rem; opacity:.4">—</span>
+                            </ng-template>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 mt-3 flex-wrap">
+                    <span class="badge bg-primary">Programada</span>
+                    <span class="badge bg-success">Confirmada</span>
+                    <span class="badge bg-danger">Cancelada</span>
+                    <span class="badge bg-secondary">Otro</span>
+                    <span class="ms-auto text-muted small">Total: {{ listEspecializaciones.length }} cita(s)</span>
+                </div>
+            </div>
+
+            <!-- ══ VISTA TABLA ══ -->
+            <div class="table-responsive" *ngIf="vistaActual === 'tabla'">
                 <table class="table table-striped table-condensed">
                     <thead>
                         <tr>
@@ -110,7 +290,7 @@
                     </tbody>
                 </table>
             </div>
-            <nav *ngIf="totalPaginas > 1" aria-label="Paginación de citas">
+            <nav *ngIf="vistaActual === 'tabla' && totalPaginas > 1" aria-label="Paginación de citas">
                 <ul class="pagination justify-content-end mb-0">
                     <li class="page-item" [class.disabled]="paginaActual === 1">
                         <button class="page-link" type="button" [disabled]="paginaActual === 1"
@@ -210,6 +390,12 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
+                <button type="button" class="btn btn-success"
+                  [disabled]="esCitaCancelada(citaDetalle) || esCitaFinalizada(citaDetalle)"
+                  (click)="iniciarAtencion(citaDetalle!)"
+                  [ngbTooltip]="esCitaFinalizada(citaDetalle) ? 'Esta cita ya fue atendida' : 'Ir al historial clínico para registrar la atención'">
+                  <i class="fa fa-stethoscope me-1"></i> Iniciar Atención
+                </button>
             </div>
         </div>
     </div>
@@ -228,17 +414,34 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
+                            <label for="citaCliente" class="form-label">Cliente</label>
+                            <select id="citaCliente" class="form-select"
+                                [value]="clienteSeleccionadoId ?? ''"
+                                (change)="onClienteChange($event)">
+                                <option value="">
+                                    {{ cargandoClientes ? 'Cargando clientes...' : 'Todos los clientes' }}
+                                </option>
+                                <option *ngFor="let cliente of listClientes" [value]="cliente.id">
+                                    {{ cliente.nombres }} {{ cliente.apellidos }}
+                                </option>
+                            </select>
+                            <div class="text-danger" *ngIf="errorClientes" role="alert">
+                                {{ errorClientes }}
+                                <button type="button" class="btn btn-link"
+                                    (click)="listarClientes()">Reintentar</button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
                             <label for="citaMascota" class="form-label">Mascota</label>
                             <select id="citaMascota" class="form-select" formControlName="mascota"
                                 [compareWith]="compararMascotas">
                                 <option [ngValue]="null" disabled>
                                     {{ cargandoMascotas ? 'Cargando mascotas...' : errorMascotas ?
-                                    'No se pudieron cargar las mascotas' : listMascotas.length ?
+                                    'No se pudieron cargar las mascotas' : mascotasPorCliente.length ?
                                     'Selecciona una mascota' : 'No hay mascotas disponibles' }}
                                 </option>
-                                <option *ngFor="let mascota of listMascotas" [ngValue]="mascota">
+                                <option *ngFor="let mascota of mascotasPorCliente" [ngValue]="mascota">
                                     {{ mascota.nombreMascota ?? mascota.nombre }}
-                                    - {{ mascota.cliente?.nombres }} {{ mascota.cliente?.apellidos }}
                                 </option>
                             </select>
                             <div class="text-danger" *ngIf="errorMascotas" role="alert">

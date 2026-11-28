@@ -3,6 +3,7 @@ export interface JwtPayload {
   username: string;
   email: string;
   rol: string;
+  medicoId: number | null;
   menus: string;
   iat: number;
   exp: number;
@@ -52,6 +53,7 @@ export function getJwtPayload(): JwtPayload | null {
     username: payload['username'],
     email: payload['email'],
     rol: payload['rol'],
+    medicoId: typeof payload['medicoId'] === 'number' ? payload['medicoId'] : null,
     menus: payload['menus'],
     iat: payload['iat'],
     exp: payload['exp']

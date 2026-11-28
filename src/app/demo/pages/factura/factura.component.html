@@ -1,0 +1,315 @@
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="ti ti-receipt me-2"></i>Facturación</h4>
+    <button class="btn btn-primary btn-sm" (click)="nuevaFactura()">
+      <i class="ti ti-plus me-1"></i>Generar Factura
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <input type="text" class="form-control form-control-sm" style="width:300px"
+            placeholder="Buscar por No., propietario, mascota, estado..."
+            (input)="actualizarBusqueda($event)" />
+          <small class="text-muted d-block mt-1">
+            <i class="ti ti-info-circle me-1"></i>Puede filtrar por nombre del propietario, mascota o No. de factura para consultar el historial.
+          </small>
+        </div>
+        <small class="text-muted">{{ facturasFiltradas.length }} factura(s)</small>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>No. Factura</th>
+              <th>Fecha</th>
+              <th>Propietario</th>
+              <th>Mascota</th>
+              <th>Médico / Especialidad</th>
+              <th class="text-end">Total</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of facturasPaginadas; let i = index">
+              <td>{{ (paginaActual - 1) * registrosPorPagina + i + 1 }}</td>
+              <td><strong>{{ f.numero }}</strong></td>
+              <td>{{ f.fechaGeneracion | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <div>{{ f.cita?.cliente?.nombres }} {{ f.cita?.cliente?.apellidos }}</div>
+                <small class="text-muted">{{ f.cita?.cliente?.tipoDocumento }} {{ f.cita?.cliente?.numeroDocumento }}</small>
+              </td>
+              <td>{{ f.cita?.mascota?.nombreMascota ?? f.cita?.mascota?.nombre }}</td>
+              <td>
+                <div>Dr/a. {{ f.cita?.medico?.nombres }} {{ f.cita?.medico?.apellidos }}</div>
+                <small class="text-muted">{{ f.cita?.medico?.especializacion?.nombre ?? '—' }}</small>
+              </td>
+              <td class="text-end"><strong>{{ f.total | number:'1.2-2' }}</strong></td>
+              <td class="text-center">
+                <span [class]="badgeEstado(f.estado)">{{ f.estado }}</span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-info me-1" ngbTooltip="Ver detalle" (click)="verDetalle(f)">
+                  <i class="ti ti-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-success me-1" ngbTooltip="Registrar pago"
+                  [disabled]="f.estado === 'PAGADA' || f.estado === 'ANULADA'"
+                  (click)="abrirPago(f)">
+                  <i class="ti ti-cash"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary me-1" ngbTooltip="Descargar PDF" (click)="generarPDF(f)">
+                  <i class="ti ti-file-type-pdf"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" ngbTooltip="Anular"
+                  [disabled]="f.estado === 'PAGADA' || f.estado === 'ANULADA'"
+                  (click)="anular(f)">
+                  <i class="ti ti-ban"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="facturasPaginadas.length === 0">
+              <td colspan="9" class="text-center text-muted py-4">No hay facturas registradas.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <nav *ngIf="totalPaginas > 1">
+        <ul class="pagination pagination-sm justify-content-center mb-0">
+          <li class="page-item" [class.disabled]="paginaActual === 1">
+            <a class="page-link" (click)="cambiarPagina(paginaActual - 1)">‹</a>
+          </li>
+          <li class="page-item" *ngFor="let p of paginas" [class.active]="p === paginaActual">
+            <a class="page-link" (click)="cambiarPagina(p)">{{ p }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+            <a class="page-link" (click)="cambiarPagina(paginaActual + 1)">›</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nueva Factura -->
+<div class="modal fade" id="modalFactura" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="ti ti-receipt me-2"></i>Generar Factura</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" *ngIf="respuestaError">{{ respuestaError }}</div>
+        <form [formGroup]="formFactura">
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Cita (atendida) <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="citaId"
+                [class.is-invalid]="formFactura.get('citaId')?.invalid && formFactura.get('citaId')?.touched">
+                <option [value]="null">— Seleccione —</option>
+                <option *ngFor="let c of listCitasSinFactura" [value]="c.id">
+                  {{ c.fechaHora | date:'dd/MM/yyyy HH:mm' }} — {{ c.mascota?.nombreMascota ?? c.mascota?.nombre }} — Dr/a. {{ c.medico?.nombres }}
+                </option>
+              </select>
+              <div class="invalid-feedback">Seleccione la cita.</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Descuento (%)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" formControlName="porcentajeDescuento"
+                  min="0" max="100" step="1" placeholder="0" />
+                <span class="input-group-text">%</span>
+              </div>
+              <small class="text-muted" *ngIf="descuentoMonetario > 0">
+                = {{ descuentoMonetario | number:'1.2-2' }} descuento
+              </small>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Notas</label>
+              <input type="text" class="form-control" formControlName="notas" />
+            </div>
+          </div>
+        </form>
+
+        <!-- Lista de ítems -->
+        <table class="table table-sm table-bordered" *ngIf="items.length > 0 && !cargandoItemsCita">
+          <thead class="table-light">
+            <tr><th>Descripción</th><th>Tipo</th><th class="text-end">Cant.</th><th class="text-end">P. Unit.</th><th class="text-end">IVA</th><th class="text-end">Subtotal</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let it of items; let i = index">
+              <td>{{ it.descripcion }}</td>
+              <td>{{ it.tipo }}</td>
+              <td class="text-end">{{ it.cantidad }}</td>
+              <td class="text-end">{{ it.precioUnitario | number:'1.2-2' }}</td>
+              <td class="text-end">{{ it.iva }}%</td>
+              <td class="text-end"><strong>{{ it.subtotal | number:'1.2-2' }}</strong></td>
+              <td class="text-center"><button class="btn btn-sm btn-outline-danger" (click)="quitarItem(i)"><i class="ti ti-trash"></i></button></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" class="text-end fw-semibold">Subtotal:</td>
+              <td class="text-end">{{ subtotalItems | number:'1.2-2' }}</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colspan="5" class="text-end fw-semibold">IVA:</td>
+              <td class="text-end">{{ ivaItems | number:'1.2-2' }}</td>
+              <td></td>
+            </tr>
+            <tr class="table-primary">
+              <td colspan="5" class="text-end fw-bold">TOTAL:</td>
+              <td class="text-end fw-bold">{{ totalItems | number:'1.2-2' }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        <div *ngIf="cargandoItemsCita" class="text-center py-3">
+          <span class="spinner-border spinner-border-sm text-primary me-2"></span>
+          Cargando ítems de la cita...
+        </div>
+        <div *ngIf="!cargandoItemsCita && items.length === 0" class="text-center text-muted py-3">
+          Seleccione una cita o agregue ítems manualmente.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" (click)="guardarFactura()" [disabled]="enviando">
+          <span *ngIf="enviando" class="spinner-border spinner-border-sm me-1"></span>
+          Generar Factura
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle -->
+<div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" *ngIf="facturaSeleccionada">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalle — {{ facturaSeleccionada.numero }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col-md-4">
+            <small class="text-muted d-block">Propietario</small>
+            <strong>{{ facturaSeleccionada.cita?.cliente?.nombres }} {{ facturaSeleccionada.cita?.cliente?.apellidos }}</strong>
+            <div class="text-muted" style="font-size:0.8rem">
+              {{ facturaSeleccionada.cita?.cliente?.tipoDocumento }} {{ facturaSeleccionada.cita?.cliente?.numeroDocumento }}
+              <span *ngIf="facturaSeleccionada.cita?.cliente?.telefono"> · {{ facturaSeleccionada.cita?.cliente?.telefono }}</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Mascota</small>
+            <strong>{{ facturaSeleccionada.cita?.mascota?.nombreMascota ?? facturaSeleccionada.cita?.mascota?.nombre }}</strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Veterinario</small>
+            <strong>Dr/a. {{ facturaSeleccionada.cita?.medico?.nombres }} {{ facturaSeleccionada.cita?.medico?.apellidos }}</strong>
+            <div class="text-muted" style="font-size:0.8rem">{{ facturaSeleccionada.cita?.medico?.especializacion?.nombre ?? '—' }}</div>
+          </div>
+          <div class="col-md-2">
+            <small class="text-muted d-block">Estado</small>
+            <span [class]="badgeEstado(facturaSeleccionada.estado)">{{ facturaSeleccionada.estado }}</span>
+            <div class="text-muted mt-1" style="font-size:0.8rem">{{ facturaSeleccionada.fechaGeneracion | date:'dd/MM/yyyy HH:mm' }}</div>
+          </div>
+        </div>
+        <table class="table table-sm">
+          <thead><tr><th>Descripción</th><th>Tipo</th><th class="text-end">Cant.</th><th class="text-end">P. Unit.</th><th class="text-end">IVA</th><th class="text-end">Subtotal</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let it of facturaSeleccionada.items">
+              <td>{{ it.descripcion }}</td><td>{{ it.tipo }}</td>
+              <td class="text-end">{{ it.cantidad }}</td>
+              <td class="text-end">{{ it.precioUnitario | number:'1.2-2' }}</td>
+              <td class="text-end">{{ it.iva }}%</td>
+              <td class="text-end">{{ it.subtotal | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="5" class="text-end">Subtotal</td><td class="text-end">{{ facturaSeleccionada.subtotal | number:'1.2-2' }}</td></tr>
+            <tr><td colspan="5" class="text-end">IVA</td><td class="text-end">{{ facturaSeleccionada.totalIva | number:'1.2-2' }}</td></tr>
+            <tr *ngIf="(facturaSeleccionada.descuento ?? 0) > 0"><td colspan="5" class="text-end">Descuento</td><td class="text-end text-danger">-{{ facturaSeleccionada.descuento | number:'1.2-2' }}</td></tr>
+            <tr class="table-primary fw-bold"><td colspan="5" class="text-end">TOTAL</td><td class="text-end">{{ facturaSeleccionada.total | number:'1.2-2' }}</td></tr>
+          </tfoot>
+        </table>
+
+        <!-- Pagos -->
+        <div *ngIf="(facturaSeleccionada.pagos?.length ?? 0) > 0">
+          <h6 class="mt-3">Pagos registrados</h6>
+          <table class="table table-sm table-bordered">
+            <thead><tr><th>Fecha</th><th>Método</th><th class="text-end">Monto</th><th>Notas</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let p of facturaSeleccionada.pagos">
+                <td>{{ p.fechaPago | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ p.metodoPago }}</td>
+                <td class="text-end">{{ p.monto | number:'1.2-2' }}</td>
+                <td>{{ p.notas ?? '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button class="btn btn-primary" (click)="generarPDF(facturaSeleccionada!)">
+          <i class="ti ti-file-type-pdf me-1"></i>Descargar PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pago -->
+<div class="modal fade" id="modalPago" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="ti ti-cash me-2"></i>Registrar Pago — {{ facturaSeleccionada?.numero }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" *ngIf="respuestaError">{{ respuestaError }}</div>
+        <div class="mb-3 p-2 bg-light rounded text-center">
+          <small class="text-muted">Total factura</small>
+          <div class="fs-4 fw-bold">$ {{ facturaSeleccionada?.total | number:'1.2-2' }}</div>
+        </div>
+        <form [formGroup]="formPago">
+          <div class="mb-3">
+            <label class="form-label">Monto del pago <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control" formControlName="monto" min="0.01"
+                [class.is-invalid]="formPago.get('monto')?.invalid && formPago.get('monto')?.touched" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Método de pago <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="metodoPago">
+              <option *ngFor="let m of METODOS_PAGO" [value]="m">{{ m }}</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notas</label>
+            <input type="text" class="form-control" formControlName="notas" />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-success" (click)="guardarPago()" [disabled]="enviando">
+          <span *ngIf="enviando" class="spinner-border spinner-border-sm me-1"></span>
+          Registrar Pago
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

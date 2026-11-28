@@ -14,4 +14,6 @@ export class Formula {
 	duracion!: string;
 	citaId?: number;
 	medicamentoId?: number;
+	cantidad?: string;
+	viaAdministracion?: string;
 }

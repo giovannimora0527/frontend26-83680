@@ -24,4 +24,8 @@ export class AnotacionHistoriaService {
   actualizarAnotacionHistoria(anotacion: AnotacionHistoriaRq & { id: number }): Observable<AnotacionHistoria> {
     return this.backendService.put<AnotacionHistoria>(environment.apiUrlAuth, this.api, 'actualizar', anotacion);
   }
+
+  porCita(citaId: number): Observable<AnotacionHistoria> {
+    return this.backendService.get<AnotacionHistoria>(environment.apiUrlAuth, this.api, `por-cita/${citaId}`);
+  }
 }
